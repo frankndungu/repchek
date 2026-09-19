@@ -2,12 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>morgan</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>
+      morgan - Muscle Optimization and Recovery Guidance Analysis Network
+    </title>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <main id="app">
+      <video id="camera" autoplay muted playsinline></video>
+      <div id="start-screen">
+        <h1>M.O.R.G.A.N.</h1>
+        <p>Muscle Optimization and Recovery Guidance Analysis Network</p>
+        <button id="start-btn">Start Camera</button>
+        <p id="status"></p>
+      </div>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
