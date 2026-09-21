@@ -1,6 +1,6 @@
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
-import { computeFrameMetrics } from "./engine/angles";
+import { computeFrameMetrics, dominantSide } from "./engine/angles";
 import { Judge } from "./engine/judge";
 import { deadlift } from "./profiles/deadlift";
 import {
@@ -9,7 +9,7 @@ import {
   drawAngleLabels,
   clearCanvas,
 } from "./ui/overlay";
-import { showFeedback } from "./ui/hud";
+import { showFeedback, showDebug } from "./ui/hud";
 import { unlockAudio, beep } from "./ui/audio";
 
 const GOOD_COLOR = "#22c55e";
@@ -69,10 +69,14 @@ function loop(): void {
       drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
       drawAngleLabels(ctx, landmarks, metrics, mirrored);
       showFeedback(verdict.failures.map((rule) => rule.message));
+      showDebug(
+        `${dominantSide(landmarks)} | torso ${metrics.torsoAngle.toFixed(0)} | bar ${metrics.barOffset.toFixed(2)}`,
+      );
       if (!verdict.ok) beep();
     } else {
       clearCanvas(ctx);
       showFeedback([]);
+      showDebug("no person detected");
     }
   }
 

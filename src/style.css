@@ -71,6 +71,19 @@ body {
   pointer-events: none;
 }
 
+#debug {
+  position: absolute;
+  bottom: 24px;
+  left: 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-family: monospace;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
 .mirrored {
   transform: scaleX(-1);
 }

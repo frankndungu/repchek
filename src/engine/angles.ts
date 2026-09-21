@@ -10,6 +10,24 @@ interface Point {
   y: number;
 }
 
+export type Side = "left" | "right";
+
+const LEFT_SIDE = [
+  LANDMARK.LEFT_SHOULDER,
+  LANDMARK.LEFT_HIP,
+  LANDMARK.LEFT_KNEE,
+  LANDMARK.LEFT_ANKLE,
+  LANDMARK.LEFT_WRIST,
+];
+
+const RIGHT_SIDE = [
+  LANDMARK.RIGHT_SHOULDER,
+  LANDMARK.RIGHT_HIP,
+  LANDMARK.RIGHT_KNEE,
+  LANDMARK.RIGHT_ANKLE,
+  LANDMARK.RIGHT_WRIST,
+];
+
 export function angleAt(a: Point, vertex: Point, c: Point): number {
   const dirToA = Math.atan2(a.y - vertex.y, a.x - vertex.x);
   const dirToC = Math.atan2(c.y - vertex.y, c.x - vertex.x);
@@ -27,8 +45,10 @@ export function correctAspect(
   return landmarks.map((lm) => ({ ...lm, x: lm.x * aspect }));
 }
 
-function midpoint(a: Point, b: Point): Point {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+export function dominantSide(landmarks: Landmark[]): Side {
+  const score = (indices: number[]) =>
+    indices.reduce((sum, i) => sum + landmarks[i].visibility, 0);
+  return score(LEFT_SIDE) >= score(RIGHT_SIDE) ? "left" : "right";
 }
 
 export function computeJointAngles(lm: Point[]): JointAngles {
@@ -72,14 +92,15 @@ export function computeFrameMetrics(
 ): FrameMetrics {
   const lm = correctAspect(landmarks, aspect);
   const angles = computeJointAngles(lm);
+  const side = dominantSide(landmarks);
 
-  const shoulder = midpoint(
-    lm[LANDMARK.LEFT_SHOULDER],
-    lm[LANDMARK.RIGHT_SHOULDER],
-  );
-  const hip = midpoint(lm[LANDMARK.LEFT_HIP], lm[LANDMARK.RIGHT_HIP]);
-  const wrist = midpoint(lm[LANDMARK.LEFT_WRIST], lm[LANDMARK.RIGHT_WRIST]);
-  const ankle = midpoint(lm[LANDMARK.LEFT_ANKLE], lm[LANDMARK.RIGHT_ANKLE]);
+  const shoulder =
+    lm[side === "left" ? LANDMARK.LEFT_SHOULDER : LANDMARK.RIGHT_SHOULDER];
+  const hip = lm[side === "left" ? LANDMARK.LEFT_HIP : LANDMARK.RIGHT_HIP];
+  const wrist =
+    lm[side === "left" ? LANDMARK.LEFT_WRIST : LANDMARK.RIGHT_WRIST];
+  const ankle =
+    lm[side === "left" ? LANDMARK.LEFT_ANKLE : LANDMARK.RIGHT_ANKLE];
 
   const torsoLength = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y) || 1;
   const rise = hip.y - shoulder.y;
