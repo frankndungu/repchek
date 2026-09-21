@@ -1,6 +1,12 @@
-import { startCamera, explainCameraError } from "./camera";
+import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
-import { syncCanvasToVideo, drawSkeleton, clearCanvas } from "./ui/overlay";
+import { computeJointAngles } from "./engine/angles";
+import {
+  syncCanvasToVideo,
+  drawSkeleton,
+  drawAngleLabels,
+  clearCanvas,
+} from "./ui/overlay";
 
 const video = document.querySelector<HTMLVideoElement>("#camera")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#overlay")!;
@@ -12,11 +18,16 @@ const ctx = canvas.getContext("2d")!;
 
 let estimator: PoseEstimator | null = null;
 let lastVideoTime = -1;
+let mirrored = false;
 
 startBtn.addEventListener("click", async () => {
   try {
     status.textContent = "Requesting camera...";
-    await startCamera(video);
+    const stream = await startCamera(video);
+
+    mirrored = isUserFacing(stream);
+    video.classList.toggle("mirrored", mirrored);
+    canvas.classList.toggle("mirrored", mirrored);
 
     status.textContent = "Loading pose model...";
     estimator = await PoseEstimator.create();
@@ -40,7 +51,9 @@ function loop(): void {
     syncCanvasToVideo(canvas, video);
     const landmarks = estimator.estimate(video, performance.now());
     if (landmarks) {
+      const angles = computeJointAngles(landmarks);
       drawSkeleton(ctx, landmarks, "#22c55e");
+      drawAngleLabels(ctx, landmarks, angles, mirrored);
     } else {
       clearCanvas(ctx);
     }

@@ -51,3 +51,9 @@ export function explainCameraError(err: unknown): string {
   }
   return "Could not start the camera.";
 }
+
+export function isUserFacing(stream: MediaStream): boolean {
+  const track = stream.getVideoTracks()[0];
+  const facing = track?.getSettings().facingMode;
+  return facing !== "environment";
+}

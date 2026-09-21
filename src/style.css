@@ -55,3 +55,7 @@ body {
   object-fit: cover;
   pointer-events: none;
 }
+
+.mirrored {
+  transform: scaleX(-1);
+}
