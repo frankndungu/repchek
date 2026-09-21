@@ -24,3 +24,37 @@ export const LANDMARK = {
   LEFT_FOOT_INDEX: 31,
   RIGHT_FOOT_INDEX: 32,
 } as const;
+
+export interface JointAngles {
+  leftKnee: number;
+  rightKnee: number;
+  leftHip: number;
+  rightHip: number;
+  leftElbow: number;
+  rightElbow: number;
+}
+
+export interface FrameMetrics extends JointAngles {
+  torsoAngle: number;
+  barOffset: number;
+}
+
+export interface FormRule {
+  id: string;
+  metric: keyof FrameMetrics;
+  min?: number;
+  max?: number;
+  message: string;
+}
+
+export interface ExerciseProfile {
+  id: string;
+  name: string;
+  cameraView: "side" | "front";
+  rules: FormRule[];
+}
+
+export interface Verdict {
+  ok: boolean;
+  failures: FormRule[];
+}

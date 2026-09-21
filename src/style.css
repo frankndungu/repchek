@@ -56,6 +56,21 @@ body {
   pointer-events: none;
 }
 
+#hud {
+  position: absolute;
+  top: 24px;
+  left: 16px;
+  right: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.85);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+  pointer-events: none;
+}
+
 .mirrored {
   transform: scaleX(-1);
 }

@@ -1,12 +1,19 @@
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
-import { computeJointAngles } from "./engine/angles";
+import { computeFrameMetrics } from "./engine/angles";
+import { Judge } from "./engine/judge";
+import { deadlift } from "./profiles/deadlift";
 import {
   syncCanvasToVideo,
   drawSkeleton,
   drawAngleLabels,
   clearCanvas,
 } from "./ui/overlay";
+import { showFeedback } from "./ui/hud";
+import { unlockAudio, beep } from "./ui/audio";
+
+const GOOD_COLOR = "#22c55e";
+const BAD_COLOR = "#ef4444";
 
 const video = document.querySelector<HTMLVideoElement>("#camera")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#overlay")!;
@@ -15,6 +22,7 @@ const startBtn = document.querySelector<HTMLButtonElement>("#start-btn")!;
 const status = document.querySelector<HTMLElement>("#status")!;
 
 const ctx = canvas.getContext("2d")!;
+const judge = new Judge(deadlift);
 
 let estimator: PoseEstimator | null = null;
 let lastVideoTime = -1;
@@ -22,6 +30,8 @@ let mirrored = false;
 
 startBtn.addEventListener("click", async () => {
   try {
+    unlockAudio();
+
     status.textContent = "Requesting camera...";
     const stream = await startCamera(video);
 
@@ -49,13 +59,20 @@ function loop(): void {
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
     syncCanvasToVideo(canvas, video);
+
     const landmarks = estimator.estimate(video, performance.now());
     if (landmarks) {
-      const angles = computeJointAngles(landmarks);
-      drawSkeleton(ctx, landmarks, "#22c55e");
-      drawAngleLabels(ctx, landmarks, angles, mirrored);
+      const aspect = video.videoWidth / video.videoHeight;
+      const metrics = computeFrameMetrics(landmarks, aspect);
+      const verdict = judge.evaluate(metrics);
+
+      drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
+      drawAngleLabels(ctx, landmarks, metrics, mirrored);
+      showFeedback(verdict.failures.map((rule) => rule.message));
+      if (!verdict.ok) beep();
     } else {
       clearCanvas(ctx);
+      showFeedback([]);
     }
   }
 
