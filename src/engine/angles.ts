@@ -94,6 +94,7 @@ export function computeFrameMetrics(
   const angles = computeJointAngles(lm);
   const side = dominantSide(landmarks);
 
+  const ear = lm[side === "left" ? LANDMARK.LEFT_EAR : LANDMARK.RIGHT_EAR];
   const shoulder =
     lm[side === "left" ? LANDMARK.LEFT_SHOULDER : LANDMARK.RIGHT_SHOULDER];
   const hip = lm[side === "left" ? LANDMARK.LEFT_HIP : LANDMARK.RIGHT_HIP];
@@ -107,6 +108,7 @@ export function computeFrameMetrics(
   const run = Math.abs(shoulder.x - hip.x);
   const torsoAngle = Math.atan2(rise, run) * RAD_TO_DEG;
   const barOffset = Math.abs(wrist.x - ankle.x) / torsoLength;
+  const neckAngle = angleAt(ear, shoulder, hip);
 
-  return { ...angles, torsoAngle, barOffset };
+  return { ...angles, torsoAngle, barOffset, neckAngle };
 }

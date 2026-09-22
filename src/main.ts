@@ -2,35 +2,59 @@ import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
 import { computeFrameMetrics, dominantSide } from "./engine/angles";
 import { Judge } from "./engine/judge";
-import { deadlift } from "./profiles/deadlift";
+import { PROFILES, findProfile } from "./profiles";
 import {
   syncCanvasToVideo,
   drawSkeleton,
+  drawSpineGuide,
   drawAngleLabels,
   clearCanvas,
 } from "./ui/overlay";
-import { showFeedback, showDebug } from "./ui/hud";
+import { showFeedback, showDebug, showExercise } from "./ui/hud";
 import { unlockAudio, beep } from "./ui/audio";
 
 const GOOD_COLOR = "#22c55e";
 const BAD_COLOR = "#ef4444";
+const GUIDE_COLOR = "#22d3ee";
 
 const video = document.querySelector<HTMLVideoElement>("#camera")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#overlay")!;
 const startScreen = document.querySelector<HTMLElement>("#start-screen")!;
 const startBtn = document.querySelector<HTMLButtonElement>("#start-btn")!;
 const status = document.querySelector<HTMLElement>("#status")!;
+const exerciseSelect =
+  document.querySelector<HTMLSelectElement>("#exercise-select")!;
+const cameraHint = document.querySelector<HTMLElement>("#camera-hint")!;
 
 const ctx = canvas.getContext("2d")!;
-const judge = new Judge(deadlift);
 
 let estimator: PoseEstimator | null = null;
+let judge: Judge | null = null;
 let lastVideoTime = -1;
 let mirrored = false;
+
+for (const profile of PROFILES) {
+  const option = document.createElement("option");
+  option.value = profile.id;
+  option.textContent = profile.name;
+  exerciseSelect.append(option);
+}
+
+function updateCameraHint(): void {
+  const profile = findProfile(exerciseSelect.value);
+  cameraHint.textContent = `Prop the phone for a ${profile.cameraView} view`;
+}
+
+exerciseSelect.addEventListener("change", updateCameraHint);
+updateCameraHint();
 
 startBtn.addEventListener("click", async () => {
   try {
     unlockAudio();
+
+    const profile = findProfile(exerciseSelect.value);
+    judge = new Judge(profile);
+    showExercise(profile.name);
 
     status.textContent = "Requesting camera...";
     const stream = await startCamera(video);
@@ -54,7 +78,7 @@ startBtn.addEventListener("click", async () => {
 });
 
 function loop(): void {
-  if (!estimator) return;
+  if (!estimator || !judge) return;
 
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
@@ -63,14 +87,16 @@ function loop(): void {
     const landmarks = estimator.estimate(video, performance.now());
     if (landmarks) {
       const aspect = video.videoWidth / video.videoHeight;
+      const side = dominantSide(landmarks);
       const metrics = computeFrameMetrics(landmarks, aspect);
       const verdict = judge.evaluate(metrics);
 
       drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
+      drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
       drawAngleLabels(ctx, landmarks, metrics, mirrored);
       showFeedback(verdict.failures.map((rule) => rule.message));
       showDebug(
-        `${dominantSide(landmarks)} | torso ${metrics.torsoAngle.toFixed(0)} | bar ${metrics.barOffset.toFixed(2)}`,
+        `${side} | torso ${metrics.torsoAngle.toFixed(0)} | neck ${metrics.neckAngle.toFixed(0)} | bar ${metrics.barOffset.toFixed(2)}`,
       );
       if (!verdict.ok) beep();
     } else {

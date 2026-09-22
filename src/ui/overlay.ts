@@ -1,7 +1,7 @@
 import { PoseLandmarker } from "@mediapipe/tasks-vision";
 import type { Landmark } from "../engine/types";
 import { LANDMARK } from "../engine/types";
-import type { JointAngles } from "../engine/angles";
+import type { JointAngles, Side } from "../engine/angles";
 
 const MIN_VISIBILITY = 0.5;
 
@@ -13,6 +13,21 @@ const ANGLE_LABELS: Array<{ key: keyof JointAngles; landmark: number }> = [
   { key: "leftElbow", landmark: LANDMARK.LEFT_ELBOW },
   { key: "rightElbow", landmark: LANDMARK.RIGHT_ELBOW },
 ];
+
+const SPINE_CHAIN: Record<Side, number[]> = {
+  left: [
+    LANDMARK.LEFT_EAR,
+    LANDMARK.LEFT_SHOULDER,
+    LANDMARK.LEFT_HIP,
+    LANDMARK.LEFT_KNEE,
+  ],
+  right: [
+    LANDMARK.RIGHT_EAR,
+    LANDMARK.RIGHT_SHOULDER,
+    LANDMARK.RIGHT_HIP,
+    LANDMARK.RIGHT_KNEE,
+  ],
+};
 
 export function syncCanvasToVideo(
   canvas: HTMLCanvasElement,
@@ -59,6 +74,31 @@ export function drawSkeleton(
     ctx.arc(lm.x * width, lm.y * height, 6, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+export function drawSpineGuide(
+  ctx: CanvasRenderingContext2D,
+  landmarks: Landmark[],
+  side: Side,
+  color: string,
+): void {
+  const { width, height } = ctx.canvas;
+  const points = SPINE_CHAIN[side].map((i) => landmarks[i]);
+  if (points.some((p) => p.visibility < MIN_VISIBILITY)) return;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 7;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) {
+      ctx.moveTo(p.x * width, p.y * height);
+    } else {
+      ctx.lineTo(p.x * width, p.y * height);
+    }
+  });
+  ctx.stroke();
 }
 
 export function drawAngleLabels(

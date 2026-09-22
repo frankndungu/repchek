@@ -12,9 +12,15 @@ export const deadlift: ExerciseProfile = {
       message: "Chest up, hips are shooting up",
     },
     {
+      id: "neck-angle",
+      metric: "neckAngle",
+      min: 145,
+      message: "Eyes forward, keep your back straight",
+    },
+    {
       id: "bar-path",
       metric: "barOffset",
-      max: 0.35,
+      max: 0.5,
       message: "Keep the bar close to your legs",
     },
   ],

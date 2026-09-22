@@ -1,5 +1,6 @@
 const hud = document.querySelector<HTMLElement>("#hud")!;
 const debug = document.querySelector<HTMLElement>("#debug")!;
+const exercise = document.querySelector<HTMLElement>("#exercise")!;
 
 let lastFeedback = "";
 let lastDebug = "";
@@ -21,4 +22,9 @@ export function showDebug(text: string): void {
   if (text === lastDebug) return;
   lastDebug = text;
   debug.textContent = text;
+}
+
+export function showExercise(name: string): void {
+  exercise.textContent = name;
+  exercise.hidden = false;
 }
