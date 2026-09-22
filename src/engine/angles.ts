@@ -38,6 +38,12 @@ export function angleAt(a: Point, vertex: Point, c: Point): number {
   return deg;
 }
 
+export function tiltFromVertical(a: Point, b: Point): number {
+  const dx = Math.abs(b.x - a.x);
+  const dy = Math.abs(b.y - a.y);
+  return Math.atan2(dx, dy) * RAD_TO_DEG;
+}
+
 export function correctAspect(
   landmarks: Landmark[],
   aspect: number,
@@ -93,15 +99,14 @@ export function computeFrameMetrics(
   const lm = correctAspect(landmarks, aspect);
   const angles = computeJointAngles(lm);
   const side = dominantSide(landmarks);
+  const left = side === "left";
 
-  const ear = lm[side === "left" ? LANDMARK.LEFT_EAR : LANDMARK.RIGHT_EAR];
-  const shoulder =
-    lm[side === "left" ? LANDMARK.LEFT_SHOULDER : LANDMARK.RIGHT_SHOULDER];
-  const hip = lm[side === "left" ? LANDMARK.LEFT_HIP : LANDMARK.RIGHT_HIP];
-  const wrist =
-    lm[side === "left" ? LANDMARK.LEFT_WRIST : LANDMARK.RIGHT_WRIST];
-  const ankle =
-    lm[side === "left" ? LANDMARK.LEFT_ANKLE : LANDMARK.RIGHT_ANKLE];
+  const ear = lm[left ? LANDMARK.LEFT_EAR : LANDMARK.RIGHT_EAR];
+  const shoulder = lm[left ? LANDMARK.LEFT_SHOULDER : LANDMARK.RIGHT_SHOULDER];
+  const elbow = lm[left ? LANDMARK.LEFT_ELBOW : LANDMARK.RIGHT_ELBOW];
+  const wrist = lm[left ? LANDMARK.LEFT_WRIST : LANDMARK.RIGHT_WRIST];
+  const hip = lm[left ? LANDMARK.LEFT_HIP : LANDMARK.RIGHT_HIP];
+  const ankle = lm[left ? LANDMARK.LEFT_ANKLE : LANDMARK.RIGHT_ANKLE];
 
   const torsoLength = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y) || 1;
   const rise = hip.y - shoulder.y;
@@ -109,6 +114,15 @@ export function computeFrameMetrics(
   const torsoAngle = Math.atan2(rise, run) * RAD_TO_DEG;
   const barOffset = Math.abs(wrist.x - ankle.x) / torsoLength;
   const neckAngle = angleAt(ear, shoulder, hip);
+  const forearmTilt = tiltFromVertical(elbow, wrist);
+  const upperArmTilt = tiltFromVertical(shoulder, elbow);
 
-  return { ...angles, torsoAngle, barOffset, neckAngle };
+  return {
+    ...angles,
+    torsoAngle,
+    barOffset,
+    neckAngle,
+    forearmTilt,
+    upperArmTilt,
+  };
 }

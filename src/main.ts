@@ -2,6 +2,7 @@ import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
 import { computeFrameMetrics, dominantSide } from "./engine/angles";
 import { Judge } from "./engine/judge";
+import type { ExerciseProfile, FrameMetrics } from "./engine/types";
 import { PROFILES, findProfile } from "./profiles";
 import {
   syncCanvasToVideo,
@@ -30,6 +31,7 @@ const ctx = canvas.getContext("2d")!;
 
 let estimator: PoseEstimator | null = null;
 let judge: Judge | null = null;
+let activeProfile: ExerciseProfile | null = null;
 let lastVideoTime = -1;
 let mirrored = false;
 
@@ -42,19 +44,33 @@ for (const profile of PROFILES) {
 
 function updateCameraHint(): void {
   const profile = findProfile(exerciseSelect.value);
-  cameraHint.textContent = `Prop the phone for a ${profile.cameraView} view`;
+  cameraHint.textContent =
+    profile.setupHint ?? `Prop the phone for a ${profile.cameraView} view`;
 }
 
 exerciseSelect.addEventListener("change", updateCameraHint);
 updateCameraHint();
 
+function formatDebug(
+  profile: ExerciseProfile,
+  side: string,
+  metrics: FrameMetrics,
+): string {
+  const parts = profile.rules.map((rule) => {
+    const value = metrics[rule.metric];
+    const digits = rule.metric === "barOffset" ? 2 : 0;
+    return `${rule.metric} ${value.toFixed(digits)}`;
+  });
+  return [side, ...parts].join(" | ");
+}
+
 startBtn.addEventListener("click", async () => {
   try {
     unlockAudio();
 
-    const profile = findProfile(exerciseSelect.value);
-    judge = new Judge(profile);
-    showExercise(profile.name);
+    activeProfile = findProfile(exerciseSelect.value);
+    judge = new Judge(activeProfile);
+    showExercise(activeProfile.name);
 
     status.textContent = "Requesting camera...";
     const stream = await startCamera(video);
@@ -78,7 +94,7 @@ startBtn.addEventListener("click", async () => {
 });
 
 function loop(): void {
-  if (!estimator || !judge) return;
+  if (!estimator || !judge || !activeProfile) return;
 
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
@@ -95,9 +111,7 @@ function loop(): void {
       drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
       drawAngleLabels(ctx, landmarks, metrics, mirrored);
       showFeedback(verdict.failures.map((rule) => rule.message));
-      showDebug(
-        `${side} | torso ${metrics.torsoAngle.toFixed(0)} | neck ${metrics.neckAngle.toFixed(0)} | bar ${metrics.barOffset.toFixed(2)}`,
-      );
+      showDebug(formatDebug(activeProfile, side, metrics));
       if (!verdict.ok) beep();
     } else {
       clearCanvas(ctx);

@@ -40,6 +40,8 @@ export interface FrameMetrics extends JointAngles {
   torsoAngle: number;
   barOffset: number;
   neckAngle: number;
+  forearmTilt: number;
+  upperArmTilt: number;
 }
 
 export interface FormRule {
@@ -54,6 +56,7 @@ export interface ExerciseProfile {
   id: string;
   name: string;
   cameraView: "side" | "front";
+  setupHint?: string;
   rules: FormRule[];
 }
 
