@@ -108,6 +108,10 @@ export function computeFrameMetrics(
   const hip = lm[left ? LANDMARK.LEFT_HIP : LANDMARK.RIGHT_HIP];
   const ankle = lm[left ? LANDMARK.LEFT_ANKLE : LANDMARK.RIGHT_ANKLE];
 
+  const hipAngle = left ? angles.leftHip : angles.rightHip;
+  const kneeAngle = left ? angles.leftKnee : angles.rightKnee;
+  const elbowAngle = left ? angles.leftElbow : angles.rightElbow;
+
   const torsoLength = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y) || 1;
   const rise = hip.y - shoulder.y;
   const run = Math.abs(shoulder.x - hip.x);
@@ -119,6 +123,9 @@ export function computeFrameMetrics(
 
   return {
     ...angles,
+    hipAngle,
+    kneeAngle,
+    elbowAngle,
     torsoAngle,
     barOffset,
     neckAngle,

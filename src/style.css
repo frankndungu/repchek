@@ -38,9 +38,12 @@ body {
 }
 
 #start-screen label {
-  margin-top: 16px;
   font-size: 0.9rem;
   color: #a1a1aa;
+}
+
+#start-screen > label {
+  margin-top: 16px;
 }
 
 #exercise-select {
@@ -58,7 +61,25 @@ body {
   color: #a1a1aa;
 }
 
+.targets {
+  display: flex;
+  gap: 16px;
+}
+
+.targets input {
+  width: 64px;
+  margin-left: 6px;
+  font-size: 1rem;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #3f3f46;
+  background: #18181b;
+  color: #fff;
+  text-align: center;
+}
+
 #start-btn {
+  margin-top: 8px;
   font-size: 1.1rem;
   padding: 14px 28px;
   border: none;
@@ -90,6 +111,25 @@ body {
   font-size: 1.05rem;
   text-align: center;
   pointer-events: none;
+}
+
+#counter {
+  position: absolute;
+  top: 88px;
+  left: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+#counter.notice {
+  background: rgba(234, 179, 8, 0.9);
+  color: #000;
 }
 
 #exercise {

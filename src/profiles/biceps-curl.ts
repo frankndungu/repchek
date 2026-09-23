@@ -5,6 +5,14 @@ export const bicepsCurl: ExerciseProfile = {
   name: "Biceps curl (dumbbell, EZ bar or cable)",
   cameraView: "side",
   setupHint: "Side view, full body in frame",
+  rep: { metric: "elbowAngle", start: 150, turn: 60 },
+  phaseLabels: {
+    idle: "GET SET",
+    ready: "ARMS DOWN",
+    "moving-out": "CURLING",
+    turn: "TOP",
+    "moving-back": "LOWERING",
+  },
   rules: [
     {
       id: "elbow-drift",

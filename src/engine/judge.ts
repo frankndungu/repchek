@@ -1,4 +1,10 @@
-import type { ExerciseProfile, FormRule, FrameMetrics, Verdict } from "./types";
+import type {
+  ExerciseProfile,
+  FormRule,
+  FrameMetrics,
+  RepPhase,
+  Verdict,
+} from "./types";
 
 export function isRuleBroken(rule: FormRule, m: FrameMetrics): boolean {
   const value = m[rule.metric];
@@ -18,13 +24,13 @@ export class Judge {
     this.failStreaks = new Map();
   }
 
-  evaluate(m: FrameMetrics): Verdict {
+  evaluate(m: FrameMetrics, phase: RepPhase): Verdict {
     const failures: FormRule[] = [];
 
     for (const rule of this.profile.rules) {
-      const streak = isRuleBroken(rule, m)
-        ? (this.failStreaks.get(rule.id) ?? 0) + 1
-        : 0;
+      const applies = rule.phase === undefined || rule.phase === phase;
+      const broken = applies && isRuleBroken(rule, m);
+      const streak = broken ? (this.failStreaks.get(rule.id) ?? 0) + 1 : 0;
       this.failStreaks.set(rule.id, streak);
       if (streak >= this.minFailFrames) {
         failures.push(rule);

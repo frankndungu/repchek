@@ -4,6 +4,15 @@ export const deadlift: ExerciseProfile = {
   id: "deadlift",
   name: "Deadlift",
   cameraView: "side",
+  setupHint: "Side view, full body in frame, bar visible",
+  rep: { metric: "hipAngle", start: 160, turn: 90 },
+  phaseLabels: {
+    idle: "GET SET",
+    ready: "STANDING",
+    "moving-out": "LOWERING",
+    turn: "BOTTOM",
+    "moving-back": "PULLING",
+  },
   rules: [
     {
       id: "torso-angle",

@@ -2,7 +2,9 @@ import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
 import { computeFrameMetrics, dominantSide } from "./engine/angles";
 import { Judge } from "./engine/judge";
-import type { ExerciseProfile, FrameMetrics } from "./engine/types";
+import { RepCounter } from "./engine/repCounter";
+import { SessionTracker } from "./engine/session";
+import type { ExerciseProfile, FrameMetrics, RepPhase } from "./engine/types";
 import { PROFILES, findProfile } from "./profiles";
 import {
   syncCanvasToVideo,
@@ -11,7 +13,13 @@ import {
   drawAngleLabels,
   clearCanvas,
 } from "./ui/overlay";
-import { showFeedback, showDebug, showExercise } from "./ui/hud";
+import {
+  showFeedback,
+  showCounter,
+  showNotice,
+  showDebug,
+  showExercise,
+} from "./ui/hud";
 import { unlockAudio, beep } from "./ui/audio";
 
 const GOOD_COLOR = "#22c55e";
@@ -26,11 +34,15 @@ const status = document.querySelector<HTMLElement>("#status")!;
 const exerciseSelect =
   document.querySelector<HTMLSelectElement>("#exercise-select")!;
 const cameraHint = document.querySelector<HTMLElement>("#camera-hint")!;
+const setsInput = document.querySelector<HTMLInputElement>("#sets-input")!;
+const repsInput = document.querySelector<HTMLInputElement>("#reps-input")!;
 
 const ctx = canvas.getContext("2d")!;
 
 let estimator: PoseEstimator | null = null;
 let judge: Judge | null = null;
+let repCounter: RepCounter | null = null;
+let session: SessionTracker | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let lastVideoTime = -1;
 let mirrored = false;
@@ -51,9 +63,14 @@ function updateCameraHint(): void {
 exerciseSelect.addEventListener("change", updateCameraHint);
 updateCameraHint();
 
+function phaseLabel(profile: ExerciseProfile, phase: RepPhase): string {
+  return profile.phaseLabels?.[phase] ?? phase.toUpperCase();
+}
+
 function formatDebug(
   profile: ExerciseProfile,
   side: string,
+  phase: RepPhase,
   metrics: FrameMetrics,
 ): string {
   const parts = profile.rules.map((rule) => {
@@ -61,7 +78,8 @@ function formatDebug(
     const digits = rule.metric === "barOffset" ? 2 : 0;
     return `${rule.metric} ${value.toFixed(digits)}`;
   });
-  return [side, ...parts].join(" | ");
+  const trigger = `${profile.rep.metric} ${metrics[profile.rep.metric].toFixed(0)}`;
+  return [side, phase, trigger, ...parts].join(" | ");
 }
 
 startBtn.addEventListener("click", async () => {
@@ -70,6 +88,11 @@ startBtn.addEventListener("click", async () => {
 
     activeProfile = findProfile(exerciseSelect.value);
     judge = new Judge(activeProfile);
+    repCounter = new RepCounter(activeProfile.rep);
+    session = new SessionTracker({
+      sets: Number(setsInput.value) || 4,
+      reps: Number(repsInput.value) || 12,
+    });
     showExercise(activeProfile.name);
 
     status.textContent = "Requesting camera...";
@@ -94,24 +117,58 @@ startBtn.addEventListener("click", async () => {
 });
 
 function loop(): void {
-  if (!estimator || !judge || !activeProfile) return;
+  if (!estimator || !judge || !repCounter || !session || !activeProfile) return;
 
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
     syncCanvasToVideo(canvas, video);
 
-    const landmarks = estimator.estimate(video, performance.now());
+    const now = performance.now();
+    const landmarks = estimator.estimate(video, now);
     if (landmarks) {
       const aspect = video.videoWidth / video.videoHeight;
       const side = dominantSide(landmarks);
       const metrics = computeFrameMetrics(landmarks, aspect);
-      const verdict = judge.evaluate(metrics);
+
+      const repEvent = repCounter.update(metrics, now);
+      const phase = repCounter.currentPhase;
+      const verdict = judge.evaluate(metrics, phase);
+
+      const sessionEvent = repEvent
+        ? session.onRepEvent(repEvent, now)
+        : session.tick(now);
 
       drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
       drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
       drawAngleLabels(ctx, landmarks, metrics, mirrored);
       showFeedback(verdict.failures.map((rule) => rule.message));
-      showDebug(formatDebug(activeProfile, side, metrics));
+
+      if (repEvent?.type === "partial") {
+        showNotice("Partial rep, use the full range");
+      }
+      if (sessionEvent?.type === "set-complete") {
+        showNotice(`Set ${sessionEvent.record.set} done, rest`, 3000);
+      }
+      if (sessionEvent?.type === "session-complete") {
+        showNotice("Session complete", 4000);
+      }
+
+      if (session.isFinished) {
+        const last = session.records[session.records.length - 1];
+        showCounter(
+          session.totalSets,
+          session.totalSets,
+          last?.reps ?? 0,
+          "DONE",
+        );
+      } else {
+        const resting =
+          session.isResting && (phase === "idle" || phase === "ready");
+        const label = resting ? "REST" : phaseLabel(activeProfile, phase);
+        showCounter(session.set, session.totalSets, session.reps, label);
+      }
+
+      showDebug(formatDebug(activeProfile, side, phase, metrics));
       if (!verdict.ok) beep();
     } else {
       clearCanvas(ctx);

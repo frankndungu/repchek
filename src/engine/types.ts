@@ -37,11 +37,22 @@ export interface JointAngles {
 }
 
 export interface FrameMetrics extends JointAngles {
+  hipAngle: number;
+  kneeAngle: number;
+  elbowAngle: number;
   torsoAngle: number;
   barOffset: number;
   neckAngle: number;
   forearmTilt: number;
   upperArmTilt: number;
+}
+
+export type RepPhase = "idle" | "ready" | "moving-out" | "turn" | "moving-back";
+
+export interface RepTrigger {
+  metric: keyof FrameMetrics;
+  start: number;
+  turn: number;
 }
 
 export interface FormRule {
@@ -50,6 +61,7 @@ export interface FormRule {
   min?: number;
   max?: number;
   message: string;
+  phase?: RepPhase;
 }
 
 export interface ExerciseProfile {
@@ -57,6 +69,8 @@ export interface ExerciseProfile {
   name: string;
   cameraView: "side" | "front";
   setupHint?: string;
+  rep: RepTrigger;
+  phaseLabels?: Partial<Record<RepPhase, string>>;
   rules: FormRule[];
 }
 

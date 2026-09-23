@@ -16,6 +16,7 @@
       <video id="camera" autoplay muted playsinline></video>
       <canvas id="overlay"></canvas>
       <div id="hud" hidden></div>
+      <div id="counter" hidden></div>
       <div id="exercise" hidden></div>
       <div id="debug"></div>
       <div id="start-screen">
@@ -24,6 +25,16 @@
         <label for="exercise-select">Exercise</label>
         <select id="exercise-select"></select>
         <p id="camera-hint"></p>
+        <div class="targets">
+          <label
+            >Sets
+            <input id="sets-input" type="number" min="1" max="10" value="4"
+          /></label>
+          <label
+            >Reps
+            <input id="reps-input" type="number" min="1" max="50" value="12"
+          /></label>
+        </div>
         <button id="start-btn">Start Camera</button>
         <p id="status"></p>
       </div>
