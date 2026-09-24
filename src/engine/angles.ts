@@ -28,6 +28,27 @@ const RIGHT_SIDE = [
   LANDMARK.RIGHT_WRIST,
 ];
 
+const SIDE_CHAIN: Record<Side, number[]> = {
+  left: [
+    LANDMARK.LEFT_EAR,
+    LANDMARK.LEFT_SHOULDER,
+    LANDMARK.LEFT_ELBOW,
+    LANDMARK.LEFT_WRIST,
+    LANDMARK.LEFT_HIP,
+    LANDMARK.LEFT_KNEE,
+    LANDMARK.LEFT_ANKLE,
+  ],
+  right: [
+    LANDMARK.RIGHT_EAR,
+    LANDMARK.RIGHT_SHOULDER,
+    LANDMARK.RIGHT_ELBOW,
+    LANDMARK.RIGHT_WRIST,
+    LANDMARK.RIGHT_HIP,
+    LANDMARK.RIGHT_KNEE,
+    LANDMARK.RIGHT_ANKLE,
+  ],
+};
+
 export function angleAt(a: Point, vertex: Point, c: Point): number {
   const dirToA = Math.atan2(a.y - vertex.y, a.x - vertex.x);
   const dirToC = Math.atan2(c.y - vertex.y, c.x - vertex.x);
@@ -55,6 +76,10 @@ export function dominantSide(landmarks: Landmark[]): Side {
   const score = (indices: number[]) =>
     indices.reduce((sum, i) => sum + landmarks[i].visibility, 0);
   return score(LEFT_SIDE) >= score(RIGHT_SIDE) ? "left" : "right";
+}
+
+export function frameConfidence(landmarks: Landmark[], side: Side): number {
+  return Math.min(...SIDE_CHAIN[side].map((i) => landmarks[i].visibility));
 }
 
 export function computeJointAngles(lm: Point[]): JointAngles {

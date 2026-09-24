@@ -1,6 +1,10 @@
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
-import { computeFrameMetrics, dominantSide } from "./engine/angles";
+import {
+  computeFrameMetrics,
+  dominantSide,
+  frameConfidence,
+} from "./engine/angles";
 import { Judge } from "./engine/judge";
 import { RepCounter } from "./engine/repCounter";
 import { SessionTracker } from "./engine/session";
@@ -24,7 +28,9 @@ import { unlockAudio, beep } from "./ui/audio";
 
 const GOOD_COLOR = "#22c55e";
 const BAD_COLOR = "#ef4444";
+const LOW_CONFIDENCE_COLOR = "#9ca3af";
 const GUIDE_COLOR = "#22d3ee";
+const MIN_FRAME_CONFIDENCE = 0.6;
 
 const video = document.querySelector<HTMLVideoElement>("#camera")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#overlay")!;
@@ -82,6 +88,18 @@ function formatDebug(
   return [side, phase, trigger, ...parts].join(" | ");
 }
 
+function updateCounterDisplay(profile: ExerciseProfile, phase: RepPhase): void {
+  if (!session) return;
+  if (session.isFinished) {
+    const last = session.records[session.records.length - 1];
+    showCounter(session.totalSets, session.totalSets, last?.reps ?? 0, "DONE");
+    return;
+  }
+  const resting = session.isResting && (phase === "idle" || phase === "ready");
+  const label = resting ? "REST" : phaseLabel(profile, phase);
+  showCounter(session.set, session.totalSets, session.reps, label);
+}
+
 startBtn.addEventListener("click", async () => {
   try {
     unlockAudio();
@@ -125,55 +143,52 @@ function loop(): void {
 
     const now = performance.now();
     const landmarks = estimator.estimate(video, now);
-    if (landmarks) {
-      const aspect = video.videoWidth / video.videoHeight;
-      const side = dominantSide(landmarks);
-      const metrics = computeFrameMetrics(landmarks, aspect);
 
-      const repEvent = repCounter.update(metrics, now);
-      const phase = repCounter.currentPhase;
-      const verdict = judge.evaluate(metrics, phase);
-
-      const sessionEvent = repEvent
-        ? session.onRepEvent(repEvent, now)
-        : session.tick(now);
-
-      drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
-      drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
-      drawAngleLabels(ctx, landmarks, metrics, mirrored);
-      showFeedback(verdict.failures.map((rule) => rule.message));
-
-      if (repEvent?.type === "partial") {
-        showNotice("Partial rep, use the full range");
-      }
-      if (sessionEvent?.type === "set-complete") {
-        showNotice(`Set ${sessionEvent.record.set} done, rest`, 3000);
-      }
-      if (sessionEvent?.type === "session-complete") {
-        showNotice("Session complete", 4000);
-      }
-
-      if (session.isFinished) {
-        const last = session.records[session.records.length - 1];
-        showCounter(
-          session.totalSets,
-          session.totalSets,
-          last?.reps ?? 0,
-          "DONE",
-        );
-      } else {
-        const resting =
-          session.isResting && (phase === "idle" || phase === "ready");
-        const label = resting ? "REST" : phaseLabel(activeProfile, phase);
-        showCounter(session.set, session.totalSets, session.reps, label);
-      }
-
-      showDebug(formatDebug(activeProfile, side, phase, metrics));
-      if (!verdict.ok) beep();
-    } else {
+    if (!landmarks) {
       clearCanvas(ctx);
       showFeedback([]);
       showDebug("no person detected");
+    } else {
+      const aspect = video.videoWidth / video.videoHeight;
+      const side = dominantSide(landmarks);
+      const confidence = frameConfidence(landmarks, side);
+
+      if (confidence < MIN_FRAME_CONFIDENCE) {
+        drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
+        showFeedback([]);
+        session.tick(now);
+        updateCounterDisplay(activeProfile, repCounter.currentPhase);
+        showDebug(
+          `${side} | low confidence ${confidence.toFixed(2)} | frame skipped`,
+        );
+      } else {
+        const metrics = computeFrameMetrics(landmarks, aspect);
+        const repEvent = repCounter.update(metrics, now);
+        const phase = repCounter.currentPhase;
+        const verdict = judge.evaluate(metrics, phase);
+        const sessionEvent = repEvent
+          ? session.onRepEvent(repEvent, now)
+          : session.tick(now);
+
+        drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
+        drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+        drawAngleLabels(ctx, landmarks, metrics, mirrored);
+        showFeedback(verdict.failures.map((rule) => rule.message));
+
+        if (repEvent?.type === "partial") {
+          showNotice("Partial rep, use the full range");
+        }
+        if (sessionEvent?.type === "set-complete") {
+          showNotice(`Set ${sessionEvent.record.set} done, rest`, 3000);
+        }
+        if (sessionEvent?.type === "session-complete") {
+          showNotice("Session complete", 4000);
+        }
+
+        updateCounterDisplay(activeProfile, phase);
+        showDebug(formatDebug(activeProfile, side, phase, metrics));
+        if (!verdict.ok) beep();
+      }
     }
   }
 
