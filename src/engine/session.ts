@@ -5,11 +5,26 @@ export interface SetTarget {
   reps: number;
 }
 
+export interface RepRecord {
+  durationMs: number;
+  faults: string[];
+}
+
 export interface SetRecord {
   set: number;
-  reps: number;
+  reps: RepRecord[];
   partials: number;
-  repDurationsMs: number[];
+}
+
+export interface SessionRecord {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  startedAt: string;
+  endedAt: string;
+  target: SetTarget;
+  weightKg: number | null;
+  sets: SetRecord[];
 }
 
 export type SessionEvent =
@@ -22,9 +37,8 @@ export class SessionTracker {
   private target: SetTarget;
   private restTimeoutMs: number;
   private currentSet: number;
-  private repsInSet: number;
+  private repRecords: RepRecord[];
   private partialsInSet: number;
-  private durations: number[];
   private lastRepAt: number | null;
   private completed: SetRecord[];
   private finished: boolean;
@@ -33,9 +47,8 @@ export class SessionTracker {
     this.target = target;
     this.restTimeoutMs = restTimeoutMs;
     this.currentSet = 1;
-    this.repsInSet = 0;
+    this.repRecords = [];
     this.partialsInSet = 0;
-    this.durations = [];
     this.lastRepAt = null;
     this.completed = [];
     this.finished = false;
@@ -50,11 +63,15 @@ export class SessionTracker {
   }
 
   get reps(): number {
-    return this.repsInSet;
+    return this.repRecords.length;
   }
 
   get isResting(): boolean {
-    return !this.finished && this.repsInSet === 0 && this.completed.length > 0;
+    return (
+      !this.finished &&
+      this.repRecords.length === 0 &&
+      this.completed.length > 0
+    );
   }
 
   get isFinished(): boolean {
@@ -65,7 +82,11 @@ export class SessionTracker {
     return this.completed;
   }
 
-  onRepEvent(event: RepEvent, nowMs: number): SessionEvent | null {
+  onRepEvent(
+    event: RepEvent,
+    faults: string[],
+    nowMs: number,
+  ): SessionEvent | null {
     if (this.finished) return null;
 
     if (event.type === "partial") {
@@ -73,18 +94,21 @@ export class SessionTracker {
       return null;
     }
 
-    this.repsInSet += 1;
-    this.durations.push(event.durationMs);
+    this.repRecords.push({ durationMs: event.durationMs, faults });
     this.lastRepAt = nowMs;
 
-    if (this.repsInSet >= this.target.reps) {
+    if (this.repRecords.length >= this.target.reps) {
       return this.closeSet();
     }
     return null;
   }
 
   tick(nowMs: number): SessionEvent | null {
-    if (this.finished || this.repsInSet === 0 || this.lastRepAt === null)
+    if (
+      this.finished ||
+      this.repRecords.length === 0 ||
+      this.lastRepAt === null
+    )
       return null;
     if (nowMs - this.lastRepAt >= this.restTimeoutMs) {
       return this.closeSet();
@@ -92,18 +116,49 @@ export class SessionTracker {
     return null;
   }
 
-  private closeSet(): SessionEvent {
-    const record: SetRecord = {
-      set: this.currentSet,
-      reps: this.repsInSet,
-      partials: this.partialsInSet,
-      repDurationsMs: this.durations,
+  finish(): SetRecord[] {
+    if (!this.finished) {
+      if (this.repRecords.length > 0) {
+        this.completed.push(this.snapshotSet());
+      }
+      this.finished = true;
+    }
+    return this.completed;
+  }
+
+  toRecord(meta: {
+    exerciseId: string;
+    exerciseName: string;
+    startedAt: Date;
+    weightKg: number | null;
+  }): SessionRecord {
+    const sets = this.finish();
+    return {
+      id: meta.startedAt.toISOString(),
+      exerciseId: meta.exerciseId,
+      exerciseName: meta.exerciseName,
+      startedAt: meta.startedAt.toISOString(),
+      endedAt: new Date().toISOString(),
+      target: this.target,
+      weightKg: meta.weightKg,
+      sets,
     };
+  }
+
+  private snapshotSet(): SetRecord {
+    return {
+      set: this.currentSet,
+      reps: this.repRecords,
+      partials: this.partialsInSet,
+    };
+  }
+
+  private closeSet(): SessionEvent {
+    const record = this.snapshotSet();
     this.completed.push(record);
 
-    this.repsInSet = 0;
+    this.repRecords = [];
     this.partialsInSet = 0;
-    this.durations = [];
     this.lastRepAt = null;
 
     if (this.currentSet >= this.target.sets) {

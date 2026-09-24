@@ -18,6 +18,7 @@
       <div id="hud" hidden></div>
       <div id="counter" hidden></div>
       <div id="exercise" hidden></div>
+      <button id="end-btn" hidden>End session</button>
       <div id="debug"></div>
       <div id="start-screen">
         <h1>M.O.R.G.A.N.</h1>
@@ -33,6 +34,15 @@
           <label
             >Reps
             <input id="reps-input" type="number" min="1" max="50" value="12"
+          /></label>
+          <label
+            >Kg
+            <input
+              id="weight-input"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="0"
           /></label>
         </div>
         <button id="start-btn">Start Camera</button>

@@ -10,6 +10,7 @@ import { RepCounter } from "./engine/repCounter";
 import { SessionTracker } from "./engine/session";
 import type { ExerciseProfile, FrameMetrics, RepPhase } from "./engine/types";
 import { PROFILES, findProfile } from "./profiles";
+import { saveSession } from "./storage/db";
 import {
   syncCanvasToVideo,
   drawSkeleton,
@@ -36,22 +37,29 @@ const video = document.querySelector<HTMLVideoElement>("#camera")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#overlay")!;
 const startScreen = document.querySelector<HTMLElement>("#start-screen")!;
 const startBtn = document.querySelector<HTMLButtonElement>("#start-btn")!;
+const endBtn = document.querySelector<HTMLButtonElement>("#end-btn")!;
 const status = document.querySelector<HTMLElement>("#status")!;
 const exerciseSelect =
   document.querySelector<HTMLSelectElement>("#exercise-select")!;
 const cameraHint = document.querySelector<HTMLElement>("#camera-hint")!;
 const setsInput = document.querySelector<HTMLInputElement>("#sets-input")!;
 const repsInput = document.querySelector<HTMLInputElement>("#reps-input")!;
+const weightInput = document.querySelector<HTMLInputElement>("#weight-input")!;
 
 const ctx = canvas.getContext("2d")!;
 
 let estimator: PoseEstimator | null = null;
+let stream: MediaStream | null = null;
 let judge: Judge | null = null;
 let repCounter: RepCounter | null = null;
 let session: SessionTracker | null = null;
 let activeProfile: ExerciseProfile | null = null;
+let sessionStartedAt: Date | null = null;
+let sessionSaved = false;
+let running = false;
 let lastVideoTime = -1;
 let mirrored = false;
+const currentRepFaults = new Set<string>();
 
 for (const profile of PROFILES) {
   const option = document.createElement("option");
@@ -92,12 +100,49 @@ function updateCounterDisplay(profile: ExerciseProfile, phase: RepPhase): void {
   if (!session) return;
   if (session.isFinished) {
     const last = session.records[session.records.length - 1];
-    showCounter(session.totalSets, session.totalSets, last?.reps ?? 0, "DONE");
+    showCounter(
+      session.totalSets,
+      session.totalSets,
+      last?.reps.length ?? 0,
+      "DONE",
+    );
     return;
   }
   const resting = session.isResting && (phase === "idle" || phase === "ready");
   const label = resting ? "REST" : phaseLabel(profile, phase);
   showCounter(session.set, session.totalSets, session.reps, label);
+}
+
+async function persistSession(): Promise<void> {
+  if (!session || !activeProfile || !sessionStartedAt || sessionSaved) return;
+  sessionSaved = true;
+
+  const weight = Number(weightInput.value);
+  const record = session.toRecord({
+    exerciseId: activeProfile.id,
+    exerciseName: activeProfile.name,
+    startedAt: sessionStartedAt,
+    weightKg: weight > 0 ? weight : null,
+  });
+
+  try {
+    await saveSession(record);
+    showNotice("Session saved", 3000);
+  } catch (err) {
+    console.error(err);
+    showNotice("Could not save session", 3000);
+  }
+}
+
+function stopSession(): void {
+  running = false;
+  stream?.getTracks().forEach((track) => track.stop());
+  stream = null;
+  endBtn.hidden = true;
+  clearCanvas(ctx);
+  showFeedback([]);
+  status.textContent = "";
+  startScreen.hidden = false;
 }
 
 startBtn.addEventListener("click", async () => {
@@ -111,19 +156,24 @@ startBtn.addEventListener("click", async () => {
       sets: Number(setsInput.value) || 4,
       reps: Number(repsInput.value) || 12,
     });
+    sessionStartedAt = new Date();
+    sessionSaved = false;
+    currentRepFaults.clear();
     showExercise(activeProfile.name);
 
     status.textContent = "Requesting camera...";
-    const stream = await startCamera(video);
+    stream = await startCamera(video);
 
     mirrored = isUserFacing(stream);
     video.classList.toggle("mirrored", mirrored);
     canvas.classList.toggle("mirrored", mirrored);
 
     status.textContent = "Loading pose model...";
-    estimator = await PoseEstimator.create();
+    estimator = estimator ?? (await PoseEstimator.create());
 
     startScreen.hidden = true;
+    endBtn.hidden = false;
+    running = true;
     requestAnimationFrame(loop);
   } catch (err) {
     console.error(err);
@@ -134,8 +184,21 @@ startBtn.addEventListener("click", async () => {
   }
 });
 
+endBtn.addEventListener("click", async () => {
+  await persistSession();
+  setTimeout(stopSession, 1500);
+});
+
 function loop(): void {
-  if (!estimator || !judge || !repCounter || !session || !activeProfile) return;
+  if (
+    !running ||
+    !estimator ||
+    !judge ||
+    !repCounter ||
+    !session ||
+    !activeProfile
+  )
+    return;
 
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
@@ -166,9 +229,22 @@ function loop(): void {
         const repEvent = repCounter.update(metrics, now);
         const phase = repCounter.currentPhase;
         const verdict = judge.evaluate(metrics, phase);
-        const sessionEvent = repEvent
-          ? session.onRepEvent(repEvent, now)
-          : session.tick(now);
+
+        for (const rule of verdict.failures) {
+          currentRepFaults.add(rule.id);
+        }
+
+        let sessionEvent = null;
+        if (repEvent) {
+          sessionEvent = session.onRepEvent(
+            repEvent,
+            Array.from(currentRepFaults),
+            now,
+          );
+          currentRepFaults.clear();
+        } else {
+          sessionEvent = session.tick(now);
+        }
 
         drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
         drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
@@ -182,7 +258,7 @@ function loop(): void {
           showNotice(`Set ${sessionEvent.record.set} done, rest`, 3000);
         }
         if (sessionEvent?.type === "session-complete") {
-          showNotice("Session complete", 4000);
+          void persistSession();
         }
 
         updateCounterDisplay(activeProfile, phase);
