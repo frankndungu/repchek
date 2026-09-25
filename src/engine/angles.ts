@@ -1,4 +1,4 @@
-import type { Landmark, JointAngles, FrameMetrics } from "./types";
+import type { Landmark, JointAngles, FrameMetrics, CameraView } from "./types";
 import { LANDMARK } from "./types";
 
 export type { JointAngles } from "./types";
@@ -49,6 +49,15 @@ const SIDE_CHAIN: Record<Side, number[]> = {
   ],
 };
 
+const FRONT_CHAIN = [
+  LANDMARK.LEFT_SHOULDER,
+  LANDMARK.RIGHT_SHOULDER,
+  LANDMARK.LEFT_ELBOW,
+  LANDMARK.RIGHT_ELBOW,
+  LANDMARK.LEFT_WRIST,
+  LANDMARK.RIGHT_WRIST,
+];
+
 export function angleAt(a: Point, vertex: Point, c: Point): number {
   const dirToA = Math.atan2(a.y - vertex.y, a.x - vertex.x);
   const dirToC = Math.atan2(c.y - vertex.y, c.x - vertex.x);
@@ -78,8 +87,13 @@ export function dominantSide(landmarks: Landmark[]): Side {
   return score(LEFT_SIDE) >= score(RIGHT_SIDE) ? "left" : "right";
 }
 
-export function frameConfidence(landmarks: Landmark[], side: Side): number {
-  return Math.min(...SIDE_CHAIN[side].map((i) => landmarks[i].visibility));
+export function frameConfidence(
+  landmarks: Landmark[],
+  side: Side,
+  view: CameraView = "side",
+): number {
+  const chain = view === "front" ? FRONT_CHAIN : SIDE_CHAIN[side];
+  return Math.min(...chain.map((i) => landmarks[i].visibility));
 }
 
 export function computeJointAngles(lm: Point[]): JointAngles {
@@ -147,6 +161,22 @@ export function computeFrameMetrics(
   const upperArmTilt = tiltFromVertical(shoulder, elbow);
   const wristRise = (shoulder.y - wrist.y) / torsoLength;
 
+  const ls = lm[LANDMARK.LEFT_SHOULDER];
+  const rs = lm[LANDMARK.RIGHT_SHOULDER];
+  const le = lm[LANDMARK.LEFT_ELBOW];
+  const re = lm[LANDMARK.RIGHT_ELBOW];
+  const lw = lm[LANDMARK.LEFT_WRIST];
+  const rw = lm[LANDMARK.RIGHT_WRIST];
+  const lk = lm[LANDMARK.LEFT_KNEE];
+  const rk = lm[LANDMARK.RIGHT_KNEE];
+  const shoulderWidth = Math.abs(ls.x - rs.x) || 1;
+  const shoulderMidY = (ls.y + rs.y) / 2;
+  const shoulderOverWrist = ((lw.y + rw.y) / 2 - shoulderMidY) / shoulderWidth;
+  const elbowFlare =
+    (Math.abs(le.x - ls.x) + Math.abs(re.x - rs.x)) / 2 / shoulderWidth;
+  const kneeDrive = (Math.max(lk.y, rk.y) - shoulderMidY) / shoulderWidth;
+  const shoulderTilt = Math.abs(ls.y - rs.y) / shoulderWidth;
+
   return {
     ...angles,
     hipAngle,
@@ -158,5 +188,9 @@ export function computeFrameMetrics(
     forearmTilt,
     upperArmTilt,
     wristRise,
+    shoulderOverWrist,
+    elbowFlare,
+    kneeDrive,
+    shoulderTilt,
   };
 }

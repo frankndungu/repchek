@@ -40,6 +40,15 @@ const LOW_CONFIDENCE_COLOR = "#9ca3af";
 const GUIDE_COLOR = "#22d3ee";
 const MIN_FRAME_CONFIDENCE = 0.6;
 
+const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
+  "barOffset",
+  "wristRise",
+  "shoulderOverWrist",
+  "elbowFlare",
+  "kneeDrive",
+  "shoulderTilt",
+]);
+
 const CHIP_BASE = "min-h-11 rounded-full border-2 px-4 py-2.5 text-[15px]";
 const CHIP_ON = "border-lime bg-lime text-ink font-semibold";
 const CHIP_OFF = "border-line bg-panel text-paper font-medium";
@@ -100,7 +109,9 @@ function renderChips(): void {
   for (const profile of PROFILES) {
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.textContent = profile.name.split(" (")[0];
+    chip.textContent =
+      profile.name.split(" (")[0] +
+      (profile.cameraView === "front" ? " (front)" : "");
     chip.className = `${CHIP_BASE} ${profile.id === selectedProfileId ? CHIP_ON : CHIP_OFF}`;
     chip.addEventListener("click", () => {
       selectedProfileId = profile.id;
@@ -139,20 +150,20 @@ function phaseLabel(profile: ExerciseProfile, phase: RepPhase): string {
   return profile.phaseLabels?.[phase] ?? phase.toUpperCase();
 }
 
+function formatMetric(metric: keyof FrameMetrics, value: number): string {
+  return `${metric} ${value.toFixed(FRACTIONAL_METRICS.has(metric) ? 2 : 0)}`;
+}
+
 function formatDebug(
   profile: ExerciseProfile,
   side: string,
   phase: RepPhase,
   metrics: FrameMetrics,
 ): string {
-  const parts = profile.rules.map((rule) => {
-    const value = metrics[rule.metric];
-    const digits =
-      rule.metric === "barOffset" || rule.metric === "wristRise" ? 2 : 0;
-    return `${rule.metric} ${value.toFixed(digits)}`;
-  });
-  const triggerDigits = profile.rep.metric === "wristRise" ? 2 : 0;
-  const trigger = `${profile.rep.metric} ${metrics[profile.rep.metric].toFixed(triggerDigits)}`;
+  const parts = profile.rules.map((rule) =>
+    formatMetric(rule.metric, metrics[rule.metric]),
+  );
+  const trigger = formatMetric(profile.rep.metric, metrics[profile.rep.metric]);
   return [side, phase, trigger, ...parts].join(" | ");
 }
 
@@ -331,7 +342,11 @@ function loop(): void {
     } else {
       const aspect = video.videoWidth / video.videoHeight;
       const side = dominantSide(landmarks);
-      const confidence = frameConfidence(landmarks, side);
+      const confidence = frameConfidence(
+        landmarks,
+        side,
+        activeProfile.cameraView,
+      );
 
       if (confidence < MIN_FRAME_CONFIDENCE) {
         drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
@@ -364,7 +379,9 @@ function loop(): void {
         }
 
         drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
-        drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+        if (activeProfile.cameraView === "side") {
+          drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+        }
         drawAngleLabels(ctx, landmarks, metrics, mirrored);
         showFeedback(verdict.failures.map((rule) => rule.message));
 

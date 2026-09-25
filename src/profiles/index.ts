@@ -9,7 +9,9 @@ import { tricepsExtension } from "./triceps-extension";
 import { tricepsPushdown } from "./triceps-pushdown";
 import { barbellRow } from "./barbell-row";
 import { pushUp } from "./push-up";
+import { pushUpFront } from "./push-up-front";
 import { mountainClimbers } from "./mountain-climbers";
+import { mountainClimbersFront } from "./mountain-climbers-front";
 
 export const PROFILES: ExerciseProfile[] = [
   deadlift,
@@ -22,7 +24,9 @@ export const PROFILES: ExerciseProfile[] = [
   tricepsExtension,
   tricepsPushdown,
   pushUp,
+  pushUpFront,
   mountainClimbers,
+  mountainClimbersFront,
 ];
 
 export function findProfile(id: string): ExerciseProfile {

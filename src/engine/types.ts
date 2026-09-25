@@ -27,6 +27,8 @@ export const LANDMARK = {
   RIGHT_FOOT_INDEX: 32,
 } as const;
 
+export type CameraView = "side" | "front";
+
 export interface JointAngles {
   leftKnee: number;
   rightKnee: number;
@@ -46,6 +48,10 @@ export interface FrameMetrics extends JointAngles {
   forearmTilt: number;
   upperArmTilt: number;
   wristRise: number;
+  shoulderOverWrist: number;
+  elbowFlare: number;
+  kneeDrive: number;
+  shoulderTilt: number;
 }
 
 export type RepPhase = "idle" | "ready" | "moving-out" | "turn" | "moving-back";
@@ -68,7 +74,7 @@ export interface FormRule {
 export interface ExerciseProfile {
   id: string;
   name: string;
-  cameraView: "side" | "front";
+  cameraView: CameraView;
   setupHint?: string;
   bodyweight?: boolean;
   rep: RepTrigger;
