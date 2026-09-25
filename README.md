@@ -1,6 +1,4 @@
-# M.O.R.G.A.N.
-
-Muscle Optimization and Recovery Guidance Analysis Network.
+# Repchek
 
 A workout form coach that runs entirely in the phone browser. Prop the phone
 up at the gym, pick an exercise, tap Start. Morgan tracks your body live,

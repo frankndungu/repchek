@@ -4,6 +4,7 @@ export const mountainClimbers: ExerciseProfile = {
   id: "mountain-climbers",
   name: "Mountain climbers",
   cameraView: "side",
+  bodyweight: true,
   setupHint:
     "Side view, phone on the floor or a low bench. Counts the leg facing the camera",
   rep: { metric: "kneeAngle", start: 165, turn: 90 },

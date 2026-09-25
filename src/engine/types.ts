@@ -70,6 +70,7 @@ export interface ExerciseProfile {
   name: string;
   cameraView: "side" | "front";
   setupHint?: string;
+  bodyweight?: boolean;
   rep: RepTrigger;
   phaseLabels?: Partial<Record<RepPhase, string>>;
   rules: FormRule[];

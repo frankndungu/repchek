@@ -65,6 +65,7 @@ const browserHint = q<HTMLElement>("#browser-hint");
 const setsInput = q<HTMLInputElement>("#sets-input");
 const repsInput = q<HTMLInputElement>("#reps-input");
 const weightInput = q<HTMLInputElement>("#weight-input");
+const weightLabel = q<HTMLElement>("#weight-label");
 const hudEl = q<HTMLElement>("#hud");
 const counterEl = q<HTMLElement>("#counter");
 const exerciseEl = q<HTMLElement>("#exercise");
@@ -108,6 +109,14 @@ function renderChips(): void {
   exerciseNameEl.textContent = selected.name;
   exerciseHintEl.textContent =
     selected.setupHint ?? `Prop the phone for a ${selected.cameraView} view`;
+
+  if (selected.bodyweight) {
+    weightLabel.textContent = "Extra kg";
+    weightInput.placeholder = "BW";
+  } else {
+    weightLabel.textContent = "Kg";
+    weightInput.placeholder = "0";
+  }
 }
 
 renderChips();

@@ -1,6 +1,6 @@
 import type { SessionRecord } from "../engine/session";
 
-const DB_NAME = "morgan";
+const DB_NAME = "repchek";
 const DB_VERSION = 1;
 const STORE = "sessions";
 

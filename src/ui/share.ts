@@ -11,7 +11,8 @@ const PAPER = "#f5f5f2";
 const MUTED = "#a8a8a2";
 const LIME = "#c6f135";
 const BAD = "#ef4444";
-const SITE = "morgan-pt.vercel.app";
+const SITE = "repchek.vercel.app";
+const BRAND = "REPCHEK";
 const MARGIN = 88;
 
 const TONE_COLOR: Record<Note["tone"], string> = {
@@ -92,7 +93,7 @@ export async function drawShareCard(
   ctx.fillStyle = PAPER;
   ctx.font = `44px ${display}`;
   ctx.textBaseline = "middle";
-  ctx.fillText("MORGAN", MARGIN + 34, 116);
+  ctx.fillText(BRAND, MARGIN + 34, 116);
 
   const date = new Date(record.startedAt).toLocaleDateString("en-GB", {
     weekday: "short",
@@ -179,7 +180,7 @@ export async function drawShareCard(
   ctx.fillStyle = MUTED;
   ctx.font = `600 22px ${sans}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("MORGAN NOTICED", MARGIN, notesTop);
+  ctx.fillText(`${BRAND} NOTICED`, MARGIN, notesTop);
 
   ctx.font = `28px ${sans}`;
   const notes = stats.notes.slice(0, 3);
@@ -227,13 +228,13 @@ export async function shareSession(
   if (!blob) throw new Error("Could not render share card");
 
   const stamp = record.startedAt.slice(0, 10);
-  const file = new File([blob], `morgan-${record.exerciseId}-${stamp}.png`, {
+  const file = new File([blob], `repchek-${record.exerciseId}-${stamp}.png`, {
     type: "image/png",
   });
   const text = summaryText(record, stats);
 
   if (navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: "Morgan session", text });
+    await navigator.share({ files: [file], title: "Repchek session", text });
     return;
   }
 

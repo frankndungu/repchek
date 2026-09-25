@@ -8,6 +8,7 @@ import { bicepsCurl } from "./biceps-curl";
 import { tricepsExtension } from "./triceps-extension";
 import { tricepsPushdown } from "./triceps-pushdown";
 import { barbellRow } from "./barbell-row";
+import { pushUp } from "./push-up";
 import { mountainClimbers } from "./mountain-climbers";
 
 export const PROFILES: ExerciseProfile[] = [
@@ -20,6 +21,7 @@ export const PROFILES: ExerciseProfile[] = [
   bicepsCurl,
   tricepsExtension,
   tricepsPushdown,
+  pushUp,
   mountainClimbers,
 ];
 

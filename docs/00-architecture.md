@@ -1,11 +1,8 @@
 # Architecture
 
-M.O.R.G.A.N. (Muscle Optimization and Recovery Guidance Analysis Network) is a
-browser-based workout form coach. A phone camera watches a lift, the system
-judges form in real time (green for good, red for broken), counts reps and
-sets, logs every rep with a verdict, and sends a session summary via Telegram.
-Everything runs on-device in the browser: no app install, no server-side video
-processing, no footage leaving the phone.
+Repchek is a browser-based workout form coach. A phone camera watches a lift, the system judges form in real time (green for good, red for broken), counts reps and sets, logs every rep with a verdict, and sends a session summary via Telegram.
+
+Everything runs on-device in the browser: no app install, no server-side video processing, no footage leaving the phone.
 
 ## The pipeline
 
@@ -14,10 +11,9 @@ Every video frame flows through five stages. Each stage maps to a folder in
 
 ### 1. The eyes: pose estimation (`src/engine/pose.ts`)
 
-MediaPipe Pose Landmarker, a pre-trained model from Google, takes each frame
-and outputs 33 body landmarks (shoulders, hips, knees, ankles and so on) as
-coordinates. We train nothing; we consume the model the way you consume an
-API. Details in docs/02-pose-estimation.md.
+MediaPipe Pose Landmarker, a pre-trained model from Google, takes each frame and outputs 33 body landmarks (shoulders, hips, knees, ankles and so on) as coordinates. We train nothing; we consume the model the way you consume an API.
+
+Details in docs/02-pose-estimation.md.
 
 ### 2. The geometry: angle calculation (`src/engine/angles.ts`)
 

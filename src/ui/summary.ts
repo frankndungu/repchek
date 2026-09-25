@@ -29,6 +29,17 @@ export function shortName(exerciseName: string): string {
   return exerciseName.split(" (")[0];
 }
 
+export function describeLoad(record: SessionRecord): string {
+  const bodyweight =
+    PROFILES.find((p) => p.id === record.exerciseId)?.bodyweight ?? false;
+  if (bodyweight) {
+    return record.weightKg
+      ? `Bodyweight + ${record.weightKg} kg`
+      : "Bodyweight";
+  }
+  return record.weightKg ? `${record.weightKg} kg` : "";
+}
+
 function faultMessage(exerciseId: string, ruleId: string): string {
   const profile = PROFILES.find((p) => p.id === exerciseId);
   return profile?.rules.find((r) => r.id === ruleId)?.message ?? ruleId;
@@ -136,7 +147,7 @@ function buildNotes(
       text: `Next time: stop set ${lastSet.set} at ${lastSet.firstFaultIndex}, or drop the weight`,
       tone: "good",
     });
-  } else if (cleanRatio < 0.8) {
+  } else if (cleanRatio < 0.8 && totalReps >= 6) {
     notes.push({
       text: "Form broke on more than a fifth of reps. Lower the weight and rebuild",
       tone: "good",
@@ -169,8 +180,15 @@ export function renderSummary(
   el("summary-exercise").textContent = shortName(
     record.exerciseName,
   ).toUpperCase();
-  el("summary-meta").textContent =
-    `${record.weightKg ? `${record.weightKg} kg, ` : ""}target ${record.target.sets} x ${record.target.reps}`;
+
+  const load = describeLoad(record);
+  el("summary-meta").textContent = [
+    load,
+    `target ${record.target.sets} x ${record.target.reps}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   el("stat-reps").textContent = String(stats.totalReps);
   el("stat-clean").textContent = `${stats.cleanPct}%`;
   el("stat-time").textContent = stats.avgRepMs
@@ -188,7 +206,7 @@ export function renderSummary(
       s.clean === s.reps ? `${s.reps} clean` : `${s.clean} of ${s.reps}`;
     row.innerHTML = `
       <span class="w-11 text-[13px] font-semibold text-muted">Set ${s.set}</span>
-      <span class="flex h-3 flex-grow overflow-hidden rounded-md bg-[#1c1c1a]">
+      <span class="flex h-3 grow overflow-hidden rounded-md bg-[#1c1c1a]">
         <span class="h-full bg-lime" style="width:${cleanPct}%"></span>
         <span class="h-full bg-bad" style="width:${badPct}%"></span>
       </span>
