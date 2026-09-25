@@ -145,6 +145,7 @@ export function computeFrameMetrics(
   const neckAngle = angleAt(ear, shoulder, hip);
   const forearmTilt = tiltFromVertical(elbow, wrist);
   const upperArmTilt = tiltFromVertical(shoulder, elbow);
+  const wristRise = (shoulder.y - wrist.y) / torsoLength;
 
   return {
     ...angles,
@@ -156,5 +157,6 @@ export function computeFrameMetrics(
     neckAngle,
     forearmTilt,
     upperArmTilt,
+    wristRise,
   };
 }

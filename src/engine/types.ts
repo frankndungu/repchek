@@ -45,6 +45,7 @@ export interface FrameMetrics extends JointAngles {
   neckAngle: number;
   forearmTilt: number;
   upperArmTilt: number;
+  wristRise: number;
 }
 
 export type RepPhase = "idle" | "ready" | "moving-out" | "turn" | "moving-back";

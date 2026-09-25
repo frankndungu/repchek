@@ -135,10 +135,12 @@ function formatDebug(
 ): string {
   const parts = profile.rules.map((rule) => {
     const value = metrics[rule.metric];
-    const digits = rule.metric === "barOffset" ? 2 : 0;
+    const digits =
+      rule.metric === "barOffset" || rule.metric === "wristRise" ? 2 : 0;
     return `${rule.metric} ${value.toFixed(digits)}`;
   });
-  const trigger = `${profile.rep.metric} ${metrics[profile.rep.metric].toFixed(0)}`;
+  const triggerDigits = profile.rep.metric === "wristRise" ? 2 : 0;
+  const trigger = `${profile.rep.metric} ${metrics[profile.rep.metric].toFixed(triggerDigits)}`;
   return [side, phase, trigger, ...parts].join(" | ");
 }
 

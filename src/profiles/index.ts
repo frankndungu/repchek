@@ -2,13 +2,25 @@ import type { ExerciseProfile } from "../engine/types";
 import { deadlift } from "./deadlift";
 import { latPulldown } from "./lat-pulldown";
 import { benchPress } from "./bench-press";
+import { inclineBench } from "./incline-bench";
+import { chestFly } from "./chest-fly";
 import { bicepsCurl } from "./biceps-curl";
+import { tricepsExtension } from "./triceps-extension";
+import { tricepsPushdown } from "./triceps-pushdown";
+import { barbellRow } from "./barbell-row";
+import { mountainClimbers } from "./mountain-climbers";
 
 export const PROFILES: ExerciseProfile[] = [
   deadlift,
+  barbellRow,
   latPulldown,
   benchPress,
+  inclineBench,
+  chestFly,
   bicepsCurl,
+  tricepsExtension,
+  tricepsPushdown,
+  mountainClimbers,
 ];
 
 export function findProfile(id: string): ExerciseProfile {
