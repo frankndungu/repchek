@@ -1,3 +1,4 @@
+import { inject } from "@vercel/analytics";
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import { PoseEstimator } from "./engine/pose";
 import {
@@ -30,6 +31,8 @@ import { unlockAudio, beep } from "./ui/audio";
 import { computeStats, renderSummary } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
+
+inject();
 
 const GOOD_COLOR = "#22c55e";
 const BAD_COLOR = "#ef4444";
