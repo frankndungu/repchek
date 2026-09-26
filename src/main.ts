@@ -214,21 +214,15 @@ function stopCamera(): void {
   status.textContent = "";
 }
 
-async function persistSession(): Promise<SessionRecord | null> {
+function buildRecord(): SessionRecord | null {
   if (!session || !activeProfile || !sessionStartedAt) return null;
   const weight = Number(weightInput.value);
-  const record = session.toRecord({
+  return session.toRecord({
     exerciseId: activeProfile.id,
     exerciseName: activeProfile.name,
     startedAt: sessionStartedAt,
     weightKg: weight > 0 ? weight : null,
   });
-  try {
-    await saveSession(record);
-  } catch (err) {
-    console.error("Could not save session", err);
-  }
-  return record;
 }
 
 function showSummary(record: SessionRecord): void {
@@ -238,16 +232,22 @@ function showSummary(record: SessionRecord): void {
   summaryScreen.hidden = false;
 }
 
-async function finishSession(): Promise<void> {
+function finishSession(): void {
   if (finishing) return;
   finishing = true;
-  const record = await persistSession();
+
+  const record = buildRecord();
   stopCamera();
+
   if (record) {
     showSummary(record);
+    saveSession(record).catch((err) =>
+      console.error("Could not save session", err),
+    );
   } else {
     startScreen.hidden = false;
   }
+
   finishing = false;
 }
 
@@ -295,7 +295,7 @@ startBtn.addEventListener("click", async () => {
 });
 
 endBtn.addEventListener("click", () => {
-  void finishSession();
+  finishSession();
 });
 
 doneBtn.addEventListener("click", () => {
@@ -393,7 +393,7 @@ function loop(): void {
         }
         if (sessionEvent?.type === "session-complete") {
           showNotice("Session complete", 1500);
-          setTimeout(() => void finishSession(), 1500);
+          setTimeout(finishSession, 1500);
         }
 
         updateCounterDisplay(activeProfile, phase);
