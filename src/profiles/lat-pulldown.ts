@@ -6,6 +6,13 @@ export const latPulldown: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view, seated, arms visible at full stretch",
   rep: { metric: "elbowAngle", start: 160, turn: 80 },
+  ready: [
+    {
+      metric: "wristRise",
+      min: 0.5,
+      hint: "Grab the bar overhead",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "ARMS UP",

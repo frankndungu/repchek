@@ -6,6 +6,18 @@ export const tricepsExtension: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view, standing or seated, arms overhead in frame",
   rep: { metric: "elbowAngle", start: 160, turn: 70 },
+  ready: [
+    {
+      metric: "wristRise",
+      min: 0.5,
+      hint: "Get the weight overhead",
+    },
+    {
+      metric: "torsoAngle",
+      min: 65,
+      hint: "Stand or sit tall",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "LOCKED OUT",

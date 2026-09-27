@@ -6,6 +6,13 @@ export const tricepsPushdown: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view, standing at the cable, full body in frame",
   rep: { metric: "elbowAngle", start: 90, turn: 165 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      min: 60,
+      hint: "Stand tall at the cable",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "ELBOWS BENT",
