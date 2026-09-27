@@ -52,6 +52,7 @@ export interface FrameMetrics extends JointAngles {
   elbowFlare: number;
   kneeDrive: number;
   shoulderTilt: number;
+  hipDrop: number;
 }
 
 export type RepPhase = "idle" | "ready" | "moving-out" | "turn" | "moving-back";
@@ -71,6 +72,16 @@ export interface FormRule {
   phase?: RepPhase;
 }
 
+// A posture check used by the readiness gate before counting starts.
+// Same shape as a form rule: a metric with an optional min and max.
+// `hint` is what the counter pill shows when the check fails.
+export interface ReadyCheck {
+  metric: keyof FrameMetrics;
+  min?: number;
+  max?: number;
+  hint: string;
+}
+
 export interface ExerciseProfile {
   id: string;
   name: string;
@@ -78,6 +89,10 @@ export interface ExerciseProfile {
   setupHint?: string;
   bodyweight?: boolean;
   rep: RepTrigger;
+  // Optional posture checks that must pass before counting starts.
+  // Leave it out and the gate still waits for: visible, at the start
+  // of the rep, and holding still for a second.
+  ready?: ReadyCheck[];
   phaseLabels?: Partial<Record<RepPhase, string>>;
   rules: FormRule[];
 }

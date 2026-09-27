@@ -8,6 +8,14 @@ export const pushUp: ExerciseProfile = {
   setupHint:
     "Side view, phone on the floor or a low bench, whole body in frame. Any hand width",
   rep: { metric: "wristRise", start: -0.9, turn: -0.5 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      min: -20,
+      max: 40,
+      hint: "Get into your plank",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "TOP",

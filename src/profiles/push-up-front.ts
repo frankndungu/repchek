@@ -8,6 +8,13 @@ export const pushUpFront: ExerciseProfile = {
   setupHint:
     "Phone on the floor in front of you, facing your head. Catches elbow flare",
   rep: { metric: "shoulderOverWrist", start: 0.9, turn: 0.3 },
+  ready: [
+    {
+      metric: "hipDrop",
+      max: 0.9,
+      hint: "Get into your plank",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "TOP",

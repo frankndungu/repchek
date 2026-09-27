@@ -8,6 +8,7 @@ import {
 } from "./engine/angles";
 import { Judge } from "./engine/judge";
 import { RepCounter } from "./engine/repCounter";
+import { ReadinessGate } from "./engine/readiness";
 import { SessionTracker } from "./engine/session";
 import type { SessionRecord } from "./engine/session";
 import type { ExerciseProfile, FrameMetrics, RepPhase } from "./engine/types";
@@ -37,9 +38,12 @@ inject();
 const GOOD_COLOR = "#22c55e";
 const BAD_COLOR = "#ef4444";
 const LOW_CONFIDENCE_COLOR = "#9ca3af";
+// White skeleton = "I can see you, but I am not counting yet".
+const WAITING_COLOR = "#f5f5f2";
 const GUIDE_COLOR = "#22d3ee";
 const MIN_FRAME_CONFIDENCE = 0.6;
 
+// Metrics that are ratios, not angles, so the debug line needs decimals.
 const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
   "barOffset",
   "wristRise",
@@ -47,6 +51,7 @@ const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
   "elbowFlare",
   "kneeDrive",
   "shoulderTilt",
+  "hipDrop",
 ]);
 
 const CHIP_BASE = "min-h-11 rounded-full border-2 px-4 py-2.5 text-[15px]";
@@ -90,6 +95,7 @@ let stream: MediaStream | null = null;
 let wakeLock: WakeLockSentinel | null = null;
 let judge: Judge | null = null;
 let repCounter: RepCounter | null = null;
+let gate: ReadinessGate | null = null;
 let session: SessionTracker | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let selectedProfileId = PROFILES[0].id;
@@ -150,8 +156,8 @@ function phaseLabel(profile: ExerciseProfile, phase: RepPhase): string {
   return profile.phaseLabels?.[phase] ?? phase.toUpperCase();
 }
 
-function formatMetric(metric: keyof FrameMetrics, value: number): string {
-  return `${metric} ${value.toFixed(FRACTIONAL_METRICS.has(metric) ? 2 : 0)}`;
+function formatValue(metric: keyof FrameMetrics, value: number): string {
+  return value.toFixed(FRACTIONAL_METRICS.has(metric) ? 2 : 0);
 }
 
 function formatDebug(
@@ -160,11 +166,36 @@ function formatDebug(
   phase: RepPhase,
   metrics: FrameMetrics,
 ): string {
-  const parts = profile.rules.map((rule) =>
-    formatMetric(rule.metric, metrics[rule.metric]),
+  const parts = profile.rules.map(
+    (rule) => `${rule.metric} ${formatValue(rule.metric, metrics[rule.metric])}`,
   );
-  const trigger = formatMetric(profile.rep.metric, metrics[profile.rep.metric]);
-  return [side, phase, trigger, ...parts].join(" | ");
+  const trigger = `${profile.rep.metric} ${formatValue(profile.rep.metric, metrics[profile.rep.metric])}`;
+  const gateInfo = gateDebug(metrics);
+  return [side, phase, trigger, ...parts, gateInfo].join(" | ");
+}
+
+// Extra debug text about the readiness gate, so we can see from a
+// screen recording why it is or is not counting yet.
+function gateDebug(metrics: FrameMetrics): string {
+  if (!gate) return "";
+  if (gate.isArmed) return "armed";
+  const checks = gate.readyChecks.map(
+    (check) => `${check.metric} ${formatValue(check.metric, metrics[check.metric])}`,
+  );
+  const posture = checks.length > 0 ? checks.join(" ") : "posture: none";
+  return `${gate.status} ${Math.round(gate.holdProgress * 100)}% | ${posture}`;
+}
+
+// The label in the counter pill ("Set 1/4 | Reps 0 | ...").
+function counterLabel(profile: ExerciseProfile, phase: RepPhase): string {
+  if (!session || !gate) return "";
+  if (!gate.isArmed) {
+    if (gate.status === "holding") return "HOLD STILL";
+    if (session.isResting) return "REST";
+    return gate.reason.toUpperCase() || "GET IN POSITION";
+  }
+  const resting = session.isResting && (phase === "idle" || phase === "ready");
+  return resting ? "REST" : phaseLabel(profile, phase);
 }
 
 function updateCounterDisplay(profile: ExerciseProfile, phase: RepPhase): void {
@@ -179,9 +210,12 @@ function updateCounterDisplay(profile: ExerciseProfile, phase: RepPhase): void {
     );
     return;
   }
-  const resting = session.isResting && (phase === "idle" || phase === "ready");
-  const label = resting ? "REST" : phaseLabel(profile, phase);
-  showCounter(session.set, session.totalSets, session.reps, label);
+  showCounter(
+    session.set,
+    session.totalSets,
+    session.reps,
+    counterLabel(profile, phase),
+  );
 }
 
 async function keepScreenAwake(): Promise<void> {
@@ -232,13 +266,12 @@ function showSummary(record: SessionRecord): void {
   summaryScreen.hidden = false;
 }
 
+// Show the summary straight away, save to the phone in the background.
 function finishSession(): void {
   if (finishing) return;
   finishing = true;
-
   const record = buildRecord();
   stopCamera();
-
   if (record) {
     showSummary(record);
     saveSession(record).catch((err) =>
@@ -247,8 +280,16 @@ function finishSession(): void {
   } else {
     startScreen.hidden = false;
   }
-
   finishing = false;
+}
+
+// Fresh counter and judge, so nothing from the setup leaks into rep 1.
+function armCounting(): void {
+  if (!activeProfile) return;
+  repCounter = new RepCounter(activeProfile.rep);
+  judge = new Judge(activeProfile);
+  currentRepFaults.clear();
+  showNotice("Ready, go", 1200);
 }
 
 startBtn.addEventListener("click", async () => {
@@ -258,6 +299,7 @@ startBtn.addEventListener("click", async () => {
     activeProfile = findProfile(selectedProfileId);
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
+    gate = new ReadinessGate(activeProfile);
     session = new SessionTracker({
       sets: Number(setsInput.value) || 4,
       reps: Number(repsInput.value) || 12,
@@ -317,12 +359,43 @@ shareBtn.addEventListener("click", async () => {
   }
 });
 
+// The person cannot be seen properly this frame.
+function handleLostFrame(now: number): void {
+  if (!gate || !session || !activeProfile || !repCounter) return;
+  if (gate.lost(now)) {
+    // They were gone long enough, so any half-done rep is thrown away.
+    currentRepFaults.clear();
+    showNotice("Lost you, get back in position", 2000);
+  }
+  handleSessionEvent(session.tick(now));
+  updateCounterDisplay(activeProfile, repCounter.currentPhase);
+}
+
+type SessionEventLike =
+  | { type: string; record?: { set: number } }
+  | null
+  | undefined;
+
+function handleSessionEvent(sessionEvent: SessionEventLike): void {
+  if (sessionEvent?.type === "set-complete") {
+    showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
+    // Walking away, resting and setting up again must not count.
+    gate?.reset();
+    currentRepFaults.clear();
+  }
+  if (sessionEvent?.type === "session-complete") {
+    showNotice("Session complete", 1500);
+    setTimeout(() => finishSession(), 1500);
+  }
+}
+
 function loop(): void {
   if (
     !running ||
     !estimator ||
     !judge ||
     !repCounter ||
+    !gate ||
     !session ||
     !activeProfile
   )
@@ -338,6 +411,7 @@ function loop(): void {
     if (!landmarks) {
       clearCanvas(ctx);
       showFeedback([]);
+      handleLostFrame(now);
       showDebug("no person detected");
     } else {
       const aspect = video.videoWidth / video.videoHeight;
@@ -351,54 +425,71 @@ function loop(): void {
       if (confidence < MIN_FRAME_CONFIDENCE) {
         drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
         showFeedback([]);
-        session.tick(now);
-        updateCounterDisplay(activeProfile, repCounter.currentPhase);
+        handleLostFrame(now);
         showDebug(
           `${side} | low confidence ${confidence.toFixed(2)} | frame skipped`,
         );
       } else {
         const metrics = computeFrameMetrics(landmarks, aspect);
-        const repEvent = repCounter.update(metrics, now);
-        const phase = repCounter.currentPhase;
-        const verdict = judge.evaluate(metrics, phase);
 
-        for (const rule of verdict.failures) {
-          currentRepFaults.add(rule.id);
+        // Step 1: are they in position yet?
+        if (!gate.isArmed) {
+          const justArmed = gate.update(metrics, now);
+          if (justArmed) armCounting();
         }
 
-        let sessionEvent = null;
-        if (repEvent) {
-          sessionEvent = session.onRepEvent(
-            repEvent,
-            Array.from(currentRepFaults),
-            now,
+        if (!gate.isArmed) {
+          // Not ready yet: no counting, no judging, no beeps.
+          handleSessionEvent(session.tick(now));
+          drawSkeleton(ctx, landmarks, WAITING_COLOR);
+          if (activeProfile.cameraView === "side") {
+            drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+          }
+          drawAngleLabels(ctx, landmarks, metrics, mirrored);
+          showFeedback([]);
+          updateCounterDisplay(activeProfile, repCounter.currentPhase);
+          showDebug(
+            formatDebug(activeProfile, side, repCounter.currentPhase, metrics),
           );
-          currentRepFaults.clear();
         } else {
-          sessionEvent = session.tick(now);
-        }
+          // Step 2: ready, so count and judge as normal.
+          gate.update(metrics, now);
+          const repEvent = repCounter.update(metrics, now);
+          const phase = repCounter.currentPhase;
+          const verdict = judge.evaluate(metrics, phase);
 
-        drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
-        if (activeProfile.cameraView === "side") {
-          drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
-        }
-        drawAngleLabels(ctx, landmarks, metrics, mirrored);
-        showFeedback(verdict.failures.map((rule) => rule.message));
+          for (const rule of verdict.failures) {
+            currentRepFaults.add(rule.id);
+          }
 
-        if (repEvent?.type === "partial") {
-          showNotice("Partial rep, use the full range");
-        }
-        if (sessionEvent?.type === "set-complete") {
-          showNotice(`Set ${sessionEvent.record.set} done, rest`, 3000);
-        }
-        if (sessionEvent?.type === "session-complete") {
-          showNotice("Session complete", 1500);
-          setTimeout(finishSession, 1500);
-        }
+          let sessionEvent = null;
+          if (repEvent) {
+            sessionEvent = session.onRepEvent(
+              repEvent,
+              Array.from(currentRepFaults),
+              now,
+            );
+            currentRepFaults.clear();
+          } else {
+            sessionEvent = session.tick(now);
+          }
 
-        updateCounterDisplay(activeProfile, phase);
-        showDebug(formatDebug(activeProfile, side, phase, metrics));
-        if (!verdict.ok) beep();
+          drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
+          if (activeProfile.cameraView === "side") {
+            drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+          }
+          drawAngleLabels(ctx, landmarks, metrics, mirrored);
+          showFeedback(verdict.failures.map((rule) => rule.message));
+
+          if (repEvent?.type === "partial") {
+            showNotice("Partial rep, use the full range");
+          }
+          handleSessionEvent(sessionEvent);
+
+          updateCounterDisplay(activeProfile, phase);
+          showDebug(formatDebug(activeProfile, side, phase, metrics));
+          if (!verdict.ok) beep();
+        }
       }
     }
   }

@@ -8,6 +8,13 @@ export const mountainClimbersFront: ExerciseProfile = {
   setupHint:
     "Phone on the floor in front of you, facing your head. Counts both legs",
   rep: { metric: "kneeDrive", start: 0.4, turn: 1.0 },
+  ready: [
+    {
+      metric: "hipDrop",
+      max: 0.9,
+      hint: "Get into your plank",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "PLANK",

@@ -6,6 +6,14 @@ export const barbellRow: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view, full body in frame, bar visible",
   rep: { metric: "elbowAngle", start: 160, turn: 80 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      min: 10,
+      max: 70,
+      hint: "Hinge over the bar",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "ARMS DOWN",

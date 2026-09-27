@@ -6,6 +6,13 @@ export const inclineBench: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view at bench height, slightly above the weights",
   rep: { metric: "elbowAngle", start: 160, turn: 90 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      max: 65,
+      hint: "Lean back on the bench",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "LOCKOUT",

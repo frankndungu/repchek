@@ -8,6 +8,14 @@ export const mountainClimbers: ExerciseProfile = {
   setupHint:
     "Side view, phone on the floor or a low bench. Counts the leg facing the camera",
   rep: { metric: "kneeAngle", start: 165, turn: 90 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      min: -20,
+      max: 40,
+      hint: "Get into your plank",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "PLANK",
