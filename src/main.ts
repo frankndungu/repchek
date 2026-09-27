@@ -28,7 +28,7 @@ import {
   showDebug,
   showExercise,
 } from "./ui/hud";
-import { unlockAudio, beep } from "./ui/audio";
+import { unlockAudio, beep, chimeReady, chimeSetDone } from "./ui/audio";
 import { computeStats, renderSummary } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
@@ -290,6 +290,7 @@ function armCounting(): void {
   judge = new Judge(activeProfile);
   currentRepFaults.clear();
   showNotice("Ready, go", 1200);
+  chimeReady();
 }
 
 startBtn.addEventListener("click", async () => {
@@ -379,6 +380,7 @@ type SessionEventLike =
 function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "set-complete") {
     showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
+    chimeSetDone();
     // Walking away, resting and setting up again must not count.
     gate?.reset();
     currentRepFaults.clear();
