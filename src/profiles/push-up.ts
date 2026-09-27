@@ -7,7 +7,7 @@ export const pushUp: ExerciseProfile = {
   bodyweight: true,
   setupHint:
     "Side view, phone on the floor or a low bench, whole body in frame. Any hand width",
-  rep: { metric: "wristRise", start: -0.55, turn: -0.15 },
+  rep: { metric: "wristRise", start: -0.9, turn: -0.5 },
   phaseLabels: {
     idle: "GET SET",
     ready: "TOP",
@@ -21,12 +21,6 @@ export const pushUp: ExerciseProfile = {
       metric: "hipAngle",
       min: 150,
       message: "Keep your body straight, no sagging or piking",
-    },
-    {
-      id: "neck-angle",
-      metric: "neckAngle",
-      min: 135,
-      message: "Keep your head in line, eyes to the floor ahead",
     },
   ],
 };
