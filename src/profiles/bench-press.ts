@@ -6,6 +6,14 @@ export const benchPress: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view at bench height, slightly above the weights",
   rep: { metric: "elbowAngle", start: 160, turn: 90 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      min: -30,
+      max: 30,
+      hint: "Lie back on the bench",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "LOCKOUT",

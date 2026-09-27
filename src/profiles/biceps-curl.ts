@@ -6,6 +6,13 @@ export const bicepsCurl: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view, full body in frame",
   rep: { metric: "elbowAngle", start: 150, turn: 60 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      min: 65,
+      hint: "Stand tall with the weight",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "ARMS DOWN",

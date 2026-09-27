@@ -6,6 +6,13 @@ export const chestFly: ExerciseProfile = {
   cameraView: "side",
   setupHint: "Side view at bench height. Experimental, tell me how it counts",
   rep: { metric: "wristRise", start: 0.55, turn: 0.15 },
+  ready: [
+    {
+      metric: "torsoAngle",
+      max: 50,
+      hint: "Lie back on the bench",
+    },
+  ],
   phaseLabels: {
     idle: "GET SET",
     ready: "ARMS UP",

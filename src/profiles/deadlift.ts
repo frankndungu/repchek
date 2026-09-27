@@ -5,6 +5,7 @@ export const deadlift: ExerciseProfile = {
   name: "Deadlift",
   cameraView: "side",
   setupHint: "Side view, full body in frame, bar visible",
+  // No ready check: standing by the bar looks the same as standing with it, and bending to grip is the lowering half of rep 1, so counting from standing is correct.
   rep: { metric: "hipAngle", start: 160, turn: 90 },
   phaseLabels: {
     idle: "GET SET",

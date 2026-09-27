@@ -167,6 +167,8 @@ export function computeFrameMetrics(
   const re = lm[LANDMARK.RIGHT_ELBOW];
   const lw = lm[LANDMARK.LEFT_WRIST];
   const rw = lm[LANDMARK.RIGHT_WRIST];
+  const lh = lm[LANDMARK.LEFT_HIP];
+  const rh = lm[LANDMARK.RIGHT_HIP];
   const lk = lm[LANDMARK.LEFT_KNEE];
   const rk = lm[LANDMARK.RIGHT_KNEE];
   const shoulderWidth = Math.abs(ls.x - rs.x) || 1;
@@ -176,6 +178,10 @@ export function computeFrameMetrics(
     (Math.abs(le.x - ls.x) + Math.abs(re.x - rs.x)) / 2 / shoulderWidth;
   const kneeDrive = (Math.max(lk.y, rk.y) - shoulderMidY) / shoulderWidth;
   const shoulderTilt = Math.abs(ls.y - rs.y) / shoulderWidth;
+  // Front view: how far the hips sit below the shoulders on screen.
+  // Standing it is well above 1. In a plank facing the camera the
+  // hips are behind the shoulders, so it drops close to 0.
+  const hipDrop = ((lh.y + rh.y) / 2 - shoulderMidY) / shoulderWidth;
 
   return {
     ...angles,
@@ -192,5 +198,6 @@ export function computeFrameMetrics(
     elbowFlare,
     kneeDrive,
     shoulderTilt,
+    hipDrop,
   };
 }

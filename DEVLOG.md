@@ -139,3 +139,27 @@ record is the data shape for logging and the Telegram summary.
 Also today: first LinkedIn post about the project.
 
 Next: Step 7, logging every rep and set on the device.
+
+## Day 9 (2026-09-27): Readiness gate
+
+A clean 1 by 8 push-up set scored 75 percent. The reps were fine. The
+problem was everything before them: Morgan started counting and judging the
+moment it saw me, so getting down into the plank was scored as reps and
+form faults.
+
+Fix: a readiness gate in front of the counter. Nothing is counted or judged
+until I am seen clearly, in the start position, passing the exercise's
+posture checks, and holding still for one second. The second comes from a
+recording: normal pauses at the top between push-ups are 0.6 to 0.9
+seconds, so a full second only happens on purpose. The gate switches off
+after every set, and when I am out of view for 1.5 seconds, so setting up
+for the next set is never counted either.
+
+Posture checks per exercise: plank for push-ups, hands overhead for
+pulldown and overhead extension, upright for curls and pushdowns, lying
+back for chest fly. Deadlift gets none, because standing next to the bar
+looks the same as standing with it, and bending down to grip is the
+lowering half of rep 1.
+
+Rule going forward: any new exercise where standing around could look like
+the start position gets a ready check.
