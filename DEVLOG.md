@@ -140,10 +140,81 @@ Also today: first LinkedIn post about the project.
 
 Next: Step 7, logging every rep and set on the device.
 
+## Day 6 (2026-09-24): Confidence floor and session logging
+
+Feedback from Reddit: when part of the body is hidden, the pose model still
+guesses where the joints are, and Morgan was judging those guesses as if
+they were real. Now every frame gets a confidence score, the lowest
+visibility across the joints the exercise needs. Below 0.6 the frame is
+skipped: no judging, no rep counting, and the skeleton turns grey so you
+know the camera cannot see you properly. Green is good, red is a fault,
+grey is "I can't see".
+
+Also fixed the HUD overlapping itself on small screens.
+
+Step 7 complete: logging. Every session is saved on the phone in
+IndexedDB, and nothing leaves the device. Each rep keeps its duration and
+the form rules it broke, each set keeps its reps and partials, and the
+session keeps the exercise and the weight. An End session button closes
+it out.
+
+Also today: picked the lime design from three start screen mockups, and
+decided to build the summary screen now instead of later.
+
+Next: a summary screen and a share card, so a finished session has
+somewhere to go.
+
+## Day 7 (2026-09-25): New look, nine new exercises, new name
+
+Rebuilt the UI in Tailwind from the lime mockup: big wordmark, exercise
+chips, and sets, reps and weight on one row. Two new screens:
+
+- Summary after every session: total reps, clean percentage, average rep
+  time, a bar per set, and "What Repchek noticed", plain notes built from
+  the logged faults and rep times. Short sessions get softer advice,
+  because three reps is not enough data to tell someone to drop the weight.
+- Share card: a 1080 by 1350 image with the lift, the numbers and the
+  coaching notes, sent through the phone's share sheet straight to
+  WhatsApp or Instagram. This replaced the Telegram bot idea.
+
+Exercises went from four to thirteen: barbell row, incline bench, chest
+fly, overhead triceps extension, cable triceps pushdown, push-ups and
+mountain climbers, plus the first front view profiles for push-ups and
+mountain climbers. Front view needed new metrics measured against shoulder
+width instead of torso length, because from the front the torso is
+foreshortened, and the confidence check looks at both arms instead of one
+side.
+
+Bodyweight exercises: the weight field becomes "Extra kg", and blank means
+bodyweight only.
+
+New name. Morgan became Repchek, briefly morgan-pt on the way. The site is
+now repchek.vercel.app. Added Vercel Analytics to see if anyone actually
+uses it, and a credits line with contact details on the start screen.
+
+## Day 8 (2026-09-26): Instant finish, and push-ups that did not count
+
+The Finish button waited for the save to complete before showing the
+report, which felt frozen. Now the report shows instantly and the save
+happens in the background.
+
+The bigger problem: a set of 16 push-ups counted zero. Instead of guessing,
+I screen-recorded a set with the debug line visible, pulled frames out at
+10 per second, read the debug line with OCR, and replayed the rep counter
+against the real numbers. The cause: the trigger assumed a camera at hip
+height. With the phone on the floor, the drop from top to bottom looks much
+smaller on screen, so reps never reached the bottom zone. Recalibrated from
+the recording, and the replay counted 16 of 16. The neck rule was firing on
+good reps, so it is gone. On the front view, elbow flare is now only
+checked at the bottom of the rep.
+
+Committed the next morning. Lesson: record it, read the numbers, then
+change the code.
+
 ## Day 9 (2026-09-27): Readiness gate
 
 A clean 1 by 8 push-up set scored 75 percent. The reps were fine. The
-problem was everything before them: Morgan started counting and judging the
+problem was everything before them: Repchek started counting and judging the
 moment it saw me, so getting down into the plank was scored as reps and
 form faults.
 

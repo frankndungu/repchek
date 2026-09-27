@@ -71,7 +71,7 @@ It disarms, and you have to set up and hold again, in two cases:
 - when you cannot be seen properly for 1.5 seconds. Shorter tracking blips
   are normal and are ignored
 
-The first three conditions come from the rep trigger, so every exercise
+Conditions 1, 2 and 4 come from the rep trigger, so every exercise
 gets the gate with no extra work. The `ready` checks are the part you add
 by hand. The rule for new exercises: add a `ready` check if standing around
 or walking up to the equipment could look like the start position. Standing
