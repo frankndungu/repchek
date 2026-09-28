@@ -8,9 +8,17 @@ const list = document.querySelector<HTMLElement>("#summary-clips")!;
 // share card does) risks cutting the download short.
 const downloadUrls: string[] = [];
 
+const ATTEMPT_NOTE = "Nothing was counted. Share this clip so we can see why.";
+
+// "Set 2", or "Attempt" for the clip kept when counting never started.
+function clipLabel(clip: SetClip): string {
+  return clip.kind === "attempt" ? "Attempt" : `Set ${clip.setNumber}`;
+}
+
 function clipFileName(exerciseId: string, clip: SetClip): string {
   const ext = clip.mimeType.includes("mp4") ? "mp4" : "webm";
-  return `repchek-${exerciseId}-set${clip.setNumber}.${ext}`;
+  const which = clip.kind === "attempt" ? "attempt" : `set${clip.setNumber}`;
+  return `repchek-${exerciseId}-${which}.${ext}`;
 }
 
 // Same pattern as shareSession: the share sheet when the phone can share
@@ -24,7 +32,7 @@ async function shareClip(exerciseId: string, clip: SetClip): Promise<void> {
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({
       files: [file],
-      title: `Repchek set ${clip.setNumber}`,
+      title: `Repchek ${clipLabel(clip).toLowerCase()}`,
     });
     return;
   }
@@ -47,8 +55,8 @@ export function renderClips(clips: SetClip[], exerciseId: string): void {
     row.className = "flex items-center gap-3";
 
     const label = document.createElement("span");
-    label.className = "w-11 text-[13px] font-semibold text-muted";
-    label.textContent = `Set ${clip.setNumber}`;
+    label.className = "min-w-11 text-[13px] font-semibold text-muted";
+    label.textContent = clipLabel(clip);
 
     const length = document.createElement("span");
     length.className = "grow text-[13px] font-semibold";
@@ -73,7 +81,18 @@ export function renderClips(clips: SetClip[], exerciseId: string): void {
     });
 
     row.append(label, length, button);
-    list.append(row);
+
+    if (clip.kind === "attempt") {
+      const item = document.createElement("div");
+      item.className = "flex flex-col gap-1";
+      const note = document.createElement("p");
+      note.className = "text-[12px] leading-snug text-muted";
+      note.textContent = ATTEMPT_NOTE;
+      item.append(row, note);
+      list.append(item);
+    } else {
+      list.append(row);
+    }
   }
 }
 

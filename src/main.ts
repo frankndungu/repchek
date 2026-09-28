@@ -387,13 +387,14 @@ function showSummary(record: SessionRecord): void {
   summaryScreen.hidden = false;
 }
 
-// Close the current set's clip. The video file is ready a moment later, and
-// only joins the list if this session's clips have not been freed by then.
-function stopClip(): void {
-  if (!recorder || !activeProfile) return;
+// Add a stopped clip to the list. The video file is ready a moment later,
+// and only joins the list if this session's clips have not been freed by
+// then.
+function collectClip(pending: Promise<SetClip | null>): void {
+  if (!activeProfile) return;
   const sessionClips = clips;
   const exerciseId = activeProfile.id;
-  void recorder.stop().then((clip) => {
+  void pending.then((clip) => {
     if (!clip || sessionClips !== clips) return;
     clips.push(clip);
     renderClips(clips, exerciseId);
@@ -408,8 +409,8 @@ function freeClips(): void {
   recorder = null;
 }
 
-// Paint this frame into the set clip, if one is recording. Call it before
-// handleSessionEvent, which stops the clip when a set closes.
+// Paint this frame into the recording, standby or set, if one is running.
+// Call it before handleSessionEvent, which stops the clip when a set closes.
 function recordFrame(
   feedback: string,
   sessionEvent: SessionEvent | null = null,
@@ -446,7 +447,9 @@ function finishSession(): void {
   if (finishing) return;
   finishing = true;
   const record = buildRecord();
-  stopClip();
+  // Keeps a running set clip, or the standby recording as an attempt when
+  // nothing was ever counted.
+  if (recorder) collectClip(recorder.finish());
   stopCamera();
   if (record) {
     showSummary(record);
@@ -467,8 +470,9 @@ function armCounting(): void {
   currentRepFaults.clear();
   showNotice("Ready, go", 1200);
   whistleGo();
-  // A no-op if this set's clip is already running, which is what happens
-  // when the gate re-arms after losing the person mid-set.
+  // Swaps the standby recording for this set's clip. A no-op if the clip
+  // is already running, which is what happens when the gate re-arms after
+  // losing the person mid-set.
   if (session) recorder?.start(session.set);
 }
 
@@ -510,6 +514,8 @@ startBtn.addEventListener("click", async () => {
     debugEl.hidden = false;
     recorder =
       recordSets && SetRecorder.isSupported() ? new SetRecorder() : null;
+    // Record from the first frame, in case the gate never arms.
+    recorder?.startStandby();
     running = true;
     lastVideoTime = -1;
     requestAnimationFrame(loop);
@@ -609,7 +615,11 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "set-complete") {
     showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
     chimeSetDone();
-    stopClip();
+    if (recorder) {
+      collectClip(recorder.stop());
+      // Back to standby until the gate arms for the next set.
+      recorder.startStandby();
+    }
     // Walking away, resting and setting up again must not count.
     gate?.reset();
     currentRepFaults.clear();
@@ -617,7 +627,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "session-complete") {
     showNotice("Session complete", 1500);
     bellFinish();
-    stopClip();
+    if (recorder) collectClip(recorder.stop());
     setTimeout(() => finishSession(), 1500);
   }
 }

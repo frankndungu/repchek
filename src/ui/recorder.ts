@@ -1,7 +1,13 @@
 import { SITE, truncate } from "./share";
 
-// What a finished set clip looks like once recording stops.
+// "set" clips are one counted set each. An "attempt" is kept instead when
+// the session ends without counting ever starting.
+export type ClipKind = "set" | "attempt";
+
+// What a finished clip looks like once recording stops.
 export interface SetClip {
+  kind: ClipKind;
+  // 0 for an attempt.
   setNumber: number;
   blob: Blob;
   mimeType: string;
@@ -17,6 +23,19 @@ export interface FrameInfo {
   feedback: string;
 }
 
+// One MediaRecorder run: either a set clip, or a standby recording that
+// runs while we wait for the gate to arm.
+interface Recording {
+  kind: "set" | "standby";
+  media: MediaRecorder;
+  timer: number;
+  // Set when the recording is thrown away, so its chunks are not glued
+  // into a file nobody will use.
+  discarded: boolean;
+  // Resolves with the clip once the recording has fully stopped.
+  result: Promise<SetClip | null>;
+}
+
 // 1280 px on the long side is plenty for a phone screen and keeps the
 // encoder from choking on a 4K camera.
 const MAX_LONG_SIDE = 1280;
@@ -27,10 +46,13 @@ const BITS_PER_SECOND = 2_500_000;
 const TIMESLICE_MS = 1000;
 // Safety cap: a set that never ends (phone left running) stops here.
 const MAX_CLIP_MS = 3 * 60 * 1000;
+// Standby is swapped for a fresh recording this often, so memory holds at
+// most about a minute of video while we wait for the gate to arm.
+const STANDBY_RESTART_MS = 60 * 1000;
 // The last frame is drawn and the clip stopped in the same moment. In
-// testing, that frame never made it into the file unless more frames
-// followed it, so the clip keeps repeating it for a short tail before the
-// real stop. The clip then ends holding the final rep count.
+// testing, that frame often never made it into the file, so the clip keeps
+// repeating it for a short tail before the real stop. The clip then ends
+// holding the final rep count.
 const STOP_TAIL_MS = 500;
 
 // Best first. MP4 plays and shares everywhere, including iPhone. Browsers
@@ -54,15 +76,20 @@ function pickMimeType(): string | undefined {
 
 // Records one clip per set by painting camera + skeleton + HUD onto its own
 // canvas and recording that canvas. The canvas the user sees is left alone.
+//
+// Between sets it keeps a standby recording going, so that if counting
+// never starts the session still ends with an attempt clip to look at.
 export class SetRecorder {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
-  private recorder: MediaRecorder | null = null;
-  private track: CanvasCaptureMediaStreamTrack | null = null;
-  private capTimer = 0;
-  // Resolves with the clip once the current recording has fully stopped.
-  // Non-null from start() until stop() hands it over.
-  private pending: Promise<SetClip | null> | null = null;
+  // The one recording frames go into: standby, a set clip, or a set clip
+  // the safety cap already stopped that is waiting to be collected.
+  private active: Recording | null = null;
+  // When the stopped clip's tail, which repeats its last frame, is over.
+  private tailEndsAt = 0;
+  private setClipsStarted = 0;
+  // Set by finish() and dispose(): the session is over, no more standby.
+  private closed = false;
 
   // Some older browsers have no way to record a canvas. The app still
   // works there, it just never offers the Record sets option.
@@ -93,10 +120,11 @@ export class SetRecorder {
     document.body.append(this.canvas);
   }
 
-  // True while frames are going into a clip. False between sets and after
-  // the safety cap has kicked in.
+  // True while frames should be drawn: a standby or set recording is
+  // running. False between a set ending and standby starting, and after
+  // the safety cap has stopped a set clip.
   get isRecording(): boolean {
-    return this.recorder?.state === "recording";
+    return this.active?.media.state === "recording";
   }
 
   // Paint one frame of the clip. Call it once per processed camera frame,
@@ -134,41 +162,100 @@ export class SetRecorder {
     this.drawWatermark(fontSize, pad);
   }
 
-  // Begin a new clip. Does nothing if a clip is already running, so when
-  // the person steps out of frame and the gate re-arms mid-set, the same
-  // clip simply carries on.
-  start(setNumber: number): void {
-    if (this.pending) return;
+  // Record while waiting for the gate to arm. Does nothing if something is
+  // already recording, or once the session is over.
+  startStandby(): void {
+    if (this.active || this.closed) return;
+    // In testing, starting a second recording of the canvas while the last
+    // set clip was still in its tail cost that clip its final frame. So
+    // standby waits for the tail to finish.
+    const tailLeft = this.tailEndsAt - performance.now();
+    if (tailLeft > 0) {
+      window.setTimeout(() => this.startStandby(), tailLeft);
+      return;
+    }
+    this.active = this.begin("standby", 0);
+  }
 
+  // Begin the clip for a set, throwing away any standby recording. Does
+  // nothing if a set clip is already running, so when the person steps out
+  // of frame and the gate re-arms mid-set, the same clip carries on.
+  start(setNumber: number): void {
+    if (this.active?.kind === "set") return;
+    this.discard();
+    this.active = this.begin("set", setNumber);
+    if (this.active) this.setClipsStarted += 1;
+  }
+
+  // Finish the current recording. Resolves with the clip, or null if nothing
+  // was recorded. If the safety cap already stopped a set clip, this hands
+  // over that capped clip.
+  stop(): Promise<SetClip | null> {
+    const recording = this.active;
+    this.active = null;
+    if (!recording) return Promise.resolve(null);
+    this.halt(recording, STOP_TAIL_MS);
+    return recording.result;
+  }
+
+  // End of the session. A running set clip is kept as usual. A standby
+  // recording is kept as an attempt only if no set was recorded at all,
+  // because then it is the only video of what went wrong.
+  finish(): Promise<SetClip | null> {
+    this.closed = true;
+    if (this.active?.kind === "standby" && this.setClipsStarted > 0) {
+      this.discard();
+      return Promise.resolve(null);
+    }
+    return this.stop();
+  }
+
+  // Stop anything still running and take the canvas off the page.
+  dispose(): void {
+    this.closed = true;
+    this.discard();
+    this.canvas.remove();
+  }
+
+  private begin(kind: Recording["kind"], setNumber: number): Recording | null {
     try {
       // captureStream turns the canvas into a live video track: every time
       // we paint it, a new frame goes into the stream (at most 30 a second).
       const stream = this.canvas.captureStream(FRAME_RATE);
       const mimeType = pickMimeType();
-      const recorder = new MediaRecorder(stream, {
+      const media = new MediaRecorder(stream, {
         ...(mimeType ? { mimeType } : {}),
         videoBitsPerSecond: BITS_PER_SECOND,
       });
       const chunks: Blob[] = [];
       const startedAt = performance.now();
 
-      recorder.addEventListener("dataavailable", (event) => {
+      media.addEventListener("dataavailable", (event) => {
         if (event.data.size > 0) chunks.push(event.data);
       });
 
+      const recording: Recording = {
+        kind,
+        media,
+        timer: 0,
+        discarded: false,
+        result: Promise.resolve(null),
+      };
+
       // The "stop" event fires after the last chunk has arrived, so this is
       // where the chunks are glued into one video file.
-      this.pending = new Promise((resolve) => {
-        recorder.addEventListener("stop", () => {
+      recording.result = new Promise((resolve) => {
+        media.addEventListener("stop", () => {
           stream.getTracks().forEach((track) => track.stop());
-          if (chunks.length === 0) {
+          if (recording.discarded || chunks.length === 0) {
             resolve(null);
             return;
           }
-          // recorder.mimeType is what the browser actually used, which can
+          // media.mimeType is what the browser actually used, which can
           // differ from what we asked for.
-          const type = recorder.mimeType || mimeType || "video/webm";
+          const type = media.mimeType || mimeType || "video/webm";
           resolve({
+            kind: kind === "set" ? "set" : "attempt",
             setNumber,
             blob: new Blob(chunks, { type }),
             mimeType: type,
@@ -177,60 +264,62 @@ export class SetRecorder {
         });
       });
 
-      recorder.start(TIMESLICE_MS);
-      this.recorder = recorder;
-      this.track = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack;
-      this.capTimer = window.setTimeout(() => this.halt(), MAX_CLIP_MS);
+      media.start(TIMESLICE_MS);
+      // A set clip stops at the safety cap and is kept. Standby is swapped
+      // for a fresh recording instead.
+      const onTimer =
+        kind === "set"
+          ? () => this.halt(recording, 0)
+          : () => this.restart(recording);
+      const timerMs = kind === "set" ? MAX_CLIP_MS : STANDBY_RESTART_MS;
+      recording.timer = window.setTimeout(onTimer, timerMs);
+      return recording;
     } catch (err) {
       // Recording is a bonus. If the browser refuses, the workout carries
       // on without a clip.
       console.warn("Could not start recording", err);
-      this.pending = null;
-      this.recorder = null;
-      this.track = null;
+      return null;
     }
   }
 
-  // Finish the current clip. Resolves with the clip, or null if nothing was
-  // recorded. If the safety cap already stopped it, this hands over that
-  // capped clip.
-  stop(): Promise<SetClip | null> {
-    const pending = this.pending;
-    this.pending = null;
-    if (!pending) return Promise.resolve(null);
-    this.halt(STOP_TAIL_MS);
-    return pending;
+  // Swap an old standby recording for a fresh one.
+  private restart(recording: Recording): void {
+    if (this.active !== recording) return;
+    this.discard();
+    this.startStandby();
   }
 
-  // Stop anything still running and take the canvas off the page.
-  dispose(): void {
-    this.halt();
-    this.pending = null;
-    this.canvas.remove();
+  // Stop the current recording and throw it away.
+  private discard(): void {
+    const recording = this.active;
+    this.active = null;
+    if (!recording) return;
+    recording.discarded = true;
+    this.halt(recording, 0);
   }
 
-  // Stop the MediaRecorder, either now or after a tail that repeats the
-  // last frame. The clip itself is delivered through `pending`.
-  private halt(tailMs = 0): void {
-    clearTimeout(this.capTimer);
-    const recorder = this.recorder;
-    const track = this.track;
-    this.recorder = null;
-    this.track = null;
-    if (!recorder || recorder.state === "inactive") return;
+  // Stop a MediaRecorder, either now or after a tail that repeats the last
+  // frame. The clip itself is delivered through recording.result.
+  private halt(recording: Recording, tailMs: number): void {
+    clearTimeout(recording.timer);
+    const { media } = recording;
+    if (media.state === "inactive") return;
     if (tailMs <= 0) {
-      recorder.stop();
+      media.stop();
       return;
     }
-    // requestFrame() pushes the canvas as it is right now into the video,
-    // even though nothing new was drawn.
+    this.tailEndsAt = performance.now() + tailMs;
+    // Redraw the canvas onto itself, unchanged. The capture only takes a
+    // frame when the canvas changes, and at most 30 a second, so a final
+    // frame drawn too soon after the previous one is dropped unless the
+    // canvas keeps "changing" after it.
     const repeat = window.setInterval(
-      () => track?.requestFrame?.(),
+      () => this.ctx.drawImage(this.canvas, 0, 0),
       1000 / FRAME_RATE,
     );
     window.setTimeout(() => {
       clearInterval(repeat);
-      recorder.stop();
+      media.stop();
     }, tailMs);
   }
 
