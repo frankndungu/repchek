@@ -61,6 +61,12 @@ export interface RepTrigger {
   metric: keyof FrameMetrics;
   start: number;
   turn: number;
+  // When set, the trigger is learned from the person. start becomes the
+  // value they held during the readiness hold, and turn becomes
+  // start * turnRatio. The profile's own start is then only a loose floor
+  // for arming, and its turn is ignored except to say which way the rep
+  // goes (start above turn, or below it).
+  turnRatio?: number;
 }
 
 export interface FormRule {

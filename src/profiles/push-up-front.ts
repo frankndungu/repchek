@@ -7,7 +7,9 @@ export const pushUpFront: ExerciseProfile = {
   bodyweight: true,
   setupHint:
     "Phone on the floor in front of you, facing your head. Catches elbow flare",
-  rep: { metric: "shoulderOverWrist", start: 0.9, turn: 0.3 },
+  // Auto-calibrated. start 0.8 is the lowest plausible top, the real top
+  // is learned from the readiness hold and the bottom is half of it.
+  rep: { metric: "shoulderOverWrist", start: 0.8, turn: 0.4, turnRatio: 0.5 },
   ready: [
     {
       metric: "hipDrop",

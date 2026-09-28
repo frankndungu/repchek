@@ -18,7 +18,12 @@ import type {
   SessionRecord,
   SetRecord,
 } from "./engine/session";
-import type { ExerciseProfile, FrameMetrics, RepPhase } from "./engine/types";
+import type {
+  ExerciseProfile,
+  FrameMetrics,
+  RepPhase,
+  RepTrigger,
+} from "./engine/types";
 import { PROFILES, findProfile } from "./profiles";
 import { saveSession } from "./storage/db";
 import {
@@ -139,6 +144,9 @@ let wakeLock: WakeLockSentinel | null = null;
 let judge: Judge | null = null;
 let repCounter: RepCounter | null = null;
 let gate: ReadinessGate | null = null;
+// The rep range learned when the gate last armed, for auto-calibrated
+// profiles only.
+let learnedTrigger: RepTrigger | null = null;
 let session: SessionTracker | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let selectedProfileId = PROFILES[0].id;
@@ -297,7 +305,13 @@ function formatDebug(
 // screen recording why it is or is not counting yet.
 function gateDebug(metrics: FrameMetrics): string {
   if (!gate) return "";
-  if (gate.isArmed) return "armed";
+  if (gate.isArmed) {
+    if (!learnedTrigger) return "armed";
+    const { metric, start, turn } = learnedTrigger;
+    const from = formatValue(metric, start);
+    const to = formatValue(metric, turn);
+    return `armed | learned ${from} to ${to}`;
+  }
   const checks = gate.readyChecks.map(
     (check) => `${check.metric} ${formatValue(check.metric, metrics[check.metric])}`,
   );
@@ -467,10 +481,20 @@ function finishSession(): void {
   finishing = false;
 }
 
+// Auto-calibration: with turnRatio set, the rep range comes from the
+// person. start is the value they held while the gate armed, and turn is a
+// fraction of it. Null for profiles with a fixed range.
+function learnTrigger(rep: RepTrigger): RepTrigger | null {
+  const held = gate?.heldValue;
+  if (rep.turnRatio === undefined || held == null) return null;
+  return { metric: rep.metric, start: held, turn: held * rep.turnRatio };
+}
+
 // Fresh counter and judge, so nothing from the setup leaks into rep 1.
 function armCounting(): void {
   if (!activeProfile) return;
-  repCounter = new RepCounter(activeProfile.rep);
+  learnedTrigger = learnTrigger(activeProfile.rep);
+  repCounter = new RepCounter(learnedTrigger ?? activeProfile.rep);
   judge = new Judge(activeProfile);
   currentRepFaults.clear();
   showNotice("Ready, go", 1200);
@@ -489,6 +513,7 @@ startBtn.addEventListener("click", async () => {
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
+    learnedTrigger = null;
     session = new SessionTracker({
       sets: Number(setsInput.value) || 4,
       reps: Number(repsInput.value) || 12,

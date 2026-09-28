@@ -86,6 +86,33 @@ deadlift has no check, because standing next to the bar looks the same as
 standing with it, and bending down to grip is the lowering half of rep 1,
 so counting from standing is correct.
 
+## Auto-calibration
+
+The bug: a profile's start and turn are fixed numbers, but the metric
+depends on where the phone is. Closer, further, higher or lower, and the
+same push-up gives different values. In a real front view recording the
+metric went from about 1.43 at the top to about 0.5 at the bottom, but the
+profile expected the bottom below 0.39, so 0 of 8 reps counted.
+
+The fix uses something the gate already does. Before counting, you have to
+hold the top of the rep still for a second. So we already know your top,
+from where your phone is today. That held value (the average over the
+hold) becomes your personal start, and the bottom is a fixed fraction of
+it. For push-ups the fraction is a half: a top of 1.43 gives a bottom of
+0.72. Replaying the recording that way counted 8 of 8, and still 8 of 8
+with the top anywhere from 1.3 to 1.5.
+
+A profile opts in with `turnRatio` on its rep trigger. Its own `start` then
+becomes only a loose floor: to arm, you must be at or beyond it, with no
+upper limit, since the real top is whatever you hold. The profile's `turn`
+only says which way the rep goes. "Hold still" is measured against the
+range your held value would give. The range is learned again every time
+the gate arms, so each set gets its own. The debug line shows it once
+armed, for example "learned 1.43 to 0.72".
+
+Only the front view push-up uses it for now. The other profiles will move
+over once it has been tested on them.
+
 ## Sets and rest
 
 `SessionTracker` (`src/engine/session.ts`) sits on top of the counter with
