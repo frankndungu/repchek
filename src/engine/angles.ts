@@ -87,13 +87,67 @@ export function dominantSide(landmarks: Landmark[]): Side {
   return score(LEFT_SIDE) >= score(RIGHT_SIDE) ? "left" : "right";
 }
 
+export type BodyPart =
+  | "hands"
+  | "arms"
+  | "shoulders"
+  | "hips"
+  | "legs"
+  | "head";
+
+// Most useful first: when the phone is too close, hands and feet are the
+// first to leave the frame, and "move back" fixes it.
+const BODY_PARTS: Array<{ part: BodyPart; joints: number[] }> = [
+  { part: "hands", joints: [LANDMARK.LEFT_WRIST, LANDMARK.RIGHT_WRIST] },
+  { part: "arms", joints: [LANDMARK.LEFT_ELBOW, LANDMARK.RIGHT_ELBOW] },
+  {
+    part: "shoulders",
+    joints: [LANDMARK.LEFT_SHOULDER, LANDMARK.RIGHT_SHOULDER],
+  },
+  { part: "hips", joints: [LANDMARK.LEFT_HIP, LANDMARK.RIGHT_HIP] },
+  {
+    part: "legs",
+    joints: [
+      LANDMARK.LEFT_KNEE,
+      LANDMARK.RIGHT_KNEE,
+      LANDMARK.LEFT_ANKLE,
+      LANDMARK.RIGHT_ANKLE,
+    ],
+  },
+  { part: "head", joints: [LANDMARK.LEFT_EAR, LANDMARK.RIGHT_EAR] },
+];
+
+const MIN_PART_VISIBILITY = 0.6;
+
+// The joints a view needs to see: one whole side of the body from the
+// side, both arms from the front.
+function confidenceChain(side: Side, view: CameraView): number[] {
+  return view === "front" ? FRONT_CHAIN : SIDE_CHAIN[side];
+}
+
 export function frameConfidence(
   landmarks: Landmark[],
   side: Side,
   view: CameraView = "side",
 ): number {
-  const chain = view === "front" ? FRONT_CHAIN : SIDE_CHAIN[side];
+  const chain = confidenceChain(side, view);
   return Math.min(...chain.map((i) => landmarks[i].visibility));
+}
+
+// Which body parts frameConfidence could not see well enough, so the app
+// can say what is out of frame instead of just skipping the frame.
+export function missingParts(
+  landmarks: Landmark[],
+  side: Side,
+  view: CameraView = "side",
+): BodyPart[] {
+  const chain = confidenceChain(side, view);
+  const unseen = chain.filter(
+    (i) => landmarks[i].visibility < MIN_PART_VISIBILITY,
+  );
+  return BODY_PARTS.filter(({ joints }) =>
+    joints.some((i) => unseen.includes(i)),
+  ).map(({ part }) => part);
 }
 
 export function computeJointAngles(lm: Point[]): JointAngles {

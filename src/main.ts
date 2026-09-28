@@ -6,7 +6,9 @@ import {
   computeFrameMetrics,
   dominantSide,
   frameConfidence,
+  missingParts,
 } from "./engine/angles";
+import type { BodyPart } from "./engine/angles";
 import { Judge } from "./engine/judge";
 import { RepCounter } from "./engine/repCounter";
 import { ReadinessGate } from "./engine/readiness";
@@ -56,6 +58,18 @@ const LOW_CONFIDENCE_COLOR = "#9ca3af";
 const WAITING_COLOR = "#f5f5f2";
 const GUIDE_COLOR = "#22d3ee";
 const MIN_FRAME_CONFIDENCE = 0.6;
+// Tracking has to stay poor this long before the pill says what is
+// missing, so short blips do not flash messages.
+const MISSING_HINT_DELAY_MS = 1000;
+
+const MISSING_HINTS: Record<BodyPart, string> = {
+  hands: "MOVE BACK, I CAN'T SEE YOUR HANDS",
+  arms: "MOVE BACK, I CAN'T SEE YOUR HANDS",
+  legs: "MOVE BACK, I CAN'T SEE YOUR LEGS",
+  hips: "I CAN'T SEE YOUR BODY, CHECK THE ANGLE",
+  shoulders: "I CAN'T SEE YOUR BODY, CHECK THE ANGLE",
+  head: "I CAN'T SEE YOUR HEAD",
+};
 
 // Metrics that are ratios, not angles, so the debug line needs decimals.
 const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
@@ -136,6 +150,8 @@ let sessionStartedAt: Date | null = null;
 let finishing = false;
 let running = false;
 let lastVideoTime = -1;
+let lowConfidenceSince: number | null = null;
+let trackingHint = "";
 let mirrored = false;
 let currentRecord: SessionRecord | null = null;
 let currentStats: SessionStats | null = null;
@@ -143,14 +159,19 @@ const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
 
+// Short name, plus "(front)" for front view lifts, so it is clear which
+// version is running.
+function displayName(profile: ExerciseProfile): string {
+  const front = profile.cameraView === "front" ? " (front)" : "";
+  return profile.name.split(" (")[0] + front;
+}
+
 function renderChips(): void {
   chipsEl.replaceChildren();
   for (const profile of PROFILES) {
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.textContent =
-      profile.name.split(" (")[0] +
-      (profile.cameraView === "front" ? " (front)" : "");
+    chip.textContent = displayName(profile);
     chip.className = `${CHIP_BASE} ${profile.id === selectedProfileId ? CHIP_ON : CHIP_OFF}`;
     chip.addEventListener("click", () => {
       selectedProfileId = profile.id;
@@ -287,6 +308,7 @@ function gateDebug(metrics: FrameMetrics): string {
 // The label in the counter pill ("Set 1/4 | Reps 0 | ...").
 function counterLabel(profile: ExerciseProfile, phase: RepPhase): string {
   if (!session || !gate) return "";
+  if (trackingHint) return trackingHint;
   if (!gate.isArmed) {
     if (gate.status === "holding") return "HOLD STILL";
     if (session.isResting) return "REST";
@@ -464,7 +486,9 @@ startBtn.addEventListener("click", async () => {
     });
     sessionStartedAt = new Date();
     currentRepFaults.clear();
-    showExercise(activeProfile.name.split(" (")[0]);
+    showExercise(displayName(activeProfile));
+    lowConfidenceSince = null;
+    trackingHint = "";
 
     status.textContent = "Requesting camera...";
     // facingMode is only "ideal" inside startCamera, so if the chosen camera
@@ -523,6 +547,37 @@ shareBtn.addEventListener("click", async () => {
   }
 });
 
+// Pass the missing parts on a low confidence frame, or null on any other
+// frame. The hint only appears once tracking has been poor for
+// MISSING_HINT_DELAY_MS in a row, and clears on the first frame that is not.
+function updateTrackingHint(missing: BodyPart[] | null, now: number): void {
+  if (!missing) {
+    lowConfidenceSince = null;
+    trackingHint = "";
+    return;
+  }
+  lowConfidenceSince ??= now;
+  const waited = now - lowConfidenceSince >= MISSING_HINT_DELAY_MS;
+  trackingHint = waited && missing.length > 0 ? MISSING_HINTS[missing[0]] : "";
+}
+
+// Debug line for a skipped frame: the view (and side for side views),
+// the confidence and what could not be seen.
+function lowConfidenceDebug(
+  profile: ExerciseProfile,
+  side: string,
+  confidence: number,
+  missing: BodyPart[],
+): string {
+  const view = profile.cameraView === "front" ? ["front"] : ["side", side];
+  return [
+    ...view,
+    `low confidence ${confidence.toFixed(2)}`,
+    `missing: ${missing.join(", ") || "none"}`,
+    "frame skipped",
+  ].join(" | ");
+}
+
 // The person cannot be seen properly this frame.
 function handleLostFrame(now: number): void {
   if (!gate || !session || !activeProfile || !repCounter) return;
@@ -577,6 +632,7 @@ function loop(): void {
     const landmarks = estimator.estimate(video, now);
 
     if (!landmarks) {
+      updateTrackingHint(null, now);
       clearCanvas(ctx);
       showFeedback([]);
       recordFrame("");
@@ -592,14 +648,19 @@ function loop(): void {
       );
 
       if (confidence < MIN_FRAME_CONFIDENCE) {
+        const missing = missingParts(
+          landmarks,
+          side,
+          activeProfile.cameraView,
+        );
+        updateTrackingHint(missing, now);
         drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
         showFeedback([]);
         recordFrame("");
         handleLostFrame(now);
-        showDebug(
-          `${side} | low confidence ${confidence.toFixed(2)} | frame skipped`,
-        );
+        showDebug(lowConfidenceDebug(activeProfile, side, confidence, missing));
       } else {
+        updateTrackingHint(null, now);
         const metrics = computeFrameMetrics(landmarks, aspect);
 
         // Step 1: are they in position yet?
