@@ -417,6 +417,11 @@ function recordFrame(
 ): void {
   if (!recorder?.isRecording || !session || !activeProfile) return;
   const closed = closedSet(sessionEvent);
+  // Until the gate arms, show what the pill says (HOLD STILL, MOVE BACK,
+  // ...) instead, so a clip shows why counting has not started.
+  const message = gate?.isArmed
+    ? feedback
+    : counterLabel(activeProfile, repCounter?.currentPhase ?? "idle");
   recorder.drawFrame(
     video,
     canvas,
@@ -425,7 +430,7 @@ function recordFrame(
       set: closed?.set ?? session.set,
       totalSets: session.totalSets,
       reps: closed?.reps.length ?? session.reps,
-      feedback,
+      feedback: message,
     },
     mirrored,
   );

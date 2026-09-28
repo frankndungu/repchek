@@ -16,7 +16,9 @@ processed camera frame onto it, in this order:
 1. the camera frame
 2. the overlay canvas with the skeleton, spine guide and angle labels
 3. a dark strip across the top with the exercise, "Set X/Y", "Reps N" and
-   the current feedback message
+   a second line: the current feedback message once counting, or until the
+   gate arms, the same text as the pill ("HOLD STILL", "MOVE BACK, I CAN'T
+   SEE YOUR HANDS" and so on), so a clip shows why counting has not started
 4. "repchek.vercel.app" small in the bottom right corner
 
 With the front camera the screen is mirrored with CSS, so steps 1 and 2 are
@@ -68,9 +70,10 @@ went wrong.
 So recording starts as soon as the camera does, in standby. A standby
 recording is not a clip yet, it is kept in case it is needed:
 
-- Every 60 seconds a standby recording is thrown away and a fresh one
-  starts, so only about the last minute is ever held in memory.
-- When the gate arms, standby is thrown away and the set clip starts.
+- Every 60 seconds the standby recording is stopped and kept as the
+  "previous" one, and a fresh one starts. The one before that is thrown
+  away, so there are never more than two, about two minutes of video.
+- When the gate arms, both are thrown away and the set clip starts.
 - When a set ends, recording goes back to standby until the gate arms for
   the next set. Standby waits for the finished clip's half second tail
   first, because recording the canvas twice at once cost that clip its
@@ -78,16 +81,18 @@ recording is not a clip yet, it is kept in case it is needed:
 
 When the session ends, by Finish or by completing the last set:
 
-- If at least one set was recorded, the standby recording is thrown away.
-  The set clips already show what happened.
-- If no set was recorded, the standby recording is kept as an "Attempt"
+- If at least one set was recorded, the standby recordings are thrown
+  away. The set clips already show what happened.
+- If no set was recorded, one standby recording is kept as an "Attempt"
   clip, saved as `repchek-<exercise>-attempt.mp4` (or `.webm`). The summary
   lists it with a note asking you to share it, so we can see why nothing
   was counted.
 
-Because standby restarts every minute, an attempt clip is somewhere
-between a few seconds and a minute long, depending on when Finish was
-pressed.
+Which one: the current standby if it has run for at least 20 seconds,
+otherwise the previous one. A restart just before Finish would leave the
+current one only a few seconds long, too short to show anything, so the
+full minute before it is used instead. The only way to get an attempt clip
+under 20 seconds is a session shorter than that.
 
 A side benefit: the first recording after the camera starts can lose its
 opening seconds while the video encoder warms up. Standby takes that hit

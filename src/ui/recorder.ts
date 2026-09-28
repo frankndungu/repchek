@@ -28,6 +28,7 @@ export interface FrameInfo {
 interface Recording {
   kind: "set" | "standby";
   media: MediaRecorder;
+  startedAt: number;
   timer: number;
   // Set when the recording is thrown away, so its chunks are not glued
   // into a file nobody will use.
@@ -46,9 +47,13 @@ const BITS_PER_SECOND = 2_500_000;
 const TIMESLICE_MS = 1000;
 // Safety cap: a set that never ends (phone left running) stops here.
 const MAX_CLIP_MS = 3 * 60 * 1000;
-// Standby is swapped for a fresh recording this often, so memory holds at
-// most about a minute of video while we wait for the gate to arm.
+// Standby is swapped for a fresh recording this often. The one before is
+// kept as the previous standby, so memory holds at most about two minutes
+// of video while we wait for the gate to arm.
 const STANDBY_RESTART_MS = 60 * 1000;
+// An attempt clip shorter than this is too short to show what went wrong,
+// so the previous standby recording is used instead.
+const MIN_ATTEMPT_MS = 20 * 1000;
 // The last frame is drawn and the clip stopped in the same moment. In
 // testing, that frame often never made it into the file, so the clip keeps
 // repeating it for a short tail before the real stop. The clip then ends
@@ -85,6 +90,9 @@ export class SetRecorder {
   // The one recording frames go into: standby, a set clip, or a set clip
   // the safety cap already stopped that is waiting to be collected.
   private active: Recording | null = null;
+  // The standby recording from before the last restart, already stopped.
+  // Kept in case the current one is still short when the session ends.
+  private previousStandby: Promise<SetClip | null> | null = null;
   // When the stopped clip's tail, which repeats its last frame, is over.
   private tailEndsAt = 0;
   private setClipsStarted = 0;
@@ -177,12 +185,13 @@ export class SetRecorder {
     this.active = this.begin("standby", 0);
   }
 
-  // Begin the clip for a set, throwing away any standby recording. Does
+  // Begin the clip for a set, throwing away both standby recordings. Does
   // nothing if a set clip is already running, so when the person steps out
   // of frame and the gate re-arms mid-set, the same clip carries on.
   start(setNumber: number): void {
     if (this.active?.kind === "set") return;
     this.discard();
+    this.previousStandby = null;
     this.active = this.begin("set", setNumber);
     if (this.active) this.setClipsStarted += 1;
   }
@@ -198,22 +207,31 @@ export class SetRecorder {
     return recording.result;
   }
 
-  // End of the session. A running set clip is kept as usual. A standby
-  // recording is kept as an attempt only if no set was recorded at all,
-  // because then it is the only video of what went wrong.
+  // End of the session. A running set clip is kept as usual. Standby is
+  // kept as an attempt only if no set was recorded at all, because then it
+  // is the only video of what went wrong. The current standby is used if it
+  // has run for MIN_ATTEMPT_MS, otherwise the previous one, if there is one.
   finish(): Promise<SetClip | null> {
     this.closed = true;
-    if (this.active?.kind === "standby" && this.setClipsStarted > 0) {
+    const previous = this.previousStandby;
+    this.previousStandby = null;
+    const current = this.active;
+    if (current?.kind !== "standby") return this.stop();
+    if (this.setClipsStarted > 0) {
       this.discard();
       return Promise.resolve(null);
     }
-    return this.stop();
+    const ranFor = performance.now() - current.startedAt;
+    if (ranFor >= MIN_ATTEMPT_MS || !previous) return this.stop();
+    this.discard();
+    return previous;
   }
 
   // Stop anything still running and take the canvas off the page.
   dispose(): void {
     this.closed = true;
     this.discard();
+    this.previousStandby = null;
     this.canvas.remove();
   }
 
@@ -237,6 +255,7 @@ export class SetRecorder {
       const recording: Recording = {
         kind,
         media,
+        startedAt,
         timer: 0,
         discarded: false,
         result: Promise.resolve(null),
@@ -265,8 +284,8 @@ export class SetRecorder {
       });
 
       media.start(TIMESLICE_MS);
-      // A set clip stops at the safety cap and is kept. Standby is swapped
-      // for a fresh recording instead.
+      // A set clip stops at the safety cap and is kept. Standby moves over
+      // to previous and a fresh recording starts instead.
       const onTimer =
         kind === "set"
           ? () => this.halt(recording, 0)
@@ -282,10 +301,13 @@ export class SetRecorder {
     }
   }
 
-  // Swap an old standby recording for a fresh one.
+  // Stop a standby recording that has run its full minute and keep it as
+  // the previous one, dropping the one before, then start a fresh one.
   private restart(recording: Recording): void {
     if (this.active !== recording) return;
-    this.discard();
+    this.active = null;
+    this.halt(recording, 0);
+    this.previousStandby = recording.result;
     this.startStandby();
   }
 
