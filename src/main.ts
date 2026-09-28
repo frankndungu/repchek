@@ -28,7 +28,13 @@ import {
   showDebug,
   showExercise,
 } from "./ui/hud";
-import { unlockAudio, beep, chimeReady, chimeSetDone } from "./ui/audio";
+import {
+  unlockAudio,
+  beep,
+  whistleGo,
+  chimeSetDone,
+  bellFinish,
+} from "./ui/audio";
 import { computeStats, renderSummary } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
@@ -290,7 +296,7 @@ function armCounting(): void {
   judge = new Judge(activeProfile);
   currentRepFaults.clear();
   showNotice("Ready, go", 1200);
-  chimeReady();
+  whistleGo();
 }
 
 startBtn.addEventListener("click", async () => {
@@ -387,6 +393,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   }
   if (sessionEvent?.type === "session-complete") {
     showNotice("Session complete", 1500);
+    bellFinish();
     setTimeout(() => finishSession(), 1500);
   }
 }

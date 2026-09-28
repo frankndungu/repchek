@@ -71,9 +71,10 @@ It disarms, and you have to set up and hold again, in two cases:
 - when you cannot be seen properly for 1.5 seconds. Shorter tracking blips
   are normal and are ignored
 
-When the gate arms you hear two rising notes, and when a set ends you hear
-two falling notes, so you do not need to watch a phone on the floor. The
-fault beep stays harsh on purpose, so it is never confused with these.
+When the gate arms you hear a whistle, when a set ends you hear two
+falling notes, and when the workout is finished a bell rings, so you do
+not need to watch a phone on the floor. Faults get a harsh buzz on
+purpose, so it is never confused with these.
 
 Conditions 1, 2 and 4 come from the rep trigger, so every exercise
 gets the gate with no extra work. The `ready` checks are the part you add
