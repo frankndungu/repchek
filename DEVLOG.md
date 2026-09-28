@@ -1,4 +1,4 @@
-# M.O.R.G.A.N. Development Log
+# Repchek Development Log
 
 ## Day 1 (2026-09-19): Scaffold, camera, and first skeleton
 
