@@ -11,7 +11,11 @@ import { Judge } from "./engine/judge";
 import { RepCounter } from "./engine/repCounter";
 import { ReadinessGate } from "./engine/readiness";
 import { SessionTracker } from "./engine/session";
-import type { SessionRecord } from "./engine/session";
+import type {
+  SessionEvent,
+  SessionRecord,
+  SetRecord,
+} from "./engine/session";
 import type { ExerciseProfile, FrameMetrics, RepPhase } from "./engine/types";
 import { PROFILES, findProfile } from "./profiles";
 import { saveSession } from "./storage/db";
@@ -36,9 +40,12 @@ import {
   chimeSetDone,
   bellFinish,
 } from "./ui/audio";
-import { computeStats, renderSummary } from "./ui/summary";
+import { computeStats, renderSummary, shortName } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
+import { SetRecorder } from "./ui/recorder";
+import type { SetClip } from "./ui/recorder";
+import { renderClips, releaseClips } from "./ui/clips";
 
 inject();
 
@@ -74,6 +81,8 @@ const CAMERA_HINTS: Record<FacingMode, string> = {
   user: "See the feedback yourself while you train.",
 };
 
+const RECORD_STORAGE_KEY = "repchek.record";
+
 const IN_APP_BROWSER =
   /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
     navigator.userAgent,
@@ -94,6 +103,8 @@ const status = q<HTMLElement>("#status");
 const chipsEl = q<HTMLElement>("#exercise-chips");
 const cameraToggle = q<HTMLElement>("#camera-toggle");
 const cameraHintEl = q<HTMLElement>("#camera-hint");
+const recordSetting = q<HTMLElement>("#record-setting");
+const recordToggle = q<HTMLElement>("#record-toggle");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
 const exerciseHintEl = q<HTMLElement>("#exercise-hint");
 const browserHint = q<HTMLElement>("#browser-hint");
@@ -118,6 +129,9 @@ let session: SessionTracker | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let selectedProfileId = PROFILES[0].id;
 let facingMode: FacingMode = loadFacingMode();
+let recordSets = readSetting(RECORD_STORAGE_KEY) === "on";
+let recorder: SetRecorder | null = null;
+let clips: SetClip[] = [];
 let sessionStartedAt: Date | null = null;
 let finishing = false;
 let running = false;
@@ -160,48 +174,70 @@ function renderChips(): void {
 
 renderChips();
 
-// Storage can throw (private mode, blocked site data), so the choice is a
-// convenience that falls back to the back camera.
+// Storage can throw (private mode, blocked site data), so saved choices are
+// a convenience and every setting has a default to fall back on.
+function readSetting(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch (err) {
+    console.warn(`Could not read ${key}`, err);
+    return null;
+  }
+}
+
+function writeSetting(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`Could not save ${key}`, err);
+  }
+}
+
 function loadFacingMode(): FacingMode {
-  try {
-    const saved = localStorage.getItem(CAMERA_STORAGE_KEY);
-    if (saved === "environment" || saved === "user") return saved;
-  } catch (err) {
-    console.warn("Could not read camera choice", err);
-  }
-  return "environment";
+  return readSetting(CAMERA_STORAGE_KEY) === "user" ? "user" : "environment";
 }
 
-function saveFacingMode(): void {
-  try {
-    localStorage.setItem(CAMERA_STORAGE_KEY, facingMode);
-  } catch (err) {
-    console.warn("Could not save camera choice", err);
-  }
-}
-
-function renderCameraToggle(): void {
-  const options =
-    cameraToggle.querySelectorAll<HTMLButtonElement>("[data-facing]");
-  for (const option of options) {
-    const on = option.dataset.facing === facingMode;
+// Two-option toggles on the start screen, styled like the lift chips.
+function renderToggle(group: HTMLElement, selected: string): void {
+  for (const option of group.querySelectorAll<HTMLElement>("[data-value]")) {
+    const on = option.dataset.value === selected;
     option.className = `${CHIP_BASE} ${on ? CHIP_ON : CHIP_OFF}`;
     option.setAttribute("aria-pressed", String(on));
   }
+}
+
+function tappedValue(event: Event): string | undefined {
+  return (event.target as Element).closest<HTMLElement>("[data-value]")
+    ?.dataset.value;
+}
+
+function renderCameraToggle(): void {
+  renderToggle(cameraToggle, facingMode);
   cameraHintEl.textContent = CAMERA_HINTS[facingMode];
 }
 
 cameraToggle.addEventListener("click", (event) => {
-  const option = (event.target as Element).closest<HTMLButtonElement>(
-    "[data-facing]",
-  );
-  if (!option) return;
-  facingMode = option.dataset.facing === "user" ? "user" : "environment";
-  saveFacingMode();
+  const value = tappedValue(event);
+  if (!value) return;
+  facingMode = value === "user" ? "user" : "environment";
+  writeSetting(CAMERA_STORAGE_KEY, facingMode);
   renderCameraToggle();
 });
 
 renderCameraToggle();
+
+// Browsers that cannot record a canvas never see the option.
+recordSetting.hidden = !SetRecorder.isSupported();
+
+recordToggle.addEventListener("click", (event) => {
+  const value = tappedValue(event);
+  if (!value) return;
+  recordSets = value === "on";
+  writeSetting(RECORD_STORAGE_KEY, recordSets ? "on" : "off");
+  renderToggle(recordToggle, recordSets ? "on" : "off");
+});
+
+renderToggle(recordToggle, recordSets ? "on" : "off");
 
 let counterTaps: number[] = [];
 counterEl.addEventListener("click", () => {
@@ -325,7 +361,62 @@ function showSummary(record: SessionRecord): void {
   currentRecord = record;
   currentStats = computeStats(record);
   renderSummary(record, currentStats);
+  renderClips(clips, record.exerciseId);
   summaryScreen.hidden = false;
+}
+
+// Close the current set's clip. The video file is ready a moment later, and
+// only joins the list if this session's clips have not been freed by then.
+function stopClip(): void {
+  if (!recorder || !activeProfile) return;
+  const sessionClips = clips;
+  const exerciseId = activeProfile.id;
+  void recorder.stop().then((clip) => {
+    if (!clip || sessionClips !== clips) return;
+    clips.push(clip);
+    renderClips(clips, exerciseId);
+  });
+}
+
+// Let go of this session's videos so the memory is freed.
+function freeClips(): void {
+  releaseClips();
+  clips = [];
+  recorder?.dispose();
+  recorder = null;
+}
+
+// Paint this frame into the set clip, if one is recording. Call it before
+// handleSessionEvent, which stops the clip when a set closes.
+function recordFrame(
+  feedback: string,
+  sessionEvent: SessionEvent | null = null,
+): void {
+  if (!recorder?.isRecording || !session || !activeProfile) return;
+  const closed = closedSet(sessionEvent);
+  recorder.drawFrame(
+    video,
+    canvas,
+    {
+      exercise: shortName(activeProfile.name),
+      set: closed?.set ?? session.set,
+      totalSets: session.totalSets,
+      reps: closed?.reps.length ?? session.reps,
+      feedback,
+    },
+    mirrored,
+  );
+}
+
+// When the last rep closes a set, the session has already reset its
+// counters for the next set by the time we draw. Use the closed set's
+// numbers instead, or every clip would end one rep short.
+function closedSet(sessionEvent: SessionEvent | null): SetRecord | undefined {
+  if (sessionEvent?.type === "set-complete") return sessionEvent.record;
+  if (sessionEvent?.type === "session-complete") {
+    return sessionEvent.sets.at(-1);
+  }
+  return undefined;
 }
 
 // Show the summary straight away, save to the phone in the background.
@@ -333,6 +424,7 @@ function finishSession(): void {
   if (finishing) return;
   finishing = true;
   const record = buildRecord();
+  stopClip();
   stopCamera();
   if (record) {
     showSummary(record);
@@ -353,6 +445,9 @@ function armCounting(): void {
   currentRepFaults.clear();
   showNotice("Ready, go", 1200);
   whistleGo();
+  // A no-op if this set's clip is already running, which is what happens
+  // when the gate re-arms after losing the person mid-set.
+  if (session) recorder?.start(session.set);
 }
 
 startBtn.addEventListener("click", async () => {
@@ -389,6 +484,8 @@ startBtn.addEventListener("click", async () => {
     summaryScreen.hidden = true;
     endBtn.hidden = false;
     debugEl.hidden = false;
+    recorder =
+      recordSets && SetRecorder.isSupported() ? new SetRecorder() : null;
     running = true;
     lastVideoTime = -1;
     requestAnimationFrame(loop);
@@ -407,6 +504,7 @@ endBtn.addEventListener("click", () => {
 });
 
 doneBtn.addEventListener("click", () => {
+  freeClips();
   summaryScreen.hidden = true;
   startScreen.hidden = false;
 });
@@ -446,6 +544,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "set-complete") {
     showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
     chimeSetDone();
+    stopClip();
     // Walking away, resting and setting up again must not count.
     gate?.reset();
     currentRepFaults.clear();
@@ -453,6 +552,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "session-complete") {
     showNotice("Session complete", 1500);
     bellFinish();
+    stopClip();
     setTimeout(() => finishSession(), 1500);
   }
 }
@@ -479,6 +579,7 @@ function loop(): void {
     if (!landmarks) {
       clearCanvas(ctx);
       showFeedback([]);
+      recordFrame("");
       handleLostFrame(now);
       showDebug("no person detected");
     } else {
@@ -493,6 +594,7 @@ function loop(): void {
       if (confidence < MIN_FRAME_CONFIDENCE) {
         drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
         showFeedback([]);
+        recordFrame("");
         handleLostFrame(now);
         showDebug(
           `${side} | low confidence ${confidence.toFixed(2)} | frame skipped`,
@@ -515,6 +617,7 @@ function loop(): void {
           }
           drawAngleLabels(ctx, landmarks, metrics, mirrored);
           showFeedback([]);
+          recordFrame("");
           updateCounterDisplay(activeProfile, repCounter.currentPhase);
           showDebug(
             formatDebug(activeProfile, side, repCounter.currentPhase, metrics),
@@ -547,7 +650,9 @@ function loop(): void {
             drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
           }
           drawAngleLabels(ctx, landmarks, metrics, mirrored);
-          showFeedback(verdict.failures.map((rule) => rule.message));
+          const feedback = verdict.failures.map((rule) => rule.message);
+          showFeedback(feedback);
+          recordFrame(feedback.join("  |  "), sessionEvent);
 
           if (repEvent?.type === "partial") {
             showNotice("Partial rep, use the full range");

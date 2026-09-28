@@ -11,7 +11,7 @@ const PAPER = "#f5f5f2";
 const MUTED = "#a8a8a2";
 const LIME = "#c6f135";
 const BAD = "#ef4444";
-const SITE = "repchek.vercel.app";
+export const SITE = "repchek.vercel.app";
 const BRAND = "REPCHEK";
 const MARGIN = 88;
 
@@ -54,7 +54,7 @@ function fitFontSize(
   return size;
 }
 
-function truncate(
+export function truncate(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,

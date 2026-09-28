@@ -194,7 +194,7 @@
               >
                 <button
                   type="button"
-                  data-facing="environment"
+                  data-value="environment"
                   aria-pressed="true"
                   class="min-h-11 rounded-full border-2 border-lime bg-lime px-4 py-2.5 text-[15px] font-semibold text-ink"
                 >
@@ -202,7 +202,7 @@
                 </button>
                 <button
                   type="button"
-                  data-facing="user"
+                  data-value="user"
                   aria-pressed="false"
                   class="min-h-11 rounded-full border-2 border-line bg-panel px-4 py-2.5 text-[15px] font-medium text-paper"
                 >
@@ -217,6 +217,38 @@
               Best quality. Use when someone films you or you do not need to see
               the screen.
             </p>
+          </div>
+          <div
+            id="record-setting"
+            class="flex items-center justify-center gap-3"
+          >
+            <span
+              class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
+              >Record sets</span
+            >
+            <div
+              id="record-toggle"
+              role="group"
+              aria-label="Record sets"
+              class="flex gap-2"
+            >
+              <button
+                type="button"
+                data-value="on"
+                aria-pressed="false"
+                class="min-h-11 rounded-full border-2 border-line bg-panel px-4 py-2.5 text-[15px] font-medium text-paper"
+              >
+                On
+              </button>
+              <button
+                type="button"
+                data-value="off"
+                aria-pressed="true"
+                class="min-h-11 rounded-full border-2 border-lime bg-lime px-4 py-2.5 text-[15px] font-semibold text-ink"
+              >
+                Off
+              </button>
+            </div>
           </div>
           <button
             id="start-btn"
@@ -321,6 +353,15 @@
             What Repchek noticed
           </h2>
           <div id="summary-notes" class="flex flex-col gap-1.5"></div>
+        </div>
+
+        <div id="summary-clips-section" class="flex flex-col gap-2.5" hidden>
+          <h2
+            class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
+          >
+            Clips
+          </h2>
+          <div id="summary-clips" class="flex flex-col gap-2"></div>
         </div>
 
         <div class="grow"></div>
