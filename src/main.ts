@@ -1,5 +1,6 @@
 import { inject } from "@vercel/analytics";
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
+import type { CameraOptions } from "./camera";
 import { PoseEstimator } from "./engine/pose";
 import {
   computeFrameMetrics,
@@ -64,6 +65,15 @@ const CHIP_BASE = "min-h-11 rounded-full border-2 px-4 py-2.5 text-[15px]";
 const CHIP_ON = "border-lime bg-lime text-ink font-semibold";
 const CHIP_OFF = "border-line bg-panel text-paper font-medium";
 
+type FacingMode = CameraOptions["facingMode"];
+
+const CAMERA_STORAGE_KEY = "repchek.camera";
+const CAMERA_HINTS: Record<FacingMode, string> = {
+  environment:
+    "Best quality. Use when someone films you or you do not need to see the screen.",
+  user: "See the feedback yourself while you train.",
+};
+
 const IN_APP_BROWSER =
   /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
     navigator.userAgent,
@@ -82,6 +92,8 @@ const shareBtn = q<HTMLButtonElement>("#share-btn");
 const doneBtn = q<HTMLButtonElement>("#done-btn");
 const status = q<HTMLElement>("#status");
 const chipsEl = q<HTMLElement>("#exercise-chips");
+const cameraToggle = q<HTMLElement>("#camera-toggle");
+const cameraHintEl = q<HTMLElement>("#camera-hint");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
 const exerciseHintEl = q<HTMLElement>("#exercise-hint");
 const browserHint = q<HTMLElement>("#browser-hint");
@@ -105,6 +117,7 @@ let gate: ReadinessGate | null = null;
 let session: SessionTracker | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let selectedProfileId = PROFILES[0].id;
+let facingMode: FacingMode = loadFacingMode();
 let sessionStartedAt: Date | null = null;
 let finishing = false;
 let running = false;
@@ -146,6 +159,49 @@ function renderChips(): void {
 }
 
 renderChips();
+
+// Storage can throw (private mode, blocked site data), so the choice is a
+// convenience that falls back to the back camera.
+function loadFacingMode(): FacingMode {
+  try {
+    const saved = localStorage.getItem(CAMERA_STORAGE_KEY);
+    if (saved === "environment" || saved === "user") return saved;
+  } catch (err) {
+    console.warn("Could not read camera choice", err);
+  }
+  return "environment";
+}
+
+function saveFacingMode(): void {
+  try {
+    localStorage.setItem(CAMERA_STORAGE_KEY, facingMode);
+  } catch (err) {
+    console.warn("Could not save camera choice", err);
+  }
+}
+
+function renderCameraToggle(): void {
+  const options =
+    cameraToggle.querySelectorAll<HTMLButtonElement>("[data-facing]");
+  for (const option of options) {
+    const on = option.dataset.facing === facingMode;
+    option.className = `${CHIP_BASE} ${on ? CHIP_ON : CHIP_OFF}`;
+    option.setAttribute("aria-pressed", String(on));
+  }
+  cameraHintEl.textContent = CAMERA_HINTS[facingMode];
+}
+
+cameraToggle.addEventListener("click", (event) => {
+  const option = (event.target as Element).closest<HTMLButtonElement>(
+    "[data-facing]",
+  );
+  if (!option) return;
+  facingMode = option.dataset.facing === "user" ? "user" : "environment";
+  saveFacingMode();
+  renderCameraToggle();
+});
+
+renderCameraToggle();
 
 let counterTaps: number[] = [];
 counterEl.addEventListener("click", () => {
@@ -316,7 +372,10 @@ startBtn.addEventListener("click", async () => {
     showExercise(activeProfile.name.split(" (")[0]);
 
     status.textContent = "Requesting camera...";
-    stream = await startCamera(video);
+    // facingMode is only "ideal" inside startCamera, so if the chosen camera
+    // is missing (some laptops only have a front one) the browser falls back
+    // to whichever camera exists instead of failing.
+    stream = await startCamera(video, { facingMode });
 
     mirrored = isUserFacing(stream);
     video.classList.toggle("mirrored", mirrored);
