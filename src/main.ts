@@ -561,6 +561,16 @@ function updateTrackingHint(missing: BodyPart[] | null, now: number): void {
   trackingHint = waited && missing.length > 0 ? MISSING_HINTS[missing[0]] : "";
 }
 
+// Every debug line starts with the camera actually in use and its real
+// resolution, so front and back camera tracking can be compared. The
+// camera comes from the stream, not the toggle, because the browser can
+// fall back to a different one. mirrored is set from isUserFacing().
+function showFrameDebug(text: string): void {
+  const camera = mirrored ? "front cam" : "back cam";
+  const resolution = `${video.videoWidth}x${video.videoHeight}`;
+  showDebug(`${camera} ${resolution} | ${text}`);
+}
+
 // Debug line for a skipped frame: the view (and side for side views),
 // the confidence and what could not be seen.
 function lowConfidenceDebug(
@@ -637,7 +647,7 @@ function loop(): void {
       showFeedback([]);
       recordFrame("");
       handleLostFrame(now);
-      showDebug("no person detected");
+      showFrameDebug("no person detected");
     } else {
       const aspect = video.videoWidth / video.videoHeight;
       const side = dominantSide(landmarks);
@@ -658,7 +668,9 @@ function loop(): void {
         showFeedback([]);
         recordFrame("");
         handleLostFrame(now);
-        showDebug(lowConfidenceDebug(activeProfile, side, confidence, missing));
+        showFrameDebug(
+          lowConfidenceDebug(activeProfile, side, confidence, missing),
+        );
       } else {
         updateTrackingHint(null, now);
         const metrics = computeFrameMetrics(landmarks, aspect);
@@ -680,7 +692,7 @@ function loop(): void {
           showFeedback([]);
           recordFrame("");
           updateCounterDisplay(activeProfile, repCounter.currentPhase);
-          showDebug(
+          showFrameDebug(
             formatDebug(activeProfile, side, repCounter.currentPhase, metrics),
           );
         } else {
@@ -721,7 +733,7 @@ function loop(): void {
           handleSessionEvent(sessionEvent);
 
           updateCounterDisplay(activeProfile, phase);
-          showDebug(formatDebug(activeProfile, side, phase, metrics));
+          showFrameDebug(formatDebug(activeProfile, side, phase, metrics));
           if (!verdict.ok) beep();
         }
       }
