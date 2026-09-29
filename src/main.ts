@@ -633,7 +633,11 @@ function updateTrackingHint(missing: BodyPart[] | null, now: number): void {
 function showFrameDebug(text: string): void {
   const camera = mirrored ? "front cam" : "back cam";
   const resolution = `${video.videoWidth}x${video.videoHeight}`;
-  showDebug(`${camera} ${resolution} | ${text}`);
+  // With more than one person in view, everyone's lifter score, the lifter
+  // marked with *, so the weights in lifter.ts can be tuned.
+  const crowd =
+    lifter && lifter.peopleSeen > 1 ? ` | people ${lifter.scoreSummary}` : "";
+  showDebug(`${camera} ${resolution}${crowd} | ${text}`);
 }
 
 // Debug line for a skipped frame: the view (and side for side views),
