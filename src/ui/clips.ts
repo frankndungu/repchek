@@ -1,7 +1,17 @@
 import type { SetClip } from "./recorder";
+import { formatClock } from "./summary";
 
 const section = document.querySelector<HTMLElement>("#summary-clips-section")!;
 const list = document.querySelector<HTMLElement>("#summary-clips")!;
+const repsHint = document.querySelector<HTMLElement>("#summary-reps-hint")!;
+const player = document.querySelector<HTMLElement>("#clip-player")!;
+const playerTitle = document.querySelector<HTMLElement>("#clip-player-title")!;
+const playerVideo =
+  document.querySelector<HTMLVideoElement>("#clip-player-video")!;
+const playerClose = document.querySelector<HTMLElement>("#clip-player-close")!;
+
+// The clip open in the player, revoked when the player closes.
+let playerUrl: string | null = null;
 
 // Download links for clips, kept alive until Done. A video can take a
 // moment to save, so revoking the link straight after the click (as the
@@ -94,11 +104,68 @@ export function renderClips(clips: SetClip[], exerciseId: string): void {
       list.append(row);
     }
   }
+
+  linkReps(clips);
 }
 
-// Called on Done: drop the rows and the download links so the videos can
-// be freed from memory.
+// Show a clip full screen, starting at atMs.
+function openClip(clip: SetClip, atMs: number): void {
+  closeClip();
+  playerUrl = URL.createObjectURL(clip.blob);
+  playerTitle.textContent = `${clipLabel(clip)} at ${formatClock(atMs)}`;
+  // Jump once the video knows its length; a jump before that is ignored.
+  playerVideo.addEventListener(
+    "loadedmetadata",
+    () => {
+      playerVideo.currentTime = atMs / 1000;
+    },
+    { once: true },
+  );
+  playerVideo.src = playerUrl;
+  player.hidden = false;
+  // Start playing inside the tap, which phones need before they allow it.
+  // If it is refused anyway, the video's own controls are there.
+  playerVideo.play().catch(() => undefined);
+}
+
+function closeClip(): void {
+  player.hidden = true;
+  playerVideo.pause();
+  playerVideo.removeAttribute("src");
+  playerVideo.load();
+  if (playerUrl) URL.revokeObjectURL(playerUrl);
+  playerUrl = null;
+}
+
+playerClose.addEventListener("click", closeClip);
+
+// The rep by rep lines (summary.ts) start as plain text. Each one whose set
+// has a clip becomes tappable, opening that clip at the rep.
+function linkReps(clips: SetClip[]): void {
+  let linked = 0;
+  const lines =
+    document.querySelectorAll<HTMLButtonElement>("#summary-reps [data-set]");
+  for (const line of lines) {
+    const clip = clips.find(
+      (c) => c.kind === "set" && c.setNumber === Number(line.dataset.set),
+    );
+    const atMs = Number(line.dataset.atMs);
+    line.disabled = !clip;
+    line.onclick = clip ? () => openClip(clip, atMs) : null;
+    const time = line.querySelector("[data-rep-time]");
+    for (const cls of ["text-lime", "underline", "underline-offset-2"]) {
+      time?.classList.toggle(cls, Boolean(clip));
+    }
+    if (clip) linked += 1;
+  }
+  repsHint.hidden = linked === 0;
+}
+
+// Called on Done: drop the rows, the player and the download links so the
+// videos can be freed from memory.
 export function releaseClips(): void {
+  closeClip();
+  linkReps([]);
   for (const url of downloadUrls) URL.revokeObjectURL(url);
   downloadUrls.length = 0;
   list.replaceChildren();

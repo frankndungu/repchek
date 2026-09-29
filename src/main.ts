@@ -102,6 +102,7 @@ const CAMERA_HINTS: Record<FacingMode, string> = {
 };
 
 const RECORD_STORAGE_KEY = "repchek.record";
+const ANGLES_STORAGE_KEY = "repchek.angles";
 
 const IN_APP_BROWSER =
   /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
@@ -125,6 +126,7 @@ const cameraToggle = q<HTMLElement>("#camera-toggle");
 const cameraHintEl = q<HTMLElement>("#camera-hint");
 const recordSetting = q<HTMLElement>("#record-setting");
 const recordToggle = q<HTMLElement>("#record-toggle");
+const anglesToggle = q<HTMLElement>("#angles-toggle");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
 const exerciseHintEl = q<HTMLElement>("#exercise-hint");
 const sideViewHintEl = q<HTMLElement>("#side-view-hint");
@@ -155,6 +157,9 @@ let activeProfile: ExerciseProfile | null = null;
 let selectedProfileId = PROFILES[0].id;
 let facingMode: FacingMode = loadFacingMode();
 let recordSets = readSetting(RECORD_STORAGE_KEY) === "on";
+// Angle numbers at the joints, on screen and in clips. Off by default:
+// they help when tuning a profile but clutter the view for everyone else.
+let showAngles = readSetting(ANGLES_STORAGE_KEY) === "on";
 let recorder: SetRecorder | null = null;
 let clips: SetClip[] = [];
 let sessionStartedAt: Date | null = null;
@@ -271,6 +276,16 @@ recordToggle.addEventListener("click", (event) => {
 });
 
 renderToggle(recordToggle, recordSets ? "on" : "off");
+
+anglesToggle.addEventListener("click", (event) => {
+  const value = tappedValue(event);
+  if (!value) return;
+  showAngles = value === "on";
+  writeSetting(ANGLES_STORAGE_KEY, showAngles ? "on" : "off");
+  renderToggle(anglesToggle, showAngles ? "on" : "off");
+});
+
+renderToggle(anglesToggle, showAngles ? "on" : "off");
 
 let counterTaps: number[] = [];
 counterEl.addEventListener("click", () => {
@@ -496,8 +511,11 @@ function learnTrigger(rep: RepTrigger): RepTrigger | null {
 }
 
 // Fresh counter and judge, so nothing from the setup leaks into rep 1.
-function armCounting(): void {
+function armCounting(now: number): void {
   if (!activeProfile) return;
+  // Rep times on the summary count from here, the same moment the set
+  // clip starts below.
+  session?.startSet(now);
   learnedTrigger = learnTrigger(activeProfile.rep);
   repCounter = new RepCounter(learnedTrigger ?? activeProfile.rep);
   judge = new Judge(activeProfile);
@@ -734,7 +752,7 @@ function loop(): void {
         // Step 1: are they in position yet?
         if (!gate.isArmed) {
           const justArmed = gate.update(metrics, now);
-          if (justArmed) armCounting();
+          if (justArmed) armCounting(now);
         }
 
         if (!gate.isArmed) {
@@ -744,7 +762,7 @@ function loop(): void {
           if (activeProfile.cameraView === "side") {
             drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
           }
-          drawAngleLabels(ctx, landmarks, metrics, mirrored);
+          if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
           showFeedback([]);
           recordFrame("");
           updateCounterDisplay(activeProfile, repCounter.currentPhase);
@@ -778,7 +796,7 @@ function loop(): void {
           if (activeProfile.cameraView === "side") {
             drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
           }
-          drawAngleLabels(ctx, landmarks, metrics, mirrored);
+          if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
           const feedback = verdict.failures.map((rule) => rule.message);
           showFeedback(feedback);
           recordFrame(feedback.join("  |  "), sessionEvent);

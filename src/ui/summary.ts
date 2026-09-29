@@ -15,6 +15,16 @@ export interface Note {
   tone: "bad" | "muted" | "good";
 }
 
+// One rep that broke form, for the rep by rep list.
+export interface FaultRep {
+  set: number;
+  // 1-based, as the lifter counts.
+  rep: number;
+  // From the start of the set, which is also the start of its clip.
+  atMs: number;
+  messages: string[];
+}
+
 export interface SessionStats {
   totalReps: number;
   cleanReps: number;
@@ -22,11 +32,53 @@ export interface SessionStats {
   avgRepMs: number;
   partials: number;
   sets: SetStats[];
+  faultReps: FaultRep[];
   notes: Note[];
 }
 
+// Rule messages are short already. This only guards a long one, so a rep
+// line stays readable on a phone.
+const MAX_MESSAGE_LENGTH = 60;
+
 export function shortName(exerciseName: string): string {
   return exerciseName.split(" (")[0];
+}
+
+// 12345 ms -> "0:12".
+export function formatClock(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+// ["4", "9", "11"] -> "4, 9 and 11".
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+function shortMessage(message: string): string {
+  if (message.length <= MAX_MESSAGE_LENGTH) return message;
+  return `${message.slice(0, MAX_MESSAGE_LENGTH - 3).trimEnd()}...`;
+}
+
+// "rep 4" or "reps 4, 9 and 11".
+function repList(reps: number[]): string {
+  return `rep${reps.length === 1 ? "" : "s"} ${joinList(reps.map(String))}`;
+}
+
+// Which reps had faults: "reps 4, 9 and 11" for one set, or
+// "set 1 reps 4 and 6; set 2 rep 3" across sets.
+function whichReps(faultReps: FaultRep[]): string {
+  const bySet = new Map<number, number[]>();
+  for (const { set, rep } of faultReps) {
+    bySet.set(set, [...(bySet.get(set) ?? []), rep]);
+  }
+  if (bySet.size === 1) return repList([...bySet.values()][0]);
+  return [...bySet]
+    .map(([set, reps]) => `set ${set} ${repList(reps)}`)
+    .join("; ");
 }
 
 export function describeLoad(record: SessionRecord): string {
@@ -75,6 +127,23 @@ export function computeStats(record: SessionRecord): SessionStats {
     : 0;
   const cleanPct = totalReps ? Math.round((cleanReps / totalReps) * 100) : 0;
 
+  const faultReps: FaultRep[] = record.sets.flatMap((s) =>
+    s.reps.flatMap((rep, i) =>
+      rep.faults.length > 0
+        ? [
+            {
+              set: s.set,
+              rep: i + 1,
+              atMs: rep.atMs,
+              messages: rep.faults.map((id) =>
+                shortMessage(faultMessage(record.exerciseId, id)),
+              ),
+            },
+          ]
+        : [],
+    ),
+  );
+
   return {
     totalReps,
     cleanReps,
@@ -82,9 +151,21 @@ export function computeStats(record: SessionRecord): SessionStats {
     avgRepMs,
     partials,
     sets,
-    notes: buildNotes(record.exerciseId, sets, totalReps, cleanReps, partials),
+    faultReps,
+    notes: buildNotes(
+      record.exerciseId,
+      sets,
+      totalReps,
+      cleanReps,
+      partials,
+      faultReps,
+    ),
   };
 }
+
+// Past this many, the note gives the count only; the rep by rep list
+// above it already names every one.
+const MAX_REPS_IN_NOTE = 6;
 
 function buildNotes(
   exerciseId: string,
@@ -92,6 +173,7 @@ function buildNotes(
   totalReps: number,
   cleanReps: number,
   partials: number,
+  faultReps: FaultRep[],
 ): Note[] {
   const notes: Note[] = [];
   if (totalReps === 0) {
@@ -148,8 +230,13 @@ function buildNotes(
       tone: "good",
     });
   } else if (cleanRatio < 0.8 && totalReps >= 6) {
+    const count = `${faultReps.length} of ${totalReps} reps had faults`;
+    const which =
+      faultReps.length <= MAX_REPS_IN_NOTE
+        ? `${count}: ${whichReps(faultReps)}`
+        : `${count}, listed rep by rep above`;
     notes.push({
-      text: "Form broke on more than a fifth of reps. Lower the weight and rebuild",
+      text: `${which}. Lower the weight and rebuild`,
       tone: "good",
     });
   }
@@ -162,6 +249,56 @@ const TONE_CLASS: Record<Note["tone"], string> = {
   muted: "bg-muted",
   good: "bg-lime",
 };
+
+function dot(tone: Note["tone"]): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.className = `mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${TONE_CLASS[tone]}`;
+  return span;
+}
+
+// "Set 1, rep 4 (0:12): Hips sagging" for every rep that broke form.
+// Each line is a button that starts disabled; clips.ts enables it when that
+// set has a clip, so a tap opens the clip at that rep.
+function renderRepByRep(stats: SessionStats): void {
+  const section = document.getElementById("summary-reps-section")!;
+  const list = document.getElementById("summary-reps")!;
+  list.replaceChildren();
+  section.hidden = stats.totalReps === 0;
+
+  if (stats.faultReps.length === 0) {
+    const row = document.createElement("div");
+    row.className = "flex items-start gap-2.5";
+    const text = document.createElement("span");
+    text.className = "text-sm leading-snug";
+    text.textContent = "Every rep was clean.";
+    row.append(dot("good"), text);
+    list.append(row);
+    return;
+  }
+
+  for (const fault of stats.faultReps) {
+    const line = document.createElement("button");
+    line.type = "button";
+    line.disabled = true;
+    line.dataset.set = String(fault.set);
+    line.dataset.atMs = String(fault.atMs);
+    line.className = "flex items-start gap-2.5 text-left";
+
+    const text = document.createElement("span");
+    text.className = "text-sm leading-snug";
+    const time = document.createElement("span");
+    time.dataset.repTime = "";
+    time.textContent = `(${formatClock(fault.atMs)})`;
+    text.append(
+      `Set ${fault.set}, rep ${fault.rep} `,
+      time,
+      `: ${fault.messages.join("; ")}`,
+    );
+
+    line.append(dot("bad"), text);
+    list.append(line);
+  }
+}
 
 export function renderSummary(
   record: SessionRecord,
@@ -214,17 +351,17 @@ export function renderSummary(
     setsEl.append(row);
   }
 
+  renderRepByRep(stats);
+
   const notesEl = el("summary-notes");
   notesEl.replaceChildren();
   for (const note of stats.notes) {
     const row = document.createElement("div");
     row.className = "flex items-start gap-2.5";
-    const dot = document.createElement("span");
-    dot.className = `mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${TONE_CLASS[note.tone]}`;
     const text = document.createElement("span");
     text.className = "text-sm leading-snug";
     text.textContent = note.text;
-    row.append(dot, text);
+    row.append(dot(note.tone), text);
     notesEl.append(row);
   }
 }

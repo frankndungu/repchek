@@ -8,6 +8,10 @@ export interface SetTarget {
 export interface RepRecord {
   durationMs: number;
   faults: string[];
+  // When the rep started, counted from the start of its set (the moment
+  // the gate armed). The set clip starts at that same moment, so this is
+  // also where the rep is in the clip.
+  atMs: number;
 }
 
 export interface SetRecord {
@@ -40,6 +44,7 @@ export class SessionTracker {
   private repRecords: RepRecord[];
   private partialsInSet: number;
   private lastRepAt: number | null;
+  private setStartedAt: number | null;
   private completed: SetRecord[];
   private finished: boolean;
 
@@ -50,6 +55,7 @@ export class SessionTracker {
     this.repRecords = [];
     this.partialsInSet = 0;
     this.lastRepAt = null;
+    this.setStartedAt = null;
     this.completed = [];
     this.finished = false;
   }
@@ -82,6 +88,12 @@ export class SessionTracker {
     return this.completed;
   }
 
+  // Call when the gate arms. Only the first call in a set counts, so
+  // re-arming after losing the person mid-set does not move the start.
+  startSet(nowMs: number): void {
+    this.setStartedAt ??= nowMs;
+  }
+
   onRepEvent(
     event: RepEvent,
     faults: string[],
@@ -94,7 +106,13 @@ export class SessionTracker {
       return null;
     }
 
-    this.repRecords.push({ durationMs: event.durationMs, faults });
+    // The rep started durationMs ago.
+    const repStartedAt = nowMs - event.durationMs;
+    this.repRecords.push({
+      durationMs: event.durationMs,
+      faults,
+      atMs: Math.max(0, repStartedAt - (this.setStartedAt ?? repStartedAt)),
+    });
     this.lastRepAt = nowMs;
 
     if (this.repRecords.length >= this.target.reps) {
@@ -160,6 +178,7 @@ export class SessionTracker {
     this.repRecords = [];
     this.partialsInSet = 0;
     this.lastRepAt = null;
+    this.setStartedAt = null;
 
     if (this.currentSet >= this.target.sets) {
       this.finished = true;
