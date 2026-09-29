@@ -2,6 +2,7 @@ import { inject } from "@vercel/analytics";
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import type { CameraOptions } from "./camera";
 import { PoseEstimator } from "./engine/pose";
+import { LifterLock } from "./engine/lifter";
 import {
   computeFrameMetrics,
   dominantSide,
@@ -126,6 +127,7 @@ const recordSetting = q<HTMLElement>("#record-setting");
 const recordToggle = q<HTMLElement>("#record-toggle");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
 const exerciseHintEl = q<HTMLElement>("#exercise-hint");
+const sideViewHintEl = q<HTMLElement>("#side-view-hint");
 const browserHint = q<HTMLElement>("#browser-hint");
 const setsInput = q<HTMLInputElement>("#sets-input");
 const repsInput = q<HTMLInputElement>("#reps-input");
@@ -137,6 +139,7 @@ const exerciseEl = q<HTMLElement>("#exercise");
 const debugEl = q<HTMLElement>("#debug");
 
 const ctx = canvas.getContext("2d")!;
+const lifter = new LifterLock();
 
 let estimator: PoseEstimator | null = null;
 let stream: MediaStream | null = null;
@@ -191,6 +194,7 @@ function renderChips(): void {
   exerciseNameEl.textContent = selected.name;
   exerciseHintEl.textContent =
     selected.setupHint ?? `Prop the phone for a ${selected.cameraView} view`;
+  sideViewHintEl.hidden = selected.cameraView !== "side";
 
   if (selected.bodyweight) {
     weightLabel.textContent = "Extra kg";
@@ -469,6 +473,7 @@ function finishSession(): void {
   // Keeps a running set clip, or the standby recording as an attempt when
   // nothing was ever counted.
   if (recorder) collectClip(recorder.finish());
+  lifter.reset();
   stopCamera();
   if (record) {
     showSummary(record);
@@ -514,6 +519,7 @@ startBtn.addEventListener("click", async () => {
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
     learnedTrigger = null;
+    lifter.reset();
     session = new SessionTracker({
       sets: Number(setsInput.value) || 4,
       reps: Number(repsInput.value) || 12,
@@ -645,6 +651,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "set-complete") {
     showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
     chimeSetDone();
+    lifter.reset();
     if (recorder) {
       collectClip(recorder.stop());
       // Back to standby until the gate arms for the next set.
@@ -679,7 +686,11 @@ function loop(): void {
     syncCanvasToVideo(canvas, video);
 
     const now = performance.now();
-    const landmarks = estimator.estimate(video, now);
+    const aspect = video.videoWidth / video.videoHeight;
+    const poses = estimator.estimate(video, now);
+    // Only the lifter's pose goes any further, skeleton included. Anyone
+    // else in view is ignored.
+    const landmarks = lifter.pick(poses, gate.isArmed, aspect);
 
     if (!landmarks) {
       updateTrackingHint(null, now);
@@ -687,14 +698,18 @@ function loop(): void {
       showFeedback([]);
       recordFrame("");
       handleLostFrame(now);
-      showFrameDebug("no person detected");
+      showFrameDebug(
+        poses.length > 0
+          ? `${poses.length} seen, lifter not found`
+          : "no person detected",
+      );
     } else {
-      const aspect = video.videoWidth / video.videoHeight;
       const side = dominantSide(landmarks);
       const confidence = frameConfidence(
         landmarks,
         side,
         activeProfile.cameraView,
+        activeProfile.requiredJoints,
       );
 
       if (confidence < MIN_FRAME_CONFIDENCE) {
@@ -702,6 +717,7 @@ function loop(): void {
           landmarks,
           side,
           activeProfile.cameraView,
+          activeProfile.requiredJoints,
         );
         updateTrackingHint(missing, now);
         drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);

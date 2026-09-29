@@ -5,6 +5,8 @@ export const latPulldown: ExerciseProfile = {
   name: "Lat pulldown",
   cameraView: "side",
   setupHint: "Side view, seated, arms visible at full stretch",
+  // Counting and form only use the upper body, so hidden legs are fine.
+  requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
   rep: { metric: "elbowAngle", start: 160, turn: 80 },
   ready: [
     {

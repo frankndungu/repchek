@@ -5,6 +5,8 @@ export const benchPress: ExerciseProfile = {
   name: "Bench press (dumbbell or barbell)",
   cameraView: "side",
   setupHint: "Side view at bench height, slightly above the weights",
+  // Counting and form only use the upper body, so hidden legs are fine.
+  requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
   rep: { metric: "elbowAngle", start: 160, turn: 90 },
   ready: [
     {

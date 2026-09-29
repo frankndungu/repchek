@@ -28,19 +28,22 @@ export class PoseEstimator {
     return PoseLandmarker.createFromOptions(fileset as never, {
       baseOptions: { modelAssetPath: MODEL_PATH, delegate },
       runningMode: "VIDEO",
-      numPoses: 1,
+      // More than one, so in a busy gym LifterLock can pick the lifter
+      // instead of the model picking whoever it likes.
+      numPoses: 3,
     });
   }
 
-  estimate(video: HTMLVideoElement, timestampMs: number): Landmark[] | null {
+  // Every pose found in this frame, possibly none.
+  estimate(video: HTMLVideoElement, timestampMs: number): Landmark[][] {
     const result = this.landmarker.detectForVideo(video, timestampMs);
-    const pose = result.landmarks[0];
-    if (!pose) return null;
-    return pose.map((p) => ({
-      x: p.x,
-      y: p.y,
-      z: p.z,
-      visibility: p.visibility ?? 1,
-    }));
+    return result.landmarks.map((pose) =>
+      pose.map((p) => ({
+        x: p.x,
+        y: p.y,
+        z: p.z,
+        visibility: p.visibility ?? 1,
+      })),
+    );
   }
 }

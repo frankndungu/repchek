@@ -5,6 +5,8 @@ export const tricepsExtension: ExerciseProfile = {
   name: "Overhead triceps extension",
   cameraView: "side",
   setupHint: "Side view, standing or seated, arms overhead in frame",
+  // Counting and form only use the upper body, so hidden legs are fine.
+  requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
   rep: { metric: "elbowAngle", start: 160, turn: 70 },
   ready: [
     {

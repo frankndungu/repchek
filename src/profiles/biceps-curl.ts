@@ -5,6 +5,8 @@ export const bicepsCurl: ExerciseProfile = {
   name: "Biceps curl (dumbbell, EZ bar or cable)",
   cameraView: "side",
   setupHint: "Side view, full body in frame",
+  // Counting and form only use the upper body, so hidden legs are fine.
+  requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
   rep: { metric: "elbowAngle", start: 150, turn: 60 },
   ready: [
     {

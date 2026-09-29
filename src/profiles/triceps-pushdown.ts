@@ -5,6 +5,8 @@ export const tricepsPushdown: ExerciseProfile = {
   name: "Triceps pushdown (cable)",
   cameraView: "side",
   setupHint: "Side view, standing at the cable, full body in frame",
+  // Counting and form only use the upper body, so hidden legs are fine.
+  requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
   rep: { metric: "elbowAngle", start: 90, turn: 165 },
   ready: [
     {

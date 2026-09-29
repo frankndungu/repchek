@@ -1,4 +1,10 @@
-import type { Landmark, JointAngles, FrameMetrics, CameraView } from "./types";
+import type {
+  Landmark,
+  JointAngles,
+  FrameMetrics,
+  CameraView,
+  Joint,
+} from "./types";
 import { LANDMARK } from "./types";
 
 export type { JointAngles } from "./types";
@@ -119,9 +125,33 @@ const BODY_PARTS: Array<{ part: BodyPart; joints: number[] }> = [
 
 const MIN_PART_VISIBILITY = 0.6;
 
-// The joints a view needs to see: one whole side of the body from the
-// side, both arms from the front.
-function confidenceChain(side: Side, view: CameraView): number[] {
+// The landmark for each joint name, on each side of the body.
+const JOINT_LANDMARKS: Record<Joint, Record<Side, number>> = {
+  head: { left: LANDMARK.LEFT_EAR, right: LANDMARK.RIGHT_EAR },
+  shoulder: { left: LANDMARK.LEFT_SHOULDER, right: LANDMARK.RIGHT_SHOULDER },
+  elbow: { left: LANDMARK.LEFT_ELBOW, right: LANDMARK.RIGHT_ELBOW },
+  wrist: { left: LANDMARK.LEFT_WRIST, right: LANDMARK.RIGHT_WRIST },
+  hip: { left: LANDMARK.LEFT_HIP, right: LANDMARK.RIGHT_HIP },
+  knee: { left: LANDMARK.LEFT_KNEE, right: LANDMARK.RIGHT_KNEE },
+  ankle: { left: LANDMARK.LEFT_ANKLE, right: LANDMARK.RIGHT_ANKLE },
+};
+
+// The joints that must be seen. With a profile's requiredJoints: those, on
+// the dominant side from the side, on both sides from the front. Without:
+// one whole side of the body from the side, both arms from the front.
+function confidenceChain(
+  side: Side,
+  view: CameraView,
+  required?: Joint[],
+): number[] {
+  if (required) {
+    return view === "front"
+      ? required.flatMap((joint) => [
+          JOINT_LANDMARKS[joint].left,
+          JOINT_LANDMARKS[joint].right,
+        ])
+      : required.map((joint) => JOINT_LANDMARKS[joint][side]);
+  }
   return view === "front" ? FRONT_CHAIN : SIDE_CHAIN[side];
 }
 
@@ -129,8 +159,9 @@ export function frameConfidence(
   landmarks: Landmark[],
   side: Side,
   view: CameraView = "side",
+  required?: Joint[],
 ): number {
-  const chain = confidenceChain(side, view);
+  const chain = confidenceChain(side, view, required);
   return Math.min(...chain.map((i) => landmarks[i].visibility));
 }
 
@@ -140,8 +171,9 @@ export function missingParts(
   landmarks: Landmark[],
   side: Side,
   view: CameraView = "side",
+  required?: Joint[],
 ): BodyPart[] {
-  const chain = confidenceChain(side, view);
+  const chain = confidenceChain(side, view, required);
   const unseen = chain.filter(
     (i) => landmarks[i].visibility < MIN_PART_VISIBILITY,
   );

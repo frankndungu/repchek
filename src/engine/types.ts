@@ -88,12 +88,28 @@ export interface ReadyCheck {
   hint: string;
 }
 
+export type Joint =
+  | "head"
+  | "shoulder"
+  | "elbow"
+  | "wrist"
+  | "hip"
+  | "knee"
+  | "ankle";
+
 export interface ExerciseProfile {
   id: string;
   name: string;
   cameraView: CameraView;
   setupHint?: string;
   bodyweight?: boolean;
+  // The joints that must be seen clearly for a frame to be used: on the
+  // side facing the camera for side views, on both sides for front views.
+  // Leave it out to require the full set for the view (ear to ankle from
+  // the side, shoulders to wrists from the front). Set it when counting
+  // and form only use some joints, so that equipment hiding the others
+  // (a bench hiding the ankles) does not throw frames away.
+  requiredJoints?: Joint[];
   rep: RepTrigger;
   // Optional posture checks that must pass before counting starts.
   // Leave it out and the gate still waits for: visible, at the start

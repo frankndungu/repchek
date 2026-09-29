@@ -5,6 +5,8 @@ export const chestFly: ExerciseProfile = {
   name: "Chest fly (dumbbell)",
   cameraView: "side",
   setupHint: "Side view at bench height. Experimental, tell me how it counts",
+  // Counting and form only use the upper body, so hidden legs are fine.
+  requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
   rep: { metric: "wristRise", start: 0.55, turn: 0.15 },
   ready: [
     {
