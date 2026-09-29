@@ -141,7 +141,11 @@ const exerciseEl = q<HTMLElement>("#exercise");
 const debugEl = q<HTMLElement>("#debug");
 
 const ctx = canvas.getContext("2d")!;
-const lifter = new LifterLock();
+// Which of the people in view is the lifter. Made per session, because it
+// uses the exercise's posture checks.
+let lifter: LifterLock | null = null;
+// The "more than one person" tip is shown once per session.
+let crowdTipShown = false;
 
 let estimator: PoseEstimator | null = null;
 let stream: MediaStream | null = null;
@@ -488,7 +492,7 @@ function finishSession(): void {
   // Keeps a running set clip, or the standby recording as an attempt when
   // nothing was ever counted.
   if (recorder) collectClip(recorder.finish());
-  lifter.reset();
+  lifter?.reset();
   stopCamera();
   if (record) {
     showSummary(record);
@@ -537,7 +541,8 @@ startBtn.addEventListener("click", async () => {
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
     learnedTrigger = null;
-    lifter.reset();
+    lifter = new LifterLock(activeProfile);
+    crowdTipShown = false;
     session = new SessionTracker({
       sets: Number(setsInput.value) || 4,
       reps: Number(repsInput.value) || 12,
@@ -648,6 +653,37 @@ function lowConfidenceDebug(
   ].join(" | ");
 }
 
+// Where a tap on the video lands on the camera image, in the same 0 to 1
+// coordinates as the landmarks. Null before the video has a size.
+function tapToImage(event: MouseEvent): { x: number; y: number } | null {
+  const { videoWidth, videoHeight } = video;
+  if (!videoWidth || !videoHeight) return null;
+  const rect = video.getBoundingClientRect();
+  // The video is object-cover: scaled up to fill the screen and centred,
+  // so some of the image can be cut off at the edges.
+  const scale = Math.max(rect.width / videoWidth, rect.height / videoHeight);
+  const offsetX = (rect.width - videoWidth * scale) / 2;
+  const offsetY = (rect.height - videoHeight * scale) / 2;
+  let x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  // The front camera is flipped with CSS, so a tap on the left of the
+  // screen is on the right of the camera image.
+  if (mirrored) x = rect.width - x;
+  return {
+    x: (x - offsetX) / (videoWidth * scale),
+    y: (y - offsetY) / (videoHeight * scale),
+  };
+}
+
+// Tap yourself to lock on, when there is more than one person in view.
+video.addEventListener("click", (event) => {
+  if (!running || !lifter || lifter.peopleSeen < 2) return;
+  const point = tapToImage(event);
+  if (point && lifter.chooseAt(point, performance.now())) {
+    showNotice("Locked onto you", 1500);
+  }
+});
+
 // The person cannot be seen properly this frame.
 function handleLostFrame(now: number): void {
   if (!gate || !session || !activeProfile || !repCounter) return;
@@ -669,7 +705,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "set-complete") {
     showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
     chimeSetDone();
-    lifter.reset();
+    lifter?.newSet();
     if (recorder) {
       collectClip(recorder.stop());
       // Back to standby until the gate arms for the next set.
@@ -695,7 +731,8 @@ function loop(): void {
     !repCounter ||
     !gate ||
     !session ||
-    !activeProfile
+    !activeProfile ||
+    !lifter
   )
     return;
 
@@ -708,7 +745,11 @@ function loop(): void {
     const poses = estimator.estimate(video, now);
     // Only the lifter's pose goes any further, skeleton included. Anyone
     // else in view is ignored.
-    const landmarks = lifter.pick(poses, gate.isArmed, aspect);
+    const landmarks = lifter.pick(poses, gate.isArmed, aspect, now);
+    if (poses.length > 1 && !lifter.isTapLocked && !crowdTipShown) {
+      crowdTipShown = true;
+      showNotice("More than one person seen. Tap yourself to lock on.", 3000);
+    }
 
     if (!landmarks) {
       updateTrackingHint(null, now);

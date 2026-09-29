@@ -67,7 +67,9 @@ export function inStartZone(trigger: RepTrigger, value: number): boolean {
     : value <= trigger.start + margin;
 }
 
-function passes(check: ReadyCheck, metrics: FrameMetrics): boolean {
+// Does this frame pass one posture check? Also used by LifterLock to tell
+// the lifter (in position) from a spotter or someone walking past.
+export function passesCheck(check: ReadyCheck, metrics: FrameMetrics): boolean {
   const value = metrics[check.metric];
   if (check.min !== undefined && value < check.min) return false;
   if (check.max !== undefined && value > check.max) return false;
@@ -141,7 +143,7 @@ export class ReadinessGate {
 
     // Posture checks from the profile, if any.
     for (const check of this.checks) {
-      if (!passes(check, metrics)) {
+      if (!passesCheck(check, metrics)) {
         this.clearHold(check.hint);
         return false;
       }
