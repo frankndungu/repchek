@@ -20,10 +20,36 @@ message when it does not. Optionally, a rule applies only in one phase.
   message: "Keep the bar close to your legs" }
 ```
 
-The registry (`src/profiles/index.ts`) is the single list of profiles. The
-picker on the start screen is built from it and the judge is created from
-whichever entry the user picks. Adding an exercise is one new file plus one
-line in the registry; no engine or UI code changes.
+The registry (`src/profiles/index.ts`) is the single list of profiles, and
+the judge is created from whichever one the session uses. Adding an
+exercise is one new profile file, one line in the registry and one entry in
+the exercise list below; no engine or UI code changes.
+
+## Exercises and profiles
+
+What the user picks is an exercise; what the app measures is a profile.
+Most exercises have one profile. A few, like push-ups and mountain
+climbers, have two: one for the phone beside you (side view) and one for
+the phone in front of you (front view). The start screen shows one chip per
+exercise, grouped by muscle (Chest, Back, Arms, Core), and for an exercise
+with two profiles asks "Where is your phone?". The choice is remembered per
+exercise.
+
+The two profiles stay separate because the two views see different
+things. From the side you can see whether the body stays in a straight line
+from shoulders to ankles, but not the elbows flaring out. From the front
+you see the elbows and whether the shoulders stay level, but the body line
+points straight at the camera. So the side push-up checks for sagging or
+piking and the front push-up checks elbow flare, with different metrics,
+rep triggers and ready checks. Merging them would mean one profile full of
+rules that only work from one angle.
+
+The exercise list (`EXERCISES` in the same file) maps each exercise to its
+profiles by id. Sessions are still saved with the profile id, so history
+and everything downstream find their profile exactly as before. On screen,
+in clips, on the summary and on the share card the lift is called by its
+exercise name ("Push-up"); only the debug line says which version ran
+("Push-up (front)").
 
 ## The judge
 

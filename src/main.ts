@@ -25,7 +25,13 @@ import type {
   RepPhase,
   RepTrigger,
 } from "./engine/types";
-import { PROFILES, findProfile } from "./profiles";
+import {
+  EXERCISES,
+  MUSCLE_GROUPS,
+  findExercise,
+  profileFor,
+} from "./profiles";
+import type { ExerciseChoice, PhonePosition } from "./profiles";
 import { saveSession } from "./storage/db";
 import {
   syncCanvasToVideo,
@@ -103,6 +109,8 @@ const CAMERA_HINTS: Record<FacingMode, string> = {
 
 const RECORD_STORAGE_KEY = "repchek.record";
 const ANGLES_STORAGE_KEY = "repchek.angles";
+// Followed by the exercise id: where the phone was last time for it.
+const POSITION_STORAGE_KEY = "repchek.position.";
 
 const IN_APP_BROWSER =
   /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
@@ -128,6 +136,8 @@ const recordSetting = q<HTMLElement>("#record-setting");
 const recordToggle = q<HTMLElement>("#record-toggle");
 const anglesToggle = q<HTMLElement>("#angles-toggle");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
+const exerciseDetailEl = q<HTMLElement>("#exercise-detail");
+const positionPicker = q<HTMLElement>("#position-picker");
 const exerciseHintEl = q<HTMLElement>("#exercise-hint");
 const sideViewHintEl = q<HTMLElement>("#side-view-hint");
 const browserHint = q<HTMLElement>("#browser-hint");
@@ -157,8 +167,11 @@ let gate: ReadinessGate | null = null;
 // profiles only.
 let learnedTrigger: RepTrigger | null = null;
 let session: SessionTracker | null = null;
+// The exercise chosen on the start screen, and during a session the
+// exercise and profile in use. The profile depends on where the phone is.
+let selectedExerciseId = EXERCISES[0].id;
+let activeExercise: ExerciseChoice | null = null;
 let activeProfile: ExerciseProfile | null = null;
-let selectedProfileId = PROFILES[0].id;
 let facingMode: FacingMode = loadFacingMode();
 let recordSets = readSetting(RECORD_STORAGE_KEY) === "on";
 // Angle numbers at the joints, on screen and in clips. Off by default:
@@ -179,33 +192,82 @@ const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
 
-// Short name, plus "(front)" for front view lifts, so it is clear which
-// version is running.
+// Short name, plus "(front)" for front view profiles. Only used in the
+// debug line: everywhere else shows the exercise name.
 function displayName(profile: ExerciseProfile): string {
   const front = profile.cameraView === "front" ? " (front)" : "";
   return profile.name.split(" (")[0] + front;
 }
 
+// Where the phone is for this exercise: the saved choice if the exercise
+// has it, otherwise beside you.
+function phonePosition(exercise: ExerciseChoice): PhonePosition {
+  const saved = readSetting(`${POSITION_STORAGE_KEY}${exercise.id}`);
+  if (saved === "front" && exercise.positions.front) return "front";
+  return exercise.positions.beside ? "beside" : "front";
+}
+
+// One chip per exercise, grouped under the muscle they train.
 function renderChips(): void {
   chipsEl.replaceChildren();
-  for (const profile of PROFILES) {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.textContent = displayName(profile);
-    chip.className = `${CHIP_BASE} ${profile.id === selectedProfileId ? CHIP_ON : CHIP_OFF}`;
-    chip.addEventListener("click", () => {
-      selectedProfileId = profile.id;
-      renderChips();
-    });
-    chipsEl.append(chip);
-  }
-  const selected = findProfile(selectedProfileId);
-  exerciseNameEl.textContent = selected.name;
-  exerciseHintEl.textContent =
-    selected.setupHint ?? `Prop the phone for a ${selected.cameraView} view`;
-  sideViewHintEl.hidden = selected.cameraView !== "side";
+  for (const group of MUSCLE_GROUPS) {
+    const heading = document.createElement("h3");
+    heading.className =
+      "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
+    heading.textContent = group;
 
-  if (selected.bodyweight) {
+    const row = document.createElement("div");
+    row.className = "flex flex-wrap gap-2";
+    for (const exercise of EXERCISES.filter((e) => e.group === group)) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.textContent = exercise.name;
+      chip.className = `${CHIP_BASE} ${exercise.id === selectedExerciseId ? CHIP_ON : CHIP_OFF}`;
+      chip.addEventListener("click", () => {
+        selectedExerciseId = exercise.id;
+        renderChips();
+      });
+      row.append(chip);
+    }
+
+    const section = document.createElement("div");
+    section.className = "flex flex-col gap-2";
+    section.append(heading, row);
+    chipsEl.append(section);
+  }
+  renderExerciseCard();
+}
+
+// The card under the chips: the exercise, where the phone goes if there is
+// a choice, and the setup text for that position.
+function renderExerciseCard(): void {
+  const exercise = findExercise(selectedExerciseId);
+  const position = phonePosition(exercise);
+  const profile = profileFor(exercise, position);
+
+  exerciseNameEl.textContent = exercise.name;
+  exerciseDetailEl.textContent = exercise.detail ?? "";
+  exerciseDetailEl.hidden = !exercise.detail;
+
+  // Only exercises with both positions ask where the phone is.
+  const { beside, front } = exercise.positions;
+  positionPicker.hidden = !(beside && front);
+  const cards = positionPicker.querySelectorAll<HTMLElement>("[data-position]");
+  for (const card of cards) {
+    const cardPosition = card.dataset.position as PhonePosition;
+    const on = cardPosition === position;
+    card.classList.toggle("border-lime", on);
+    card.classList.toggle("border-line", !on);
+    card.setAttribute("aria-pressed", String(on));
+    const check = card.querySelector("[data-check]");
+    if (check) check.textContent = exercise.checks?.[cardPosition] ?? "";
+  }
+
+  exerciseHintEl.textContent =
+    profile.setupHint ?? `Prop the phone for a ${profile.cameraView} view`;
+  sideViewHintEl.hidden = profile.cameraView !== "side";
+
+  if (profile.bodyweight) {
     weightLabel.textContent = "Extra kg";
     weightInput.placeholder = "BW";
   } else {
@@ -213,6 +275,18 @@ function renderChips(): void {
     weightInput.placeholder = "0";
   }
 }
+
+positionPicker.addEventListener("click", (event) => {
+  const card = (event.target as Element).closest<HTMLElement>(
+    "[data-position]",
+  );
+  if (!card?.dataset.position) return;
+  writeSetting(
+    `${POSITION_STORAGE_KEY}${selectedExerciseId}`,
+    card.dataset.position,
+  );
+  renderExerciseCard();
+});
 
 renderChips();
 
@@ -410,7 +484,9 @@ function buildRecord(): SessionRecord | null {
   const weight = Number(weightInput.value);
   return session.toRecord({
     exerciseId: activeProfile.id,
-    exerciseName: activeProfile.name,
+    // What the summary and share card show. exerciseId (the profile id)
+    // still says which version was used.
+    exerciseName: activeExercise?.name ?? activeProfile.name,
     startedAt: sessionStartedAt,
     weightKg: weight > 0 ? weight : null,
   });
@@ -463,7 +539,7 @@ function recordFrame(
     video,
     canvas,
     {
-      exercise: shortName(activeProfile.name),
+      exercise: activeExercise?.name ?? shortName(activeProfile.name),
       set: closed?.set ?? session.set,
       totalSets: session.totalSets,
       reps: closed?.reps.length ?? session.reps,
@@ -536,7 +612,9 @@ startBtn.addEventListener("click", async () => {
   try {
     unlockAudio();
 
-    activeProfile = findProfile(selectedProfileId);
+    // The profile is the chosen exercise with the phone where it is.
+    activeExercise = findExercise(selectedExerciseId);
+    activeProfile = profileFor(activeExercise, phonePosition(activeExercise));
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
@@ -549,7 +627,7 @@ startBtn.addEventListener("click", async () => {
     });
     sessionStartedAt = new Date();
     currentRepFaults.clear();
-    showExercise(displayName(activeProfile));
+    showExercise(activeExercise.name);
     lowConfidenceSince = null;
     trackingHint = "";
 
@@ -637,7 +715,9 @@ function showFrameDebug(text: string): void {
   // marked with *, so the weights in lifter.ts can be tuned.
   const crowd =
     lifter && lifter.peopleSeen > 1 ? ` | people ${lifter.scoreSummary}` : "";
-  showDebug(`${camera} ${resolution}${crowd} | ${text}`);
+  // Which version is running, "Push-up (front)", shown only here.
+  const version = activeProfile ? ` | ${displayName(activeProfile)}` : "";
+  showDebug(`${camera} ${resolution}${version}${crowd} | ${text}`);
 }
 
 // Debug line for a skipped frame: the view (and side for side views),

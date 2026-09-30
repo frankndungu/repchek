@@ -88,11 +88,145 @@
           >
             Pick your lift
           </h2>
-          <div id="exercise-chips" class="flex flex-wrap gap-2"></div>
+          <div id="exercise-chips" class="flex flex-col gap-3"></div>
           <div
             class="flex flex-col gap-1.5 rounded-2xl border border-line bg-panel px-4 py-3.5"
           >
             <div id="exercise-name" class="text-[15px] font-semibold"></div>
+            <div
+              id="exercise-detail"
+              class="text-[13px] leading-snug text-muted"
+              hidden
+            ></div>
+            <div id="position-picker" class="flex flex-col gap-2 pt-1" hidden>
+              <div class="text-[13px] font-semibold">Where is your phone?</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  data-position="beside"
+                  class="flex flex-col items-center gap-1.5 rounded-xl border-2 border-line bg-ink px-2 py-2.5 text-center"
+                >
+                  <svg
+                    viewBox="0 0 120 72"
+                    class="h-auto w-full max-w-[120px]"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="14"
+                      y="24"
+                      width="92"
+                      height="24"
+                      rx="4"
+                      class="fill-panel stroke-line"
+                      stroke-width="2"
+                    />
+                    <line
+                      x1="26"
+                      y1="36"
+                      x2="84"
+                      y2="36"
+                      class="stroke-paper"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="92" cy="36" r="5" class="fill-paper" />
+                    <line
+                      x1="56"
+                      y1="60"
+                      x2="36"
+                      y2="38"
+                      class="stroke-lime"
+                      stroke-width="1.5"
+                      stroke-dasharray="3 3"
+                    />
+                    <line
+                      x1="64"
+                      y1="60"
+                      x2="84"
+                      y2="38"
+                      class="stroke-lime"
+                      stroke-width="1.5"
+                      stroke-dasharray="3 3"
+                    />
+                    <rect
+                      x="53"
+                      y="59"
+                      width="14"
+                      height="7"
+                      rx="1.5"
+                      class="fill-lime"
+                    />
+                  </svg>
+                  <span class="text-[14px] font-semibold">Beside you</span>
+                  <span
+                    data-check
+                    class="text-[12px] leading-snug text-muted"
+                  ></span>
+                </button>
+                <button
+                  type="button"
+                  data-position="front"
+                  class="flex flex-col items-center gap-1.5 rounded-xl border-2 border-line bg-ink px-2 py-2.5 text-center"
+                >
+                  <svg
+                    viewBox="0 0 120 72"
+                    class="h-auto w-full max-w-[120px]"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="6"
+                      y="24"
+                      width="92"
+                      height="24"
+                      rx="4"
+                      class="fill-panel stroke-line"
+                      stroke-width="2"
+                    />
+                    <line
+                      x1="18"
+                      y1="36"
+                      x2="76"
+                      y2="36"
+                      class="stroke-paper"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="84" cy="36" r="5" class="fill-paper" />
+                    <line
+                      x1="106"
+                      y1="32"
+                      x2="72"
+                      y2="18"
+                      class="stroke-lime"
+                      stroke-width="1.5"
+                      stroke-dasharray="3 3"
+                    />
+                    <line
+                      x1="106"
+                      y1="40"
+                      x2="72"
+                      y2="54"
+                      class="stroke-lime"
+                      stroke-width="1.5"
+                      stroke-dasharray="3 3"
+                    />
+                    <rect
+                      x="105"
+                      y="29"
+                      width="7"
+                      height="14"
+                      rx="1.5"
+                      class="fill-lime"
+                    />
+                  </svg>
+                  <span class="text-[14px] font-semibold">In front of you</span>
+                  <span
+                    data-check
+                    class="text-[12px] leading-snug text-muted"
+                  ></span>
+                </button>
+              </div>
+            </div>
             <div
               id="exercise-hint"
               class="text-[13px] leading-snug text-muted"
