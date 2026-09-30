@@ -28,12 +28,14 @@ export const bicepsCurl: ExerciseProfile = {
       metric: "upperArmTilt",
       max: 25,
       message: "Keep your elbows pinned to your sides",
+      cue: "Elbows in",
     },
     {
       id: "torso-swing",
       metric: "torsoAngle",
       min: 75,
       message: "Stand tall, no swinging",
+      cue: "No swinging",
     },
   ],
 };

@@ -29,12 +29,14 @@ export const mountainClimbers: ExerciseProfile = {
       metric: "torsoAngle",
       min: -5,
       message: "Hips too high, keep your body flat",
+      cue: "Hips down",
     },
     {
       id: "hips-sagging",
       metric: "torsoAngle",
       max: 25,
       message: "Hips are sagging, brace your core",
+      cue: "Hips up",
     },
   ],
 };

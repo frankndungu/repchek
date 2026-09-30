@@ -99,7 +99,28 @@ the profile files and are tuned by hand.
 ## Feedback channels
 
 The verdict drives two channels. The skeleton color and banner message are
-for review between reps. The beep (`src/ui/audio.ts`, an 880 Hz square wave
-from the Web Audio API) is for mid-rep, when you cannot look at the phone.
-Audio is unlocked inside the Start Camera tap because browsers require a
-user gesture before playing sound.
+for review between reps. For mid-rep, when you cannot look at the phone,
+the coach speaks a short cue (below). The start screen's "Coach voice"
+setting chooses Voice, Beep (the old 880 Hz square wave from
+`src/ui/audio.ts`) or Off. Audio is unlocked inside the Start Camera tap
+because browsers require a user gesture before playing sound.
+
+## Coach cues
+
+Each rule carries a `cue`: two or three words the coach says out loud when
+it fails, like "Chest up" or "Elbows in". The banner message explains the
+fault; the cue is what you can take in mid-rep, so it is kept short.
+Speech uses the phone's built-in voice (`src/ui/voice.ts`), with an English
+voice picked if the phone's default speaks another language.
+
+A fault usually lasts many frames, so without some rules the coach would
+nag. `say()` never queues cues, because a cue said a second late is about
+a rep that is already over. The same cue is not repeated within 3 seconds.
+A different cue can cut off the one being spoken, but only after it has
+had 0.8 seconds to be heard. With several faults at once, only the first
+failing rule is spoken.
+
+iPhones only allow a page to speak after speech has been started once
+during a tap. So the Start tap speaks an empty, silent sentence
+(`warmUp()`). Without it, every cue, which comes from the camera loop and
+not a tap, would be silently ignored on iOS.

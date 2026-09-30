@@ -75,6 +75,9 @@ export interface FormRule {
   min?: number;
   max?: number;
   message: string;
+  // Two or three words the coach says out loud when this rule fails. Short
+  // because speech takes time and the lifter is mid-rep.
+  cue?: string;
   phase?: RepPhase;
 }
 

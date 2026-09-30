@@ -29,6 +29,7 @@ export const pushUp: ExerciseProfile = {
       metric: "hipAngle",
       min: 150,
       message: "Keep your body straight, no sagging or piking",
+      cue: "Straight body",
     },
   ],
 };

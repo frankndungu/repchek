@@ -33,12 +33,14 @@ export const tricepsExtension: ExerciseProfile = {
       metric: "upperArmTilt",
       max: 30,
       message: "Keep your elbows pointing up",
+      cue: "Elbows up",
     },
     {
       id: "torso-lean",
       metric: "torsoAngle",
       min: 75,
       message: "Stand tall, do not lean back",
+      cue: "Stand tall",
     },
   ],
 };

@@ -28,12 +28,14 @@ export const chestFly: ExerciseProfile = {
       metric: "elbowAngle",
       min: 110,
       message: "Do not bend the elbows into a press",
+      cue: "Softer elbows",
     },
     {
       id: "elbow-locked",
       metric: "elbowAngle",
       max: 175,
       message: "Keep a soft bend in the elbows",
+      cue: "Bend the elbows",
     },
   ],
 };

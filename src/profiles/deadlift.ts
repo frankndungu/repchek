@@ -20,18 +20,21 @@ export const deadlift: ExerciseProfile = {
       metric: "torsoAngle",
       min: 15,
       message: "Chest up, hips are shooting up",
+      cue: "Chest up",
     },
     {
       id: "neck-angle",
       metric: "neckAngle",
       min: 145,
       message: "Eyes forward, keep your back straight",
+      cue: "Eyes forward",
     },
     {
       id: "bar-path",
       metric: "barOffset",
       max: 0.5,
       message: "Keep the bar close to your legs",
+      cue: "Bar closer",
     },
   ],
 };

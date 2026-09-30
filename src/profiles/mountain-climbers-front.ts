@@ -28,6 +28,7 @@ export const mountainClimbersFront: ExerciseProfile = {
       metric: "shoulderTilt",
       max: 0.15,
       message: "Keep your shoulders level, no rocking",
+      cue: "Shoulders level",
     },
   ],
 };

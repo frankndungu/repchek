@@ -33,6 +33,9 @@ with even width and height because H.264 encoders reject odd sizes.
 `MediaRecorder` turns the track into a file, handing over a chunk every
 second.
 
+Clips have no sound: the spoken coach cues come from the phone's speech
+engine, not the canvas, so they are not in the recording.
+
 ## One clip per set
 
 A whole workout is mostly walking around, resting and setting up. A clip

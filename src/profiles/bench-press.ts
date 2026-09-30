@@ -29,6 +29,7 @@ export const benchPress: ExerciseProfile = {
       metric: "forearmTilt",
       max: 25,
       message: "Stack your wrists over your elbows",
+      cue: "Wrists over elbows",
     },
   ],
 };

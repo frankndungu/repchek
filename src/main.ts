@@ -21,6 +21,7 @@ import type {
 } from "./engine/session";
 import type {
   ExerciseProfile,
+  FormRule,
   FrameMetrics,
   RepPhase,
   RepTrigger,
@@ -57,6 +58,7 @@ import {
 import { computeStats, renderSummary, shortName } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
+import * as voice from "./ui/voice";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
@@ -111,6 +113,10 @@ const RECORD_STORAGE_KEY = "repchek.record";
 const ANGLES_STORAGE_KEY = "repchek.angles";
 // Followed by the exercise id: where the phone was last time for it.
 const POSITION_STORAGE_KEY = "repchek.position.";
+const COACH_STORAGE_KEY = "repchek.coach";
+
+// How a form fault is announced: a spoken cue, the old beep, or nothing.
+type CoachMode = "voice" | "beep" | "off";
 
 const IN_APP_BROWSER =
   /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
@@ -135,6 +141,7 @@ const cameraHintEl = q<HTMLElement>("#camera-hint");
 const recordSetting = q<HTMLElement>("#record-setting");
 const recordToggle = q<HTMLElement>("#record-toggle");
 const anglesToggle = q<HTMLElement>("#angles-toggle");
+const coachToggle = q<HTMLElement>("#coach-toggle");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
 const exerciseDetailEl = q<HTMLElement>("#exercise-detail");
 const positionPicker = q<HTMLElement>("#position-picker");
@@ -177,6 +184,7 @@ let recordSets = readSetting(RECORD_STORAGE_KEY) === "on";
 // Angle numbers at the joints, on screen and in clips. Off by default:
 // they help when tuning a profile but clutter the view for everyone else.
 let showAngles = readSetting(ANGLES_STORAGE_KEY) === "on";
+let coachMode: CoachMode = loadCoachMode();
 let recorder: SetRecorder | null = null;
 let clips: SetClip[] = [];
 let sessionStartedAt: Date | null = null;
@@ -364,6 +372,43 @@ anglesToggle.addEventListener("click", (event) => {
 });
 
 renderToggle(anglesToggle, showAngles ? "on" : "off");
+
+// Voice by default. Where the browser cannot speak, the Voice option is
+// hidden and Beep is the default.
+function loadCoachMode(): CoachMode {
+  const saved = readSetting(COACH_STORAGE_KEY);
+  if (saved === "beep" || saved === "off") return saved;
+  return voice.isSupported() ? "voice" : "beep";
+}
+
+coachToggle.querySelector<HTMLElement>('[data-value="voice"]')!.hidden =
+  !voice.isSupported();
+
+coachToggle.addEventListener("click", (event) => {
+  const value = tappedValue(event);
+  if (value !== "voice" && value !== "beep" && value !== "off") return;
+  coachMode = value;
+  writeSetting(COACH_STORAGE_KEY, coachMode);
+  renderToggle(coachToggle, coachMode);
+});
+
+renderToggle(coachToggle, coachMode);
+
+// A form fault this frame: tell the lifter, the way they chose. With
+// several faults at once, only the first is spoken; say() itself stops
+// the same cue repeating every frame.
+function coachFault(rule: FormRule): void {
+  if (coachMode === "voice") {
+    voice.say(rule.cue ?? firstWords(rule.message));
+  } else if (coachMode === "beep") {
+    beep();
+  }
+}
+
+// "Chest up, hips too high" -> "Chest up", for a rule without a cue.
+function firstWords(message: string): string {
+  return message.split(" ").slice(0, 2).join(" ").replace(/[,.]$/, "");
+}
 
 let counterTaps: number[] = [];
 counterEl.addEventListener("click", () => {
@@ -611,6 +656,8 @@ function armCounting(now: number): void {
 startBtn.addEventListener("click", async () => {
   try {
     unlockAudio();
+    // Must happen inside this tap, or iPhones never speak the cues.
+    voice.warmUp();
 
     // The profile is the chosen exercise with the phone where it is.
     activeExercise = findExercise(selectedExerciseId);
@@ -933,7 +980,7 @@ function loop(): void {
 
           updateCounterDisplay(activeProfile, phase);
           showFrameDebug(formatDebug(activeProfile, side, phase, metrics));
-          if (!verdict.ok) beep();
+          if (!verdict.ok) coachFault(verdict.failures[0]);
         }
       }
     }

@@ -28,6 +28,7 @@ export const inclineBench: ExerciseProfile = {
       metric: "forearmTilt",
       max: 30,
       message: "Stack your wrists over your elbows",
+      cue: "Wrists over elbows",
     },
   ],
 };

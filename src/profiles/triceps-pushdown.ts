@@ -28,12 +28,14 @@ export const tricepsPushdown: ExerciseProfile = {
       metric: "upperArmTilt",
       max: 25,
       message: "Keep your elbows pinned to your sides",
+      cue: "Elbows in",
     },
     {
       id: "torso-lean",
       metric: "torsoAngle",
       min: 70,
       message: "Stand tall, do not lean into the bar",
+      cue: "Stand tall",
     },
   ],
 };

@@ -30,6 +30,7 @@ export const pushUpFront: ExerciseProfile = {
       metric: "elbowFlare",
       max: 0.55,
       message: "Elbows are flaring, tuck them toward your body",
+      cue: "Tuck your elbows",
     },
   ],
 };

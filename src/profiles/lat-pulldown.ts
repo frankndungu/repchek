@@ -28,6 +28,7 @@ export const latPulldown: ExerciseProfile = {
       metric: "torsoAngle",
       min: 60,
       message: "Sit tall, you are leaning back too far",
+      cue: "Sit tall",
     },
   ],
 };
