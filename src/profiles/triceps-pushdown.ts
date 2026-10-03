@@ -7,7 +7,9 @@ export const tricepsPushdown: ExerciseProfile = {
   setupHint: "Side view, standing at the cable, full body in frame",
   // Counting and form only use the upper body, so hidden legs are fine.
   requiredJoints: ["shoulder", "elbow", "wrist", "hip"],
-  rep: { metric: "elbowAngle", start: 90, turn: 165 },
+  // Measured from real gym clips: lifters do not come all the way up to 90
+  // or lock out to 165.
+  rep: { metric: "elbowAngle", start: 115, turn: 150 },
   ready: [
     {
       metric: "torsoAngle",

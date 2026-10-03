@@ -263,3 +263,12 @@ skipping those frames would stop them counting.
 
 One gap: the set clip starts when the gate arms, which is the end of rep
 1, so rep 1 itself is not in the clip.
+
+### Triceps pushdown range
+
+Triceps pushdown missed about half the reps. Real clips show the elbow at
+about 100 to 120 degrees at the top and 150 to 169 at the bottom, but the
+profile expected 90 to 165, so most reps never reached one end or the
+other. The trigger is now 115 to 150, measured from those clips. With the
+counter's zone margin, anything up to about 120 counts as the top and
+anything from about 145 as the bottom.
