@@ -256,47 +256,101 @@ function dot(tone: Note["tone"]): HTMLSpanElement {
   return span;
 }
 
-// "Set 1, rep 4 (0:12): Hips sagging" for every rep that broke form.
-// Each line is a button that starts disabled; clips.ts enables it when that
-// set has a clip, so a tap opens the clip at that rep.
+function textSpan(className: string, text: string): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.className = className;
+  span.textContent = text;
+  return span;
+}
+
+const PLAY_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"></path></svg>`;
+
+// One numbered square per rep: green when clean, red when it broke form.
+// Eight to a row, wrapping.
+function repSquares(reps: number, faultyReps: Set<number>): HTMLElement {
+  const grid = document.createElement("div");
+  grid.className = "grid grid-cols-8 gap-1.5";
+  for (let rep = 1; rep <= reps; rep++) {
+    const faulty = faultyReps.has(rep);
+    const square = textSpan(
+      `flex aspect-square items-center justify-center rounded-md text-[13px] font-semibold ${faulty ? "bg-bad text-paper" : "bg-good text-ink"}`,
+      String(rep),
+    );
+    square.setAttribute("role", "img");
+    square.setAttribute(
+      "aria-label",
+      `Rep ${rep}, ${faulty ? "form broke" : "clean"}`,
+    );
+    grid.append(square);
+  }
+  return grid;
+}
+
+// "Rep 4 at 0:12: Hips sagging". The line is a button that starts disabled;
+// clips.ts enables it and shows Watch when the set has a clip, so a tap
+// opens the clip at that rep.
+function faultLine(fault: FaultRep): HTMLButtonElement {
+  const line = document.createElement("button");
+  line.type = "button";
+  line.disabled = true;
+  line.dataset.set = String(fault.set);
+  line.dataset.atMs = String(fault.atMs);
+  line.className = "flex min-h-11 w-full items-center gap-3 py-2 text-left";
+
+  const text = document.createElement("span");
+  text.className = "grow text-sm leading-snug";
+  text.append(
+    textSpan("font-semibold", `Rep ${fault.rep} at ${formatClock(fault.atMs)}:`),
+    ` ${fault.messages.join("; ")}`,
+  );
+
+  const watch = document.createElement("span");
+  watch.dataset.watch = "";
+  watch.hidden = true;
+  watch.className =
+    "flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-lime";
+  watch.innerHTML = `${PLAY_ICON}Watch`;
+
+  line.append(text, watch);
+  return line;
+}
+
+// A card per set: "Set 2", how many reps were clean, a square per rep, then
+// a line for each rep that broke form.
 function renderRepByRep(stats: SessionStats): void {
   const section = document.getElementById("summary-reps-section")!;
   const list = document.getElementById("summary-reps")!;
   list.replaceChildren();
   section.hidden = stats.totalReps === 0;
 
-  if (stats.faultReps.length === 0) {
-    const row = document.createElement("div");
-    row.className = "flex items-start gap-2.5";
-    const text = document.createElement("span");
-    text.className = "text-sm leading-snug";
-    text.textContent = "Every rep was clean.";
-    row.append(dot("good"), text);
-    list.append(row);
-    return;
-  }
+  for (const s of stats.sets) {
+    const faults = stats.faultReps.filter((f) => f.set === s.set);
 
-  for (const fault of stats.faultReps) {
-    const line = document.createElement("button");
-    line.type = "button";
-    line.disabled = true;
-    line.dataset.set = String(fault.set);
-    line.dataset.atMs = String(fault.atMs);
-    line.className = "flex items-start gap-2.5 text-left";
-
-    const text = document.createElement("span");
-    text.className = "text-sm leading-snug";
-    const time = document.createElement("span");
-    time.dataset.repTime = "";
-    time.textContent = `(${formatClock(fault.atMs)})`;
-    text.append(
-      `Set ${fault.set}, rep ${fault.rep} `,
-      time,
-      `: ${fault.messages.join("; ")}`,
+    const header = document.createElement("div");
+    header.className = "flex items-baseline justify-between gap-3";
+    header.append(
+      textSpan("text-[15px] font-semibold", `Set ${s.set}`),
+      textSpan("text-[13px] text-muted", `${s.clean} of ${s.reps} clean`),
     );
 
-    line.append(dot("bad"), text);
-    list.append(line);
+    const card = document.createElement("div");
+    card.className =
+      "flex flex-col gap-3 rounded-2xl border border-line bg-panel px-4 py-3.5";
+    card.append(header, repSquares(s.reps, new Set(faults.map((f) => f.rep))));
+
+    if (faults.length > 0) {
+      const lines = document.createElement("div");
+      lines.className = "flex flex-col divide-y divide-line border-t border-line";
+      lines.append(...faults.map(faultLine));
+      card.append(lines);
+    } else {
+      const row = document.createElement("div");
+      row.className = "flex items-start gap-2.5";
+      row.append(dot("good"), textSpan("text-sm leading-snug", "Every rep clean."));
+      card.append(row);
+    }
+
+    list.append(card);
   }
 }
 

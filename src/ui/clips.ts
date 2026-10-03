@@ -140,7 +140,7 @@ function closeClip(): void {
 playerClose.addEventListener("click", closeClip);
 
 // The rep by rep lines (summary.ts) start as plain text. Each one whose set
-// has a clip becomes tappable, opening that clip at the rep.
+// has a clip becomes tappable and shows Watch, opening that clip at the rep.
 function linkReps(clips: SetClip[]): void {
   let linked = 0;
   const lines =
@@ -152,10 +152,8 @@ function linkReps(clips: SetClip[]): void {
     const atMs = Number(line.dataset.atMs);
     line.disabled = !clip;
     line.onclick = clip ? () => openClip(clip, atMs) : null;
-    const time = line.querySelector("[data-rep-time]");
-    for (const cls of ["text-lime", "underline", "underline-offset-2"]) {
-      time?.classList.toggle(cls, Boolean(clip));
-    }
+    const watch = line.querySelector<HTMLElement>("[data-watch]");
+    if (watch) watch.hidden = !clip;
     if (clip) linked += 1;
   }
   repsHint.hidden = linked === 0;
