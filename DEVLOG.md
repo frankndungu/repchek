@@ -234,3 +234,32 @@ lowering half of rep 1.
 
 Rule going forward: any new exercise where standing around could look like
 the start position gets a ready check.
+
+## Day 15 (2026-10-03): Rolling start for bench press
+
+On bench press the readiness gate wanted a one second hold at lockout
+before it would count. Nobody benches like that: you unrack and start
+pressing. In a real clip, 7 reps were done before the gate armed, and all
+7 were lost.
+
+Fix: bench press and incline bench now have a rolling start. While the
+gate is off, a second rep counter (the probe) watches every clear frame
+where you are lying back on the bench. The first full rep, lockout down to
+the bottom and back up, arms the gate and counts as rep 1, with any form
+faults the probe saw during it. Everything else that happens when the gate
+arms (the whistle, the set clip) happens then too. The one second hold
+still works if you do pause at lockout.
+
+The rep has to start at lockout, so pressing the bar out of the rack, or
+the dumbbells up off your chest, is not taken for a rep. Losing sight of
+you, or sitting up, starts the probe over.
+
+Once armed, a frame where you are not lying back (racking the bar and
+sitting up) is skipped: not counted, not judged, and the gate stays on.
+This is only for the rolling start lifts for now. Some other exercises
+have ready checks that fail in the middle of a normal rep (the lat
+pulldown's hands overhead check fails at the bottom of every pull), so
+skipping those frames would stop them counting.
+
+One gap: the set clip starts when the gate arms, which is the end of rep
+1, so rep 1 itself is not in the clip.

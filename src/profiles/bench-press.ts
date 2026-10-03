@@ -16,6 +16,8 @@ export const benchPress: ExerciseProfile = {
       hint: "Lie back on the bench",
     },
   ],
+  // Lifters unrack and press straight away, with no hold at lockout.
+  rollingStart: true,
   phaseLabels: {
     idle: "GET SET",
     ready: "LOCKOUT",

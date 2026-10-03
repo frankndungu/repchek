@@ -28,6 +28,10 @@ import type {
 // at or beyond the profile's start, and the average value you held in
 // step 3 becomes your personal start (see heldValue).
 //
+// Rolling start: for a profile with `rollingStart` (bench press), main.ts
+// also watches for a first full rep while the gate is off, and calls arm()
+// when it sees one. The hold still works as well.
+//
 // It disarms (switches off) again when:
 //   - the person cannot be seen properly for LOST_MS, or
 //   - main.ts calls reset(), which it does when a set finishes.
@@ -171,6 +175,17 @@ export class ReadinessGate {
 
     this.reason = "Hold still";
     return false;
+  }
+
+  // Switch on straight away, without the hold: the rolling start, when
+  // main.ts has seen a first full rep. heldValue is the rep metric at that
+  // moment, standing in for the average a hold would give.
+  arm(heldValue: number, nowMs: number): void {
+    this.armed = true;
+    this.held = heldValue;
+    this.lastSeenAt = nowMs;
+    this.lastNow = nowMs;
+    this.clearHold("");
   }
 
   // Call this on every frame where the person is NOT seen clearly

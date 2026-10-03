@@ -9,10 +9,15 @@ import {
   frameConfidence,
   missingParts,
 } from "./engine/angles";
-import type { BodyPart } from "./engine/angles";
+import type { BodyPart, Side } from "./engine/angles";
 import { Judge } from "./engine/judge";
 import { RepCounter } from "./engine/repCounter";
-import { ReadinessGate } from "./engine/readiness";
+import type { RepEvent } from "./engine/repCounter";
+import {
+  ReadinessGate,
+  inStartZone,
+  passesCheck,
+} from "./engine/readiness";
 import { SessionTracker } from "./engine/session";
 import type {
   SessionEvent,
@@ -23,6 +28,8 @@ import type {
   ExerciseProfile,
   FormRule,
   FrameMetrics,
+  Landmark,
+  ReadyCheck,
   RepPhase,
   RepTrigger,
 } from "./engine/types";
@@ -186,6 +193,12 @@ let gate: ReadinessGate | null = null;
 // The rep range learned when the gate last armed, for auto-calibrated
 // profiles only.
 let learnedTrigger: RepTrigger | null = null;
+// Rolling start (profile.rollingStart): while the gate is off, the probe
+// counter watches for a first full rep and the probe judge notes the faults
+// in it. Null for profiles that wait for the hold.
+let probe: RepCounter | null = null;
+let probeJudge: Judge | null = null;
+const probeFaults = new Set<string>();
 let session: SessionTracker | null = null;
 // The exercise chosen on the start screen, and during a session the
 // exercise and profile in use. The profile depends on where the phone is.
@@ -573,7 +586,8 @@ function gateDebug(metrics: FrameMetrics): string {
     (check) => `${check.metric} ${formatValue(check.metric, metrics[check.metric])}`,
   );
   const posture = checks.length > 0 ? checks.join(" ") : "posture: none";
-  return `${gate.status} ${Math.round(gate.holdProgress * 100)}% | ${posture}`;
+  const rolling = probe ? ` | probe ${probe.currentPhase}` : "";
+  return `${gate.status} ${Math.round(gate.holdProgress * 100)}% | ${posture}${rolling}`;
 }
 
 // The label in the counter pill ("Set 1/4 | Reps 0 | ...").
@@ -750,6 +764,43 @@ function learnTrigger(rep: RepTrigger): RepTrigger | null {
   return { metric: rep.metric, start: held, turn: held * rep.turnRatio };
 }
 
+// The first of the profile's posture checks this frame fails, if any.
+function failedReadyCheck(
+  profile: ExerciseProfile,
+  metrics: FrameMetrics,
+): ReadyCheck | undefined {
+  return profile.ready?.find((check) => !passesCheck(check, metrics));
+}
+
+function resetProbe(): void {
+  probeFaults.clear();
+  if (!probe || !activeProfile) return;
+  probe.reset();
+  probeJudge = new Judge(activeProfile);
+}
+
+// Rolling start: feed the probe a clear frame while the gate is off.
+// Returns the first full rep, or null. Frames that fail a posture check
+// start it over, so sitting on the bench with the weight never counts.
+function probeFrame(metrics: FrameMetrics, now: number): RepEvent | null {
+  if (!probe || !probeJudge || !activeProfile) return null;
+  if (failedReadyCheck(activeProfile, metrics)) {
+    resetProbe();
+    return null;
+  }
+  // The rep has to start at lockout, so pressing the weight up out of the
+  // rack or off the chest is not taken for a rep.
+  const { rep } = activeProfile;
+  const atLockout = inStartZone(rep, metrics[rep.metric]);
+  if (probe.currentPhase === "idle" && !atLockout) return null;
+  const event = probe.update(metrics, now);
+  const { failures } = probeJudge.evaluate(metrics, probe.currentPhase);
+  for (const rule of failures) probeFaults.add(rule.id);
+  // As in a set, faults before a partial do not carry into the next rep.
+  if (event?.type === "partial") probeFaults.clear();
+  return event?.type === "rep" ? event : null;
+}
+
 // Fresh counter and judge, so nothing from the setup leaks into rep 1.
 function armCounting(now: number): void {
   if (!activeProfile) return;
@@ -760,6 +811,7 @@ function armCounting(now: number): void {
   repCounter = new RepCounter(learnedTrigger ?? activeProfile.rep);
   judge = new Judge(activeProfile);
   currentRepFaults.clear();
+  resetProbe();
   showNotice("Ready, go", 1200);
   whistleGo();
   // Swaps the standby recording for this set's clip. A no-op if the clip
@@ -781,6 +833,10 @@ startBtn.addEventListener("click", async () => {
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
     learnedTrigger = null;
+    probe = activeProfile.rollingStart
+      ? new RepCounter(activeProfile.rep)
+      : null;
+    resetProbe();
     lifter = new LifterLock(activeProfile);
     crowdTipShown = false;
     session = new SessionTracker({
@@ -933,6 +989,7 @@ video.addEventListener("click", (event) => {
 // The person cannot be seen properly this frame.
 function handleLostFrame(now: number): void {
   if (!gate || !session || !activeProfile || !repCounter) return;
+  resetProbe();
   if (gate.lost(now)) {
     // They were gone long enough, so any half-done rep is thrown away.
     currentRepFaults.clear();
@@ -959,6 +1016,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
     }
     // Walking away, resting and setting up again must not count.
     gate?.reset();
+    resetProbe();
     currentRepFaults.clear();
   }
   if (sessionEvent?.type === "session-complete") {
@@ -967,6 +1025,35 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
     if (recorder) collectClip(recorder.stop());
     setTimeout(() => finishSession(), 1500);
   }
+}
+
+// A frame where the person is seen clearly but nothing is counted or
+// judged: before the gate arms, or out of position while it is armed. White
+// skeleton, no feedback. `note` is added to the debug line.
+function uncountedFrame(
+  landmarks: Landmark[],
+  side: Side,
+  metrics: FrameMetrics,
+  now: number,
+  note = "",
+): void {
+  if (!session || !activeProfile || !repCounter) return;
+  handleSessionEvent(session.tick(now));
+  drawSkeleton(ctx, landmarks, WAITING_COLOR);
+  if (activeProfile.cameraView === "side") {
+    drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+  }
+  if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
+  showFeedback([]);
+  recordFrame("");
+  updateCounterDisplay(activeProfile, repCounter.currentPhase);
+  const debug = formatDebug(
+    activeProfile,
+    side,
+    repCounter.currentPhase,
+    metrics,
+  );
+  showFrameDebug(note ? `${debug} | ${note}` : debug);
 }
 
 function loop(): void {
@@ -1036,30 +1123,50 @@ function loop(): void {
         updateTrackingHint(null, now);
         const metrics = computeFrameMetrics(landmarks, aspect);
 
-        // Step 1: are they in position yet?
+        // Step 1: are they in position yet? With a rolling start, a first
+        // full rep arms the gate too, and becomes rep 1 of the set.
+        let firstRep: RepEvent | null = null;
         if (!gate.isArmed) {
-          const justArmed = gate.update(metrics, now);
-          if (justArmed) armCounting(now);
+          if (gate.update(metrics, now)) {
+            armCounting(now);
+          } else {
+            firstRep = probeFrame(metrics, now);
+            if (firstRep) {
+              gate.arm(metrics[activeProfile.rep.metric], now);
+              // armCounting starts the probe over, so keep rep 1's faults.
+              const firstRepFaults = [...probeFaults];
+              armCounting(now);
+              for (const id of firstRepFaults) currentRepFaults.add(id);
+            }
+          }
         }
+
+        // Out of position while armed (rolling start only), like racking
+        // the bar and sitting up: not counted or judged, but the gate
+        // stays on.
+        const outOfPosition = activeProfile.rollingStart
+          ? failedReadyCheck(activeProfile, metrics)
+          : undefined;
 
         if (!gate.isArmed) {
           // Not ready yet: no counting, no judging, no beeps.
-          handleSessionEvent(session.tick(now));
-          drawSkeleton(ctx, landmarks, WAITING_COLOR);
-          if (activeProfile.cameraView === "side") {
-            drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
-          }
-          if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
-          showFeedback([]);
-          recordFrame("");
-          updateCounterDisplay(activeProfile, repCounter.currentPhase);
-          showFrameDebug(
-            formatDebug(activeProfile, side, repCounter.currentPhase, metrics),
+          uncountedFrame(landmarks, side, metrics, now);
+        } else if (outOfPosition) {
+          gate.update(metrics, now);
+          uncountedFrame(
+            landmarks,
+            side,
+            metrics,
+            now,
+            `skipped: ${outOfPosition.hint}`,
           );
         } else {
           // Step 2: ready, so count and judge as normal.
           gate.update(metrics, now);
-          const repEvent = repCounter.update(metrics, now);
+          const counted = repCounter.update(metrics, now);
+          // The counter was made fresh this frame when firstRep is set, so
+          // it has counted nothing and rep 1 is not counted twice.
+          const repEvent = firstRep ?? counted;
           const phase = repCounter.currentPhase;
           const verdict = judge.evaluate(metrics, phase);
 

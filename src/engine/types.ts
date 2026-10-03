@@ -118,6 +118,9 @@ export interface ExerciseProfile {
   // Leave it out and the gate still waits for: visible, at the start
   // of the rep, and holding still for a second.
   ready?: ReadyCheck[];
+  // For lifts where you start with the weight in your hands. The gate can
+  // arm on the first full rep instead of waiting for a hold.
+  rollingStart?: boolean;
   phaseLabels?: Partial<Record<RepPhase, string>>;
   rules: FormRule[];
 }
