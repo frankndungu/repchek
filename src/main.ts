@@ -112,6 +112,18 @@ const ANGLES_STORAGE_KEY = "repchek.angles";
 // Followed by the exercise id: where the phone was last time for it.
 const POSITION_STORAGE_KEY = "repchek.position.";
 const COACH_STORAGE_KEY = "repchek.coach";
+// Set once the How it works page has opened by itself on a first visit.
+const SEEN_HOW_STORAGE_KEY = "repchek.seenHow";
+
+// The figures on the How it works page, keyed by their data-color, drawn in
+// the colours the skeleton uses on the camera.
+const FIGURE_COLORS: Record<string, string> = {
+  waiting: WAITING_COLOR,
+  good: GOOD_COLOR,
+  bad: BAD_COLOR,
+  lost: LOW_CONFIDENCE_COLOR,
+  guide: GUIDE_COLOR,
+};
 
 // How a form fault is announced: a spoken cue, the old beep, or nothing.
 type CoachMode = "voice" | "beep" | "off";
@@ -128,6 +140,10 @@ const video = q<HTMLVideoElement>("#camera");
 const canvas = q<HTMLCanvasElement>("#overlay");
 const startScreen = q<HTMLElement>("#start-screen");
 const summaryScreen = q<HTMLElement>("#summary-screen");
+const howScreen = q<HTMLElement>("#how-screen");
+const howBtn = q<HTMLButtonElement>("#how-btn");
+const howBackBtn = q<HTMLButtonElement>("#how-back");
+const howDoneBtn = q<HTMLButtonElement>("#how-done");
 const startBtn = q<HTMLButtonElement>("#start-btn");
 const endBtn = q<HTMLButtonElement>("#end-btn");
 const shareBtn = q<HTMLButtonElement>("#share-btn");
@@ -468,6 +484,30 @@ coachToggle.addEventListener("click", (event) => {
 });
 
 renderToggle(coachToggle, coachMode, SMALL_CHIP_BASE);
+
+// How it works: opens from the header button, and once by itself on a
+// first visit.
+for (const figure of howScreen.querySelectorAll<SVGElement>("[data-color]")) {
+  figure.style.color = FIGURE_COLORS[figure.dataset.color ?? ""] ?? "";
+}
+
+function openHow(): void {
+  howScreen.hidden = false;
+  howScreen.scrollTop = 0;
+}
+
+function closeHow(): void {
+  howScreen.hidden = true;
+}
+
+howBtn.addEventListener("click", openHow);
+howBackBtn.addEventListener("click", closeHow);
+howDoneBtn.addEventListener("click", closeHow);
+
+if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
+  writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
+  openHow();
+}
 
 // A form fault this frame: tell the lifter, the way they chose. With
 // several faults at once, only the first is spoken; say() itself stops

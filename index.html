@@ -62,9 +62,36 @@
         class="absolute inset-0 flex flex-col gap-6 overflow-y-auto bg-ink px-5 pt-12 pb-8"
       >
         <header class="flex flex-col gap-2">
-          <h1 class="font-display text-[64px] leading-[0.9] tracking-[0.01em]">
-            REPCHEK
-          </h1>
+          <div class="flex items-center justify-between gap-3">
+            <h1
+              class="font-display text-[64px] leading-[0.9] tracking-[0.01em]"
+            >
+              REPCHEK
+            </h1>
+            <button
+              id="how-btn"
+              type="button"
+              class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel pr-3.5 pl-2.5 text-[13px] font-semibold"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-lime"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9.5"></circle>
+                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-2.9 2.6-2.9 4"></path>
+                <path d="M12 17.5h.01"></path>
+              </svg>
+              How it works
+            </button>
+          </div>
           <p
             class="flex items-center gap-2 text-[13px] font-medium tracking-wide text-muted"
           >
@@ -614,67 +641,9 @@
           </details>
         </section>
 
-        <details class="group rounded-2xl border border-line bg-panel px-4 py-3.5">
-          <summary
-            class="flex cursor-pointer list-none items-center justify-between text-[15px] font-semibold [&::-webkit-details-marker]:hidden"
-          >
-            How to read the screen
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-muted transition-transform group-open:rotate-180"
-              aria-hidden="true"
-            >
-              <path d="M6 9l6 6 6-6"></path>
-            </svg>
-          </summary>
-          <ul class="mt-3 flex flex-col gap-2 text-[13px] leading-snug">
-            <li class="flex items-start gap-2.5">
-              <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-good"></span>
-              Green skeleton: good form
-            </li>
-            <li class="flex items-start gap-2.5">
-              <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-bad"></span>
-              Red skeleton, coach cue and message: fix this now
-            </li>
-            <li class="flex items-start gap-2.5">
-              <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-paper"></span>
-              White skeleton: I see you, get in position and hold still
-            </li>
-            <li class="flex items-start gap-2.5">
-              <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-dim"></span>
-              Grey skeleton: I cannot see you properly
-            </li>
-            <li class="flex items-start gap-2.5">
-              <span
-                class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#22d3ee]"
-              ></span>
-              Blue line (side view): your back line, keep it straight
-            </li>
-          </ul>
-        </details>
-
         <div class="grow"></div>
 
         <div class="flex flex-col gap-3.5">
-          <div class="flex justify-center gap-3.5 text-xs text-muted">
-            <span class="flex items-center gap-1.5"
-              ><span class="h-2.5 w-2.5 rounded-full bg-good"></span>Good</span
-            >
-            <span class="flex items-center gap-1.5"
-              ><span class="h-2.5 w-2.5 rounded-full bg-bad"></span>Fix it</span
-            >
-            <span class="flex items-center gap-1.5"
-              ><span class="h-2.5 w-2.5 rounded-full bg-dim"></span>Cannot
-              see</span
-            >
-          </div>
           <button
             id="start-btn"
             class="min-h-15 w-full rounded-2xl bg-lime font-display text-[28px] tracking-[0.06em] text-ink"
@@ -703,6 +672,284 @@
             >
           </p>
         </div>
+      </section>
+
+      <section
+        id="how-screen"
+        class="absolute inset-0 z-20 flex flex-col gap-5 overflow-y-auto bg-ink px-5 pt-12 pb-8"
+        aria-labelledby="how-title"
+        hidden
+      >
+        <button
+          id="how-back"
+          type="button"
+          class="flex min-h-11 items-center gap-1 self-start rounded-full border border-line bg-panel pr-4 pl-2.5 text-[14px] font-semibold"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 6l-6 6 6 6"></path>
+          </svg>
+          Back
+        </button>
+
+        <div class="flex flex-col gap-2">
+          <h1 id="how-title" class="font-display text-[52px] leading-[0.9]">
+            Reading the screen
+          </h1>
+          <p class="text-[15px] leading-snug text-muted">
+            Repchek draws a skeleton over your body. Its colour tells you what
+            the coach is thinking, rep by rep.
+          </p>
+        </div>
+
+        <!-- The figures are coloured from main.ts (data-color), with the
+             same colours as the skeleton on the camera. -->
+        <ul class="flex flex-col gap-2.5">
+          <li
+            class="flex items-center gap-4 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          >
+            <svg
+              viewBox="0 0 80 48"
+              class="w-20 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              data-color="waiting"
+            >
+              <line
+                x1="4"
+                y1="44"
+                x2="78"
+                y2="44"
+                class="stroke-line"
+                stroke-width="1.5"
+              ></line>
+              <polyline points="20,42 20,16 46,28 62,35.5 76,42"></polyline>
+              <circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <div class="flex min-w-0 flex-col gap-1">
+              <h2 class="text-[15px] font-semibold">Get in position</h2>
+              <p class="text-[13px] leading-snug text-muted">
+                I can see you. Get into your start position and hold still for
+                a second. You hear a whistle, then counting starts. Setting up
+                never costs you reps.
+              </p>
+            </div>
+          </li>
+          <li
+            class="flex items-center gap-4 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          >
+            <svg
+              viewBox="0 0 80 48"
+              class="w-20 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              data-color="good"
+            >
+              <line
+                x1="4"
+                y1="44"
+                x2="78"
+                y2="44"
+                class="stroke-line"
+                stroke-width="1.5"
+              ></line>
+              <polyline points="20,42 20,16 46,28 62,35.5 76,42"></polyline>
+              <circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <div class="flex min-w-0 flex-col gap-1">
+              <h2 class="text-[15px] font-semibold">Good form</h2>
+              <p class="text-[13px] leading-snug text-muted">
+                Your form is in range. Keep going. Every green rep is counted as
+                clean.
+              </p>
+            </div>
+          </li>
+          <li
+            class="flex items-center gap-4 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          >
+            <svg
+              viewBox="0 0 80 48"
+              class="w-20 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              data-color="bad"
+            >
+              <line
+                x1="4"
+                y1="44"
+                x2="78"
+                y2="44"
+                class="stroke-line"
+                stroke-width="1.5"
+              ></line>
+              <polyline points="20,42 20,16 45,34 61,38 76,42"></polyline>
+              <circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <div class="flex min-w-0 flex-col gap-1">
+              <h2 class="text-[15px] font-semibold">Fix this now</h2>
+              <p class="text-[13px] leading-snug text-muted">
+                Something broke your form, like hips sagging. The coach tells
+                you what to fix, and that rep is marked in your summary so you
+                can rewatch it.
+              </p>
+            </div>
+          </li>
+          <li
+            class="flex items-center gap-4 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          >
+            <svg
+              viewBox="0 0 80 48"
+              class="w-20 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-dasharray="4 4"
+              aria-hidden="true"
+              data-color="lost"
+            >
+              <line
+                x1="4"
+                y1="44"
+                x2="78"
+                y2="44"
+                class="stroke-line"
+                stroke-width="1.5"
+                stroke-dasharray="none"
+              ></line>
+              <polyline points="20,42 20,16 46,28 62,35.5 76,42"></polyline>
+              <circle
+                cx="12"
+                cy="12"
+                r="4.5"
+                stroke-width="2"
+                stroke-dasharray="3 2.5"
+              ></circle>
+            </svg>
+            <div class="flex min-w-0 flex-col gap-1">
+              <h2 class="text-[15px] font-semibold">I cannot see you</h2>
+              <p class="text-[13px] leading-snug text-muted">
+                Part of your body is hidden or out of frame. Nothing is counted
+                or judged until I see you clearly. Move the phone back or turn
+                it side-on.
+              </p>
+            </div>
+          </li>
+          <li
+            class="flex items-center gap-4 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          >
+            <svg
+              viewBox="0 0 80 48"
+              class="w-20 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              data-color="good"
+            >
+              <line
+                x1="4"
+                y1="44"
+                x2="78"
+                y2="44"
+                class="stroke-line"
+                stroke-width="1.5"
+              ></line>
+              <polyline points="20,42 20,16 46,28 62,35.5 76,42"></polyline>
+              <polyline
+                points="12,12 20,16 46,28 62,35.5"
+                stroke="currentColor"
+                stroke-width="4.5"
+                data-color="guide"
+              ></polyline>
+              <circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <div class="flex min-w-0 flex-col gap-1">
+              <h2 class="text-[15px] font-semibold">Your back line</h2>
+              <p class="text-[13px] leading-snug text-muted">
+                Head to shoulder to hip to knee, on side views. Keep it
+                straight. A bend here is what gets backs hurt on deadlifts, rows
+                and push-ups.
+              </p>
+            </div>
+          </li>
+        </ul>
+
+        <div class="flex flex-col gap-2.5">
+          <h2
+            class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
+          >
+            What the sounds mean
+          </h2>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div
+              class="flex flex-col gap-0.5 rounded-2xl border border-line bg-panel px-3.5 py-3"
+            >
+              <span class="text-[15px] font-semibold">Whistle</span>
+              <span class="text-[13px] leading-snug text-muted"
+                >Go, counting started</span
+              >
+            </div>
+            <div
+              class="flex flex-col gap-0.5 rounded-2xl border border-line bg-panel px-3.5 py-3"
+            >
+              <span class="text-[15px] font-semibold">Voice or beep</span>
+              <span class="text-[13px] leading-snug text-muted"
+                >Fix your form</span
+              >
+            </div>
+            <div
+              class="flex flex-col gap-0.5 rounded-2xl border border-line bg-panel px-3.5 py-3"
+            >
+              <span class="text-[15px] font-semibold">Soft chime</span>
+              <span class="text-[13px] leading-snug text-muted"
+                >Set done, rest</span
+              >
+            </div>
+            <div
+              class="flex flex-col gap-0.5 rounded-2xl border border-line bg-panel px-3.5 py-3"
+            >
+              <span class="text-[15px] font-semibold">Bell</span>
+              <span class="text-[13px] leading-snug text-muted"
+                >Workout finished</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="grow"></div>
+
+        <button
+          id="how-done"
+          type="button"
+          class="min-h-14 w-full shrink-0 rounded-2xl bg-lime font-display text-[26px] tracking-[0.06em] text-ink"
+        >
+          Got it
+        </button>
       </section>
 
       <section
