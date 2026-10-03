@@ -97,17 +97,15 @@ const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
 ]);
 
 const CHIP_BASE = "min-h-11 rounded-full border-2 px-4 py-2.5 text-[15px]";
+// The coach voice chips sit inside More options, so they are a size down.
+const SMALL_CHIP_BASE =
+  "min-h-11 min-w-11 rounded-full border-2 px-3.5 py-2 text-[14px]";
 const CHIP_ON = "border-lime bg-lime text-ink font-semibold";
 const CHIP_OFF = "border-line bg-panel text-paper font-medium";
 
 type FacingMode = CameraOptions["facingMode"];
 
 const CAMERA_STORAGE_KEY = "repchek.camera";
-const CAMERA_HINTS: Record<FacingMode, string> = {
-  environment:
-    "Best quality. Use when someone films you or you do not need to see the screen.",
-  user: "See the feedback yourself while you train.",
-};
 
 const RECORD_STORAGE_KEY = "repchek.record";
 const ANGLES_STORAGE_KEY = "repchek.angles";
@@ -137,7 +135,6 @@ const doneBtn = q<HTMLButtonElement>("#done-btn");
 const status = q<HTMLElement>("#status");
 const chipsEl = q<HTMLElement>("#exercise-chips");
 const cameraToggle = q<HTMLElement>("#camera-toggle");
-const cameraHintEl = q<HTMLElement>("#camera-hint");
 const recordSetting = q<HTMLElement>("#record-setting");
 const recordToggle = q<HTMLElement>("#record-toggle");
 const anglesToggle = q<HTMLElement>("#angles-toggle");
@@ -263,10 +260,7 @@ function renderExerciseCard(): void {
   const cards = positionPicker.querySelectorAll<HTMLElement>("[data-position]");
   for (const card of cards) {
     const cardPosition = card.dataset.position as PhonePosition;
-    const on = cardPosition === position;
-    card.classList.toggle("border-lime", on);
-    card.classList.toggle("border-line", !on);
-    card.setAttribute("aria-pressed", String(on));
+    markCard(card, cardPosition === position);
     const check = card.querySelector("[data-check]");
     if (check) check.textContent = exercise.checks?.[cardPosition] ?? "";
   }
@@ -321,13 +315,29 @@ function loadFacingMode(): FacingMode {
   return readSetting(CAMERA_STORAGE_KEY) === "user" ? "user" : "environment";
 }
 
-// Two-option toggles on the start screen, styled like the lift chips.
-function renderToggle(group: HTMLElement, selected: string): void {
+// Chip groups with one choice, styled like the lift chips.
+function renderToggle(
+  group: HTMLElement,
+  selected: string,
+  base = CHIP_BASE,
+): void {
   for (const option of group.querySelectorAll<HTMLElement>("[data-value]")) {
     const on = option.dataset.value === selected;
-    option.className = `${CHIP_BASE} ${on ? CHIP_ON : CHIP_OFF}`;
+    option.className = `${base} ${on ? CHIP_ON : CHIP_OFF}`;
     option.setAttribute("aria-pressed", String(on));
   }
+}
+
+// Choice cards (phone position, camera): the chosen one has a lime border.
+function markCard(card: HTMLElement, on: boolean): void {
+  card.classList.toggle("border-lime", on);
+  card.classList.toggle("border-line", !on);
+  card.setAttribute("aria-pressed", String(on));
+}
+
+// The on/off settings under More options.
+function renderSwitch(toggle: HTMLElement, on: boolean): void {
+  toggle.setAttribute("aria-checked", String(on));
 }
 
 function tappedValue(event: Event): string | undefined {
@@ -336,8 +346,11 @@ function tappedValue(event: Event): string | undefined {
 }
 
 function renderCameraToggle(): void {
-  renderToggle(cameraToggle, facingMode);
-  cameraHintEl.textContent = CAMERA_HINTS[facingMode];
+  for (const card of cameraToggle.querySelectorAll<HTMLElement>(
+    "[data-value]",
+  )) {
+    markCard(card, card.dataset.value === facingMode);
+  }
 }
 
 cameraToggle.addEventListener("click", (event) => {
@@ -353,25 +366,87 @@ renderCameraToggle();
 // Browsers that cannot record a canvas never see the option.
 recordSetting.hidden = !SetRecorder.isSupported();
 
-recordToggle.addEventListener("click", (event) => {
-  const value = tappedValue(event);
-  if (!value) return;
-  recordSets = value === "on";
+recordToggle.addEventListener("click", () => {
+  recordSets = !recordSets;
   writeSetting(RECORD_STORAGE_KEY, recordSets ? "on" : "off");
-  renderToggle(recordToggle, recordSets ? "on" : "off");
+  renderSwitch(recordToggle, recordSets);
 });
 
-renderToggle(recordToggle, recordSets ? "on" : "off");
+renderSwitch(recordToggle, recordSets);
 
-anglesToggle.addEventListener("click", (event) => {
-  const value = tappedValue(event);
-  if (!value) return;
-  showAngles = value === "on";
+anglesToggle.addEventListener("click", () => {
+  showAngles = !showAngles;
   writeSetting(ANGLES_STORAGE_KEY, showAngles ? "on" : "off");
-  renderToggle(anglesToggle, showAngles ? "on" : "off");
+  renderSwitch(anglesToggle, showAngles);
 });
 
-renderToggle(anglesToggle, showAngles ? "on" : "off");
+renderSwitch(anglesToggle, showAngles);
+
+// The minus and plus buttons on the sets, reps and weight cards. They step
+// the input by data-delta, stay inside its min and max, and grey out at
+// either end.
+const steppers =
+  startScreen.querySelectorAll<HTMLButtonElement>("[data-stepper]");
+
+function stepperInput(button: HTMLButtonElement): HTMLInputElement {
+  return q<HTMLInputElement>(`#${button.dataset.stepper}`);
+}
+
+function inputLimits(input: HTMLInputElement): { min: number; max: number } {
+  return {
+    min: input.min === "" ? -Infinity : Number(input.min),
+    max: input.max === "" ? Infinity : Number(input.max),
+  };
+}
+
+const targetInputs = [setsInput, repsInput, weightInput];
+// The size of the numbers, text-[36px] in index.html.
+const TARGET_FONT_PX = 36;
+
+// A long number ("100" on a narrow phone, "102.5") gets a smaller font so it
+// fits between the buttons. Bebas Neue digits are 0.4 em wide, the point 0.2.
+function fitNumber(input: HTMLInputElement): void {
+  if (!input.clientWidth) return;
+  const em = [...input.value].reduce(
+    (sum, char) => sum + (char === "." ? 0.2 : 0.4),
+    0,
+  );
+  const fit = em > 0 ? Math.floor(input.clientWidth / em) : TARGET_FONT_PX;
+  input.style.fontSize = fit < TARGET_FONT_PX ? `${fit}px` : "";
+}
+
+function renderTargetCards(): void {
+  for (const button of steppers) {
+    const input = stepperInput(button);
+    const { min, max } = inputLimits(input);
+    const value = Number(input.value) || 0;
+    button.disabled =
+      Number(button.dataset.delta) < 0 ? value <= min : value >= max;
+  }
+  targetInputs.forEach(fitNumber);
+}
+
+for (const button of steppers) {
+  button.addEventListener("click", () => {
+    const input = stepperInput(button);
+    const { min, max } = inputLimits(input);
+    const value = Number(input.value) || 0;
+    const stepped = value + Number(button.dataset.delta);
+    // Rounded so repeated 2.5 kg steps never show 62.49999.
+    const next = Math.round(Math.min(max, Math.max(min, stepped)) * 100) / 100;
+    // An empty weight stays empty (bodyweight) when minus has nowhere to go.
+    if (next === value) return;
+    input.value = String(next);
+    renderTargetCards();
+  });
+}
+
+for (const input of targetInputs) {
+  input.addEventListener("input", renderTargetCards);
+}
+window.addEventListener("resize", () => targetInputs.forEach(fitNumber));
+
+renderTargetCards();
 
 // Voice by default. Where the browser cannot speak, the Voice option is
 // hidden and Beep is the default.
@@ -389,10 +464,10 @@ coachToggle.addEventListener("click", (event) => {
   if (value !== "voice" && value !== "beep" && value !== "off") return;
   coachMode = value;
   writeSetting(COACH_STORAGE_KEY, coachMode);
-  renderToggle(coachToggle, coachMode);
+  renderToggle(coachToggle, coachMode, SMALL_CHIP_BASE);
 });
 
-renderToggle(coachToggle, coachMode);
+renderToggle(coachToggle, coachMode, SMALL_CHIP_BASE);
 
 // A form fault this frame: tell the lifter, the way they chose. With
 // several faults at once, only the first is spoken; say() itself stops
