@@ -11,7 +11,7 @@ const PAPER = "#f5f5f2";
 const MUTED = "#a8a8a2";
 const LIME = "#c6f135";
 const BAD = "#ef4444";
-export const SITE = "repchek.vercel.app";
+export const SITE = "repchek.fit";
 const BRAND = "REPCHEK";
 const MARGIN = 88;
 

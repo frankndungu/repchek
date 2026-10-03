@@ -19,7 +19,7 @@ processed camera frame onto it, in this order:
    a second line: the current feedback message once counting, or until the
    gate arms, the same text as the pill ("HOLD STILL", "MOVE BACK, I CAN'T
    SEE YOUR HANDS" and so on), so a clip shows why counting has not started
-4. "repchek.vercel.app" small in the bottom right corner
+4. "repchek.fit" small in the bottom right corner
 
 With the front camera the screen is mirrored with CSS, so steps 1 and 2 are
 flipped the same way on the recording canvas. Otherwise the clip would be a

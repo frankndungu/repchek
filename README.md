@@ -6,6 +6,8 @@ turns the skeleton red and beeps when your form breaks, counts your reps and
 sets, and detects rest between sets. Nothing to install, no server, no video
 leaves the device.
 
+Live at [repchek.fit](https://repchek.fit).
+
 Built as a first computer vision project and documented step by step in
 `docs/` and `DEVLOG.md`.
 

@@ -7,6 +7,18 @@
       content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Repchek, your form coach</title>
+    <meta
+      name="description"
+      content="Repchek is a form coach that runs in your phone browser. It watches your lift, turns red and beeps when your form breaks, and counts your reps and sets. Nothing leaves your phone."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Repchek, your form coach" />
+    <meta
+      property="og:description"
+      content="Repchek is a form coach that runs in your phone browser. It watches your lift, turns red and beeps when your form breaks, and counts your reps and sets. Nothing leaves your phone."
+    />
+    <meta property="og:url" content="https://repchek.fit" />
+    <meta name="twitter:card" content="summary" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -654,6 +666,38 @@
             id="status"
             class="text-center text-sm text-muted empty:hidden"
           ></p>
+          <!-- Shown from ui/founding.ts while there are spots left. -->
+          <button
+            id="founding-row"
+            type="button"
+            class="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-line bg-panel px-4 py-3 text-left"
+            hidden
+          >
+            <span class="flex min-w-0 grow flex-col gap-0.5">
+              <span class="text-[15px] font-semibold"
+                >Become a founding member</span
+              >
+              <span class="text-[12px] leading-snug text-muted"
+                >$<span data-founding="price"></span> a year, locked forever.
+                <span data-founding="left"></span> of
+                <span data-founding="total"></span> spots left</span
+              >
+            </span>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="shrink-0 text-lime"
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6"></path>
+            </svg>
+          </button>
           <p class="text-center text-[12px] leading-relaxed text-muted">
             Nothing leaves your phone. No video is uploaded.
           </p>
@@ -1054,6 +1098,48 @@
           <div id="summary-clips" class="flex flex-col gap-2"></div>
         </div>
 
+        <!-- Shown from ui/founding.ts after a session with at least one rep,
+             while there are spots left. -->
+        <div
+          id="summary-founding"
+          class="flex flex-col gap-3 rounded-2xl border-2 border-lime bg-panel px-4 py-3.5"
+          hidden
+        >
+          <div class="flex items-center justify-between gap-3">
+            <h2
+              class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
+            >
+              Founding members
+            </h2>
+            <span
+              class="shrink-0 rounded-full bg-lime/15 px-3 py-1 text-[12px] font-semibold text-lime"
+              ><span data-founding="left"></span> of
+              <span data-founding="total"></span> spots left</span
+            >
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-display text-[44px] leading-none"
+              >$<span data-founding="price"></span
+            ></span>
+            <span class="text-[14px] text-muted">a year, locked forever</span>
+          </div>
+          <p class="text-sm leading-snug">
+            Repchek just coached your set. Help me build the rest, and the price
+            never goes up for you.
+          </p>
+          <ul data-founding-perks class="flex flex-col gap-1.5"></ul>
+          <button
+            id="summary-founding-btn"
+            type="button"
+            class="min-h-12 w-full rounded-xl bg-lime font-display text-[22px] tracking-[0.06em] text-ink"
+          >
+            Become a founding member
+          </button>
+          <p class="text-center text-[12px] text-muted">
+            Card payment, any country.
+          </p>
+        </div>
+
         <div class="grow"></div>
 
         <div class="flex flex-col gap-2.5">
@@ -1113,6 +1199,206 @@
           playsinline
         ></video>
       </div>
+
+      <section
+        id="founding-screen"
+        class="absolute inset-0 z-20 flex flex-col gap-5 overflow-y-auto bg-ink px-5 pt-12 pb-8"
+        aria-labelledby="founding-title"
+        hidden
+      >
+        <header class="flex items-center gap-3">
+          <button
+            id="founding-back"
+            type="button"
+            aria-label="Back"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-panel"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M15 6l-6 6 6 6"></path>
+            </svg>
+          </button>
+          <span
+            class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
+            >Founding members</span
+          >
+        </header>
+
+        <div class="flex flex-col gap-3">
+          <h1
+            id="founding-title"
+            class="font-display text-[56px] leading-[0.9]"
+          >
+            HELP ME BUILD REPCHEK
+          </h1>
+          <p class="text-[15px] leading-snug text-muted">
+            Rep counting and form feedback stay free. Founding members fund what
+            comes next: progress across weeks, a deadlift setup check and spoken
+            cues. The first <span data-founding="total"></span> get the price
+            locked forever.
+          </p>
+        </div>
+
+        <!-- ui/founding.ts shows this card or the sold out line, from
+             spotsLeft() in founding.ts. -->
+        <div
+          id="founding-offer"
+          class="flex flex-col gap-4 rounded-2xl border-2 border-lime bg-panel px-4 py-4"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-baseline gap-2">
+              <span class="font-display text-[64px] leading-none"
+                >$<span data-founding="price"></span
+              ></span>
+              <span class="text-[15px] text-muted">a year</span>
+            </div>
+            <span
+              class="mt-1.5 shrink-0 rounded-full bg-lime/15 px-3 py-1 text-[12px] font-semibold text-lime"
+              ><span data-founding="left"></span> of
+              <span data-founding="total"></span> left</span
+            >
+          </div>
+          <ul data-founding-perks class="flex flex-col gap-2"></ul>
+          <div class="flex flex-col gap-2.5">
+            <a
+              id="founding-checkout"
+              target="_blank"
+              rel="noopener"
+              class="flex min-h-14 w-full items-center justify-center rounded-2xl bg-lime font-display text-[24px] tracking-[0.06em] text-ink"
+            >
+              Become a founding member
+            </a>
+            <p class="text-center text-[12px] leading-snug text-muted">
+              Card payment, any country. Secure checkout by Polar.
+            </p>
+          </div>
+        </div>
+        <p
+          id="founding-sold-out"
+          class="rounded-2xl border border-line bg-panel px-4 py-3.5 text-[15px] leading-snug"
+          hidden
+        >
+          All <span data-founding="total"></span> founding spots are taken.
+          Standard pricing is coming.
+        </p>
+
+        <div class="grow"></div>
+
+        <p class="text-center text-[13px] leading-relaxed text-muted">
+          Built by Francis, a software engineer who loves lifting. Questions
+          first?
+          <a href="mailto:hello@repchek.fit" class="text-lime">Email me</a>
+        </p>
+      </section>
+
+      <section
+        id="welcome-screen"
+        class="absolute inset-0 z-30 flex flex-col gap-5 overflow-y-auto bg-ink px-5 pt-12 pb-8"
+        aria-labelledby="welcome-title"
+        hidden
+      >
+        <p
+          class="flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-lime uppercase"
+        >
+          <span class="h-2 w-2 rounded-full bg-lime"></span>
+          Payment received
+        </p>
+
+        <div class="flex flex-col gap-3">
+          <h1 id="welcome-title" class="font-display text-[56px] leading-[0.9]">
+            YOU ARE FOUNDING MEMBER #<span data-founding="member"></span>
+          </h1>
+          <p class="text-[15px] leading-snug text-muted">
+            Thank you. You just paid for something that is still being built,
+            and that means more than you know. Your price is locked at
+            $<span data-founding="price"></span> a year for as long as you want
+            it.
+          </p>
+        </div>
+
+        <div
+          class="flex flex-col gap-3 rounded-2xl border border-line bg-panel px-4 py-3.5"
+        >
+          <h2
+            class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
+          >
+            What happens next
+          </h2>
+          <ol class="flex flex-col gap-3">
+            <li class="flex items-start gap-3">
+              <span
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime text-[13px] font-semibold text-ink"
+                aria-hidden="true"
+                >1</span
+              >
+              <span class="text-sm leading-snug"
+                >Your receipt is in your inbox from Polar.</span
+              >
+            </li>
+            <li class="flex items-start gap-3">
+              <span
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime text-[13px] font-semibold text-ink"
+                aria-hidden="true"
+                >2</span
+              >
+              <span class="text-sm leading-snug"
+                >Francis emails you within a day to ask the name you want on the
+                list and the lift you train most.</span
+              >
+            </li>
+            <li class="flex items-start gap-3">
+              <span
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime text-[13px] font-semibold text-ink"
+                aria-hidden="true"
+                >3</span
+              >
+              <span class="text-sm leading-snug"
+                >Your requests go to the top of the build list. Reply to any
+                email with them, any time.</span
+              >
+            </li>
+          </ol>
+        </div>
+
+        <div
+          class="flex flex-col gap-1.5 rounded-2xl border-2 border-lime bg-panel px-4 py-3.5"
+        >
+          <h2 class="text-[15px] font-semibold">
+            One thing you can do right now
+          </h2>
+          <p class="text-sm leading-snug text-muted">
+            Run one session, hit Share, and send Francis the card. That first
+            real set is what the next feature gets tuned on.
+          </p>
+        </div>
+
+        <div class="grow"></div>
+
+        <div class="flex flex-col gap-2.5">
+          <button
+            id="welcome-start"
+            type="button"
+            class="min-h-14 w-full rounded-2xl bg-lime font-display text-[26px] tracking-[0.06em] text-ink"
+          >
+            Start a session
+          </button>
+          <a
+            href="mailto:hello@repchek.fit"
+            class="flex min-h-12 w-full items-center justify-center rounded-2xl border border-line bg-panel text-[15px] font-semibold"
+          >
+            Email Francis now
+          </a>
+        </div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

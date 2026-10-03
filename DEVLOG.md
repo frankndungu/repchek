@@ -272,3 +272,41 @@ profile expected 90 to 165, so most reps never reached one end or the
 other. The trigger is now 115 to 150, measured from those clips. With the
 counter's zone margin, anything up to about 120 counts as the top and
 anything from about 145 as the bottom.
+
+### New domain: repchek.fit
+
+Repchek moved from repchek.vercel.app to repchek.fit. The share card and
+the clip watermark now say repchek.fit. The page also has a description
+and Open Graph tags, so a link posted on Reddit or Twitter shows a title
+and a line about what Repchek does instead of a bare URL.
+
+### Founding member offer
+
+The first paid offer: 5 founding spots at $50 a year, with the price
+locked forever. Rep counting and form feedback stay free. The money funds
+what comes next: progress across weeks, a deadlift setup check and spoken
+cues. Payment goes through a Polar checkout, which takes cards from any
+country.
+
+Every setting is in src/founding.ts: the price, the number of spots, the
+spots taken (updated by hand after each payment), the checkout link and
+the perks. The offer shows up in three places:
+
+- A row under Start camera on the start screen, which opens the founding
+  sheet with the price, the perks and the checkout button.
+- A card on the summary, between the coaching notes and Share. It only
+  shows when the session counted at least one rep. That is the moment
+  Repchek has just worked for someone: they have seen their reps counted
+  and their form called out, so the ask comes right after the proof
+  instead of before anyone has tried it.
+- repchek.fit/#founding opens the sheet directly, for posting the offer.
+
+Polar sends a paying customer back to repchek.fit/?paid=1, which shows a
+welcome screen with their founding member number and what happens next.
+When all the spots are taken, the start screen row and the summary card
+disappear, and the sheet says the spots are gone.
+
+Analytics events: founding_open (with where it was opened from: start,
+summary or hash), founding_checkout when the Polar button is tapped, and
+founding_paid when the welcome screen shows. Together they show where
+people drop off between seeing the offer and paying.

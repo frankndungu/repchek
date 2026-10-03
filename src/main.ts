@@ -69,6 +69,11 @@ import * as voice from "./ui/voice";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
+import {
+  openFoundingFromHash,
+  showSummaryOffer,
+  showWelcomeIfPaid,
+} from "./ui/founding";
 
 inject();
 
@@ -517,7 +522,11 @@ howBtn.addEventListener("click", openHow);
 howBackBtn.addEventListener("click", closeHow);
 howDoneBtn.addEventListener("click", closeHow);
 
-if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
+// Back from Polar after paying, or a link to the founding offer: that
+// screen opens instead, and How it works waits for the next visit.
+const openedOnLoad = showWelcomeIfPaid() || openFoundingFromHash();
+
+if (!openedOnLoad && readSetting(SEEN_HOW_STORAGE_KEY) === null) {
   writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
   openHow();
 }
@@ -671,6 +680,7 @@ function showSummary(record: SessionRecord): void {
   currentStats = computeStats(record);
   renderSummary(record, currentStats);
   renderClips(clips, record.exerciseId);
+  showSummaryOffer(currentStats.totalReps);
   summaryScreen.hidden = false;
 }
 
