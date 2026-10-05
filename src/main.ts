@@ -3,6 +3,7 @@ import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import type { CameraOptions } from "./camera";
 import { PoseEstimator } from "./engine/pose";
 import { LifterLock } from "./engine/lifter";
+import { FrontReferenceTracker } from "./engine/reference";
 import {
   computeFrameMetrics,
   dominantSide,
@@ -207,6 +208,9 @@ let wakeLock: WakeLockSentinel | null = null;
 let judge: Judge | null = null;
 let repCounter: RepCounter | null = null;
 let gate: ReadinessGate | null = null;
+// Front view profiles only: remembers where the hands are and how wide the
+// shoulders look, for the frames where the model loses them.
+let frontReference: FrontReferenceTracker | null = null;
 // The rep range learned when the gate last armed, for auto-calibrated
 // profiles only.
 let learnedTrigger: RepTrigger | null = null;
@@ -920,6 +924,10 @@ startBtn.addEventListener("click", async () => {
       : null;
     resetProbe();
     lifter = new LifterLock(activeProfile);
+    frontReference =
+      activeProfile.cameraView === "front"
+        ? new FrontReferenceTracker()
+        : null;
     crowdTipShown = false;
     session = new SessionTracker({
       sets: Number(setsInput.value) || 4,
@@ -1164,7 +1172,7 @@ function loop(): void {
     // Only the lifter's pose goes any further, skeleton included. Anyone
     // else in view is ignored.
     const landmarks = lifter.pick(poses, gate.isArmed, aspect, now);
-    if (poses.length > 1 && !lifter.isTapLocked && !crowdTipShown) {
+    if (lifter.hasCompany && !lifter.isTapLocked && !crowdTipShown) {
       crowdTipShown = true;
       showNotice("More than one person seen. Tap yourself to lock on.", 3000);
     }
@@ -1182,11 +1190,18 @@ function loop(): void {
       );
     } else {
       const side = dominantSide(landmarks);
+      // Learned on every frame the lifter is found, clear or not: the
+      // tracker has its own check for what it can learn from.
+      const reference = frontReference?.update(landmarks, aspect, now);
+      // Once counting has started, a profile can get by on fewer joints.
+      const required =
+        (gate.isArmed ? activeProfile.requiredWhileCounting : undefined) ??
+        activeProfile.requiredJoints;
       const confidence = frameConfidence(
         landmarks,
         side,
         activeProfile.cameraView,
-        activeProfile.requiredJoints,
+        required,
       );
 
       if (confidence < MIN_FRAME_CONFIDENCE) {
@@ -1194,7 +1209,7 @@ function loop(): void {
           landmarks,
           side,
           activeProfile.cameraView,
-          activeProfile.requiredJoints,
+          required,
         );
         updateTrackingHint(missing, now);
         drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
@@ -1206,7 +1221,7 @@ function loop(): void {
         );
       } else {
         updateTrackingHint(null, now);
-        const metrics = computeFrameMetrics(landmarks, aspect);
+        const metrics = computeFrameMetrics(landmarks, aspect, reference);
 
         // Step 1: are they in position yet? With a rolling start, a first
         // full rep arms the gate too, and becomes rep 1 of the set.

@@ -6,6 +6,8 @@ import type {
   Joint,
 } from "./types";
 import { LANDMARK } from "./types";
+import { SQUASHED_SHARE } from "./reference";
+import type { FrontReference } from "./reference";
 
 export type { JointAngles } from "./types";
 
@@ -217,9 +219,13 @@ export function computeJointAngles(lm: Point[]): JointAngles {
   };
 }
 
+// `reference` is for front view exercises with the hands on the floor: the
+// remembered hands and shoulder width from reference.ts. Without it, every
+// metric comes from this frame alone.
 export function computeFrameMetrics(
   landmarks: Landmark[],
   aspect: number,
+  reference?: FrontReference,
 ): FrameMetrics {
   const lm = correctAspect(landmarks, aspect);
   const angles = computeJointAngles(lm);
@@ -259,9 +265,26 @@ export function computeFrameMetrics(
   const rk = lm[LANDMARK.RIGHT_KNEE];
   const shoulderWidth = Math.abs(ls.x - rs.x) || 1;
   const shoulderMidY = (ls.y + rs.y) / 2;
-  const shoulderOverWrist = ((lw.y + rw.y) / 2 - shoulderMidY) / shoulderWidth;
+  // At the bottom of a front view push-up the model squashes the shoulders
+  // together and loses the hands, but the height of the shoulders stays
+  // good. So with a reference, the rep is the live shoulder height against
+  // the remembered hands, over the remembered shoulder width.
+  const handsY = reference?.handsY ?? (lw.y + rw.y) / 2;
+  const steadyWidth = reference?.shoulderWidth ?? shoulderWidth;
+  const shoulderOverWrist = (handsY - shoulderMidY) / steadyWidth;
+  // Elbow flare needs the elbows and both shoulders in the right place.
+  // With a reference we can tell when they are not (elbows not seen, or
+  // shoulders squashed), and then the frame is not judged: 0 never breaks
+  // the rule.
+  const elbowsSeen =
+    Math.min(le.visibility, re.visibility) >= MIN_PART_VISIBILITY;
+  const squashed =
+    reference !== undefined &&
+    shoulderWidth < reference.shoulderWidth * SQUASHED_SHARE;
   const elbowFlare =
-    (Math.abs(le.x - ls.x) + Math.abs(re.x - rs.x)) / 2 / shoulderWidth;
+    reference !== undefined && (squashed || !elbowsSeen)
+      ? 0
+      : (Math.abs(le.x - ls.x) + Math.abs(re.x - rs.x)) / 2 / steadyWidth;
   const kneeDrive = (Math.max(lk.y, rk.y) - shoulderMidY) / shoulderWidth;
   const shoulderTilt = Math.abs(ls.y - rs.y) / shoulderWidth;
   // Front view: how far the hips sit below the shoulders on screen.

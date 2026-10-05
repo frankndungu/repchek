@@ -113,6 +113,11 @@ export interface ExerciseProfile {
   // and form only use some joints, so that equipment hiding the others
   // (a bench hiding the ankles) does not throw frames away.
   requiredJoints?: Joint[];
+  // A shorter list that takes over once counting has started. For
+  // exercises where some joints are hidden during the rep itself: a front
+  // view push-up loses the elbows and wrists at the bottom, so it needs
+  // the full arms to start and only the shoulders after that.
+  requiredWhileCounting?: Joint[];
   rep: RepTrigger;
   // Optional posture checks that must pass before counting starts.
   // Leave it out and the gate still waits for: visible, at the start
