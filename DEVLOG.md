@@ -374,3 +374,75 @@ shows, with the exercise, the reps and which session this is on this
 phone (a counter in localStorage). With page views, these show how many
 visitors start a session, how many finish one, and how many come back for
 a second.
+
+### Front view push-ups: the lock dropped me and the count stopped at 2
+
+Two recordings with the phone on the floor in front of me. With the back
+camera it kept saying "Step into view" and counted nothing. With the front
+camera it counted 2 of 12. It looked like a camera problem and was not. The
+front camera only worked while I was watching the screen, for the first two
+reps. As soon as I looked down it failed the same way.
+
+I ran both recordings through the pose model on a laptop and then through
+the engine code, frame by frame. Two separate bugs.
+
+Bug 1, the lifter lock. At the bottom of a push-up seen from the front, my
+head hides my body, and the model sometimes returns me twice: the real pose
+and a squashed copy on top of it. The lock treated the copy as a second
+person and gave it a track. On the next frame my real pose was matched to
+that track, and the lock was left on a track with nobody in it. Once
+counting has started the lock never switches, so every frame after that was
+thrown away: the model saw a person in about half of all frames and the
+lock discarded them. After 1.5 seconds the gate switched off and waited for
+a one second hold that never comes in the middle of a set.
+
+Fix, in lifter.ts:
+
+- A pose lying on top of a bigger pose (its shoulders and most of its box
+  inside the bigger one) is the same person seen twice, and is dropped.
+- A track only counts as a second person once it keeps being seen in the
+  same frame as the lifter. Until then it chooses last, so it cannot take
+  the lifter's pose.
+- When the lifter's track finds nothing and one unclaimed pose is left
+  within half a screen width of where the lifter last was, it is the
+  lifter. With the phone close, a body moves further across the screen
+  than the old limit allowed.
+- The "More than one person seen" tip now waits for a proven second
+  person, so a ghost does not trigger it.
+
+Bug 2, the rep measurement. The rep was shoulder height above the wrists,
+divided by shoulder width. At the bottom the model squashes the two
+shoulders together, from about 0.31 of the screen to 0.01, so the number
+shot up when it should have dropped to half, and the bottom was never
+reached. The elbows and wrists also fell below the confidence bar there, so
+those frames were skipped anyway. The height of the shoulders stayed good
+the whole time, and the hands never move.
+
+Fix: a new engine/reference.ts remembers where the hands are and how wide
+the shoulders look, from the frames where both arms are seen clearly
+(mostly the top of each rep). The front view rep is now the live shoulder
+height against the remembered hands, over the remembered width. A profile
+can also list requiredWhileCounting: the front push-up needs the full arms
+to start and only the shoulders once counting has begun.
+
+Replayed through the engine, before and after:
+
+- Front camera clip, 12 reps: 0 before (the phone counted 2), 12 after.
+- Back camera clip, first attempt, 16 reps: 0 before, 16 after.
+- Back camera clip, second attempt, 3 reps: 1 before, 3 after.
+- Frames where a person was seen but the lock discarded them: 58, 49 and
+  25 percent before, 0 after.
+
+What this does not fix: the elbow check. In the lower half of the rep the
+shoulders are squashed in about 9 frames out of 10, so elbow flare can only
+be judged in 7 to 10 percent of those frames. The rule now skips the frames
+it cannot judge, so it does not give false alarms, but from this angle it
+will also miss real flare. The front position counts reps reliably now. It
+does not yet check elbows reliably.
+
+The replay ran on a laptop with the same model file, not on the phone, so
+the numbers on the phone will differ a little. Test it there before
+trusting it.
+
+Lesson, again: record it, read the numbers, then change the code. The
+camera was a wrong guess that two recordings made look right.
