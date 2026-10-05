@@ -11,6 +11,15 @@ Live at [repchek.fit](https://repchek.fit).
 Built as a first computer vision project and documented step by step in
 `docs/` and `DEVLOG.md`.
 
+## Focus
+
+Home workouts and free weights come first: push-ups and mountain climbers
+on the floor, and deadlifts, rows, curls and overhead extensions standing.
+The camera sees a whole body on the floor or standing, so it can track
+every joint it needs. Benches and machines hide part of the body, and the
+camera loses it behind them. The gym lifts still work, but they sit in a
+folded section on the start screen with a warning to expect false alarms.
+
 ## What it does today
 
 - Live pose tracking (33 landmarks) from the phone camera at real-time speed

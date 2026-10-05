@@ -310,3 +310,67 @@ Analytics events: founding_open (with where it was opened from: start,
 summary or hash), founding_checkout when the Polar button is tapped, and
 founding_paid when the welcome screen shows. Together they show where
 people drop off between seeing the offer and paying.
+
+## Day 17 (2026-10-05): Home workouts first
+
+### The niche
+
+Repchek works best when the camera can see all of you. On the floor or
+standing, it gets every joint it needs. On a bench or a machine, the
+equipment hides part of the body, and that is where the false alarms
+come from. The best feedback so far came from a free weight lift too:
+Evans used it on bent-over barbell rows and said it really helped with
+form. So Repchek now leads with home workouts and free weights.
+
+The exercise chips are grouped by where you train instead of by muscle:
+
+- At home: push-ups and mountain climbers.
+- Free weights: deadlift, barbell row, biceps curl and overhead triceps
+  extension.
+- At the gym: bench press, incline bench, chest fly, lat pulldown and
+  triceps pushdown.
+
+The gym section starts folded, under "At the gym: benches and machines",
+with a line warning that equipment hides your body and to expect false
+alarms. It opens by itself when one of its lifts is the chosen exercise,
+and stays open while you pick between chips. Push-up is now the default.
+
+### Start screen
+
+The start screen used to explain nothing before asking for the camera.
+Now, from the top:
+
+- The pitch says "A trainer watching your home workout." instead of "Form
+  coach. Live. On your phone."
+- A short looping demo clip sits right under the header, with a caption on
+  what red means and how to rewatch a rep. If the clip cannot load, the
+  whole block hides instead of leaving an empty frame.
+- Evans's quote sits under the clip. It lives in founding.ts as
+  TESTIMONIAL, and an empty quote hides the card.
+
+The founding row on the start screen now says what the money is for:
+"Tracking is coming. Founding members get it first." The founding sheet
+says the same thing: fixing your form stays free, and founding members
+fund progress tracked week by week. Evans's quote is on the sheet too,
+under the price.
+
+### Why the button is pinned
+
+Start camera used to sit at the very bottom of the page. With the demo
+clip and the quote added above the chips, it would have been even further
+down, below the fold on most phones. Someone who has seen enough after the
+clip should not have to scroll past the exercise list, the targets and the
+phone settings to find it. The status line, Start camera and "Free. No
+sign-up." are now in a bar pinned to the bottom of the screen, so the
+button is one tap away from anywhere on the page. The bar pads itself for
+the iPhone home indicator. The founding row and the credits stay in the
+page above it.
+
+### Measuring the funnel
+
+Two new analytics events: session_start when the camera is on screen with
+the model loaded, with the exercise, and session_complete when the summary
+shows, with the exercise, the reps and which session this is on this
+phone (a counter in localStorage). With page views, these show how many
+visitors start a session, how many finish one, and how many come back for
+a second.

@@ -9,13 +9,13 @@
     <title>Repchek, your form coach</title>
     <meta
       name="description"
-      content="Repchek is a form coach that runs in your phone browser. It watches your lift, turns red and beeps when your form breaks, and counts your reps and sets. Nothing leaves your phone."
+      content="Repchek watches your home workout. Push-ups, free weights and more. It turns red and beeps when your form breaks, counts every rep, and nothing leaves your phone."
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Repchek, your form coach" />
     <meta
       property="og:description"
-      content="Repchek is a form coach that runs in your phone browser. It watches your lift, turns red and beeps when your form breaks, and counts your reps and sets. Nothing leaves your phone."
+      content="Repchek watches your home workout. Push-ups, free weights and more. It turns red and beeps when your form breaks, counts every rep, and nothing leaves your phone."
     />
     <meta property="og:url" content="https://repchek.fit" />
     <meta name="twitter:card" content="summary" />
@@ -71,7 +71,7 @@
 
       <section
         id="start-screen"
-        class="absolute inset-0 flex flex-col gap-6 overflow-y-auto bg-ink px-5 pt-12 pb-8"
+        class="absolute inset-0 flex flex-col gap-6 overflow-y-auto bg-ink px-5 pt-12"
       >
         <header class="flex flex-col gap-2">
           <div class="flex items-center justify-between gap-3">
@@ -108,9 +108,98 @@
             class="flex items-center gap-2 text-[13px] font-medium tracking-wide text-muted"
           >
             <span class="h-2 w-2 rounded-full bg-lime"></span>
-            Form coach. Live. On your phone.
+            A trainer watching your home workout.
           </p>
         </header>
+
+        <figure id="demo" class="flex flex-col gap-2">
+          <div
+            class="relative h-[220px] w-full overflow-hidden rounded-2xl border border-line bg-panel"
+          >
+            <video
+              id="demo-video"
+              class="absolute inset-0 h-full w-full object-cover"
+              src="/demo.mp4"
+              poster="/demo.jpg"
+              autoplay
+              muted
+              loop
+              playsinline
+            ></video>
+            <!-- A drawing of a red rep covers the clip until it has loaded,
+                 and stays if it cannot load. main.ts hides it. The video
+                 stays in the layout underneath, because iPhones may not
+                 load or autoplay a video that is display: none. -->
+            <div id="demo-fallback" class="absolute inset-0 bg-panel">
+              <span
+                class="absolute top-3 left-3 rounded-xl border border-line bg-black/65 px-3 py-1.5 text-[13px] font-bold"
+                >7 of 12, set 2</span
+              >
+              <span
+                class="absolute top-3 right-3 rounded-full bg-bad px-3 py-1.5 text-[13px] font-bold text-paper"
+                >Straight body</span
+              >
+              <!-- Sits on the bottom of the panel, like the floor in a
+                   camera frame. -->
+              <div class="absolute inset-x-4 bottom-4">
+                <svg
+                  viewBox="0 30 320 120"
+                  class="block h-auto w-full"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  role="img"
+                  aria-label="A push-up seen from the side, drawn in red, with the hips sagging below the straight line from shoulder to ankle"
+                >
+                  <line
+                    x1="12"
+                    y1="142"
+                    x2="308"
+                    y2="142"
+                    class="stroke-line"
+                    stroke-width="2"
+                  ></line>
+                  <!-- Where the body should be: straight from shoulder to
+                       ankle. -->
+                  <line
+                    x1="72"
+                    y1="64"
+                    x2="280"
+                    y2="126"
+                    class="stroke-dim"
+                    stroke-width="2"
+                    stroke-dasharray="6 6"
+                  ></line>
+                  <!-- Wrist, elbow, shoulder, sagging hip, knee, ankle, toe. -->
+                  <polyline
+                    points="72,136 74,100 72,64 170,114 226,121 280,126 292,136"
+                    class="stroke-bad"
+                    stroke-width="4"
+                  ></polyline>
+                  <g class="fill-bad">
+                    <circle cx="52" cy="50" r="10"></circle>
+                    <circle cx="72" cy="136" r="5"></circle>
+                    <circle cx="74" cy="100" r="5"></circle>
+                    <circle cx="72" cy="64" r="5"></circle>
+                    <circle cx="170" cy="114" r="5"></circle>
+                    <circle cx="226" cy="121" r="5"></circle>
+                    <circle cx="280" cy="126" r="5"></circle>
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <figcaption class="text-[13px] leading-snug text-muted">
+            Red means your form broke. After the set, tap that rep to watch it.
+          </figcaption>
+        </figure>
+
+        <!-- Filled from TESTIMONIAL in founding.ts by ui/founding.ts. -->
+        <figure
+          data-testimonial
+          class="flex flex-col gap-2.5 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          hidden
+        ></figure>
 
         <p
           id="browser-hint"
@@ -656,16 +745,6 @@
         <div class="grow"></div>
 
         <div class="flex flex-col gap-3.5">
-          <button
-            id="start-btn"
-            class="min-h-15 w-full rounded-2xl bg-lime font-display text-[28px] tracking-[0.06em] text-ink"
-          >
-            Start camera
-          </button>
-          <p
-            id="status"
-            class="text-center text-sm text-muted empty:hidden"
-          ></p>
           <!-- Shown from ui/founding.ts while there are spots left. -->
           <button
             id="founding-row"
@@ -676,6 +755,9 @@
             <span class="flex min-w-0 grow flex-col gap-0.5">
               <span class="text-[15px] font-semibold"
                 >Become a founding member</span
+              >
+              <span class="text-[13px] leading-snug"
+                >Tracking is coming. Founding members get it first.</span
               >
               <span class="text-[12px] leading-snug text-muted"
                 >$<span data-founding="price"></span> a year, locked forever.
@@ -715,6 +797,24 @@
               >@francodosha</a
             >
           </p>
+        </div>
+
+        <!-- Pinned to the bottom, so Start camera is always one tap away
+             however far down the page someone has scrolled. -->
+        <div
+          class="sticky bottom-0 z-10 -mx-5 flex flex-col gap-2 border-t border-line bg-ink px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        >
+          <p
+            id="status"
+            class="text-center text-sm text-muted empty:hidden"
+          ></p>
+          <button
+            id="start-btn"
+            class="min-h-15 w-full rounded-2xl bg-lime font-display text-[28px] tracking-[0.06em] text-ink"
+          >
+            Start camera
+          </button>
+          <p class="text-center text-[13px] text-muted">Free. No sign-up.</p>
         </div>
       </section>
 
@@ -1241,9 +1341,9 @@
             HELP ME BUILD REPCHEK
           </h1>
           <p class="text-[15px] leading-snug text-muted">
-            Rep counting and form feedback stay free. Founding members fund what
-            comes next: progress across weeks, a deadlift setup check and spoken
-            cues. The first <span data-founding="total"></span> get the price
+            Fixing your form stays free. Founding members fund what comes next:
+            your progress tracked week by week, so you can see yourself getting
+            better. The first <span data-founding="total"></span> get the price
             locked forever.
           </p>
         </div>
@@ -1290,6 +1390,12 @@
           All <span data-founding="total"></span> founding spots are taken.
           Standard pricing is coming.
         </p>
+
+        <figure
+          data-testimonial
+          class="flex flex-col gap-2.5 rounded-2xl border border-line bg-panel px-4 py-3.5"
+          hidden
+        ></figure>
 
         <div class="grow"></div>
 

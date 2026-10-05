@@ -4,6 +4,7 @@ import {
   PERKS,
   PRICE_USD,
   SPOTS_TOTAL,
+  TESTIMONIAL,
   memberNumber,
   spotsLeft,
 } from "../founding";
@@ -53,6 +54,27 @@ function renderPerks(list: HTMLElement): void {
   );
 }
 
+// The quote, then who said it. The card starts hidden in index.html and
+// stays hidden when there is no quote.
+function renderTestimonial(card: HTMLElement): void {
+  const { quote, name, context } = TESTIMONIAL;
+  if (!quote) return;
+  const text = document.createElement("blockquote");
+  text.className = "text-[15px] leading-snug";
+  text.textContent = `“${quote}”`;
+  const who = document.createElement("span");
+  who.className = "text-[13px] font-semibold";
+  who.textContent = name;
+  const about = document.createElement("span");
+  about.className = "text-[12px] leading-snug text-muted";
+  about.textContent = context;
+  const caption = document.createElement("figcaption");
+  caption.className = "flex flex-col gap-0.5";
+  caption.append(who, about);
+  card.replaceChildren(text, caption);
+  card.hidden = false;
+}
+
 fill("price", PRICE_USD);
 fill("total", SPOTS_TOTAL);
 fill("left", spotsLeft());
@@ -60,6 +82,9 @@ fill("member", memberNumber());
 document
   .querySelectorAll<HTMLElement>("[data-founding-perks]")
   .forEach(renderPerks);
+document
+  .querySelectorAll<HTMLElement>("[data-testimonial]")
+  .forEach(renderTestimonial);
 checkoutLink.href = CHECKOUT_URL;
 
 // Once the spots are gone, the sheet says so and the start screen row goes.

@@ -1,4 +1,4 @@
-import { inject } from "@vercel/analytics";
+import { inject, track } from "@vercel/analytics";
 import { startCamera, explainCameraError, isUserFacing } from "./camera";
 import type { CameraOptions } from "./camera";
 import { PoseEstimator } from "./engine/pose";
@@ -35,11 +35,11 @@ import type {
 } from "./engine/types";
 import {
   EXERCISES,
-  MUSCLE_GROUPS,
+  SECTIONS,
   findExercise,
   profileFor,
 } from "./profiles";
-import type { ExerciseChoice, PhonePosition } from "./profiles";
+import type { ExerciseChoice, PhonePosition, Section } from "./profiles";
 import { saveSession } from "./storage/db";
 import {
   syncCanvasToVideo,
@@ -115,6 +115,14 @@ const SMALL_CHIP_BASE =
 const CHIP_ON = "border-lime bg-lime text-ink font-semibold";
 const CHIP_OFF = "border-line bg-panel text-paper font-medium";
 
+// Selected on the start screen until someone picks another. No equipment,
+// and the camera sees the whole body on the floor.
+const DEFAULT_EXERCISE_ID = "push-up";
+// Folded away on the start screen, see gymSection().
+const GYM_SECTION: Section = "At the gym";
+// The same chevron as More options in index.html.
+const CHEVRON_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>`;
+
 type FacingMode = CameraOptions["facingMode"];
 
 const CAMERA_STORAGE_KEY = "repchek.camera";
@@ -126,6 +134,8 @@ const POSITION_STORAGE_KEY = "repchek.position.";
 const COACH_STORAGE_KEY = "repchek.coach";
 // Set once the How it works page has opened by itself on a first visit.
 const SEEN_HOW_STORAGE_KEY = "repchek.seenHow";
+// How many sessions this phone has finished, for analytics.
+const SESSIONS_STORAGE_KEY = "repchek.sessions";
 
 // The figures on the How it works page, keyed by their data-color, drawn in
 // the colours the skeleton uses on the camera.
@@ -151,6 +161,8 @@ const q = <T extends Element>(selector: string) =>
 const video = q<HTMLVideoElement>("#camera");
 const canvas = q<HTMLCanvasElement>("#overlay");
 const startScreen = q<HTMLElement>("#start-screen");
+const demoVideo = q<HTMLVideoElement>("#demo-video");
+const demoFallback = q<HTMLElement>("#demo-fallback");
 const summaryScreen = q<HTMLElement>("#summary-screen");
 const howScreen = q<HTMLElement>("#how-screen");
 const howBtn = q<HTMLButtonElement>("#how-btn");
@@ -207,7 +219,7 @@ const probeFaults = new Set<string>();
 let session: SessionTracker | null = null;
 // The exercise chosen on the start screen, and during a session the
 // exercise and profile in use. The profile depends on where the phone is.
-let selectedExerciseId = EXERCISES[0].id;
+let selectedExerciseId = DEFAULT_EXERCISE_ID;
 let activeExercise: ExerciseChoice | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let facingMode: FacingMode = loadFacingMode();
@@ -231,6 +243,19 @@ const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
 
+// The demo panel shows a drawing of a red rep until the clip has a frame
+// to show, and keeps it if the clip cannot load (not uploaded yet, or the
+// network failed). The clip can load before this script runs, so check
+// for that too.
+function showDemoClip(loaded: boolean): void {
+  demoFallback.hidden = loaded;
+}
+demoVideo.addEventListener("loadeddata", () => showDemoClip(true));
+demoVideo.addEventListener("error", () => showDemoClip(false));
+if (demoVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+  showDemoClip(true);
+}
+
 // Short name, plus "(front)" for front view profiles. Only used in the
 // debug line: everywhere else shows the exercise name.
 function displayName(profile: ExerciseProfile): string {
@@ -246,18 +271,17 @@ function phonePosition(exercise: ExerciseChoice): PhonePosition {
   return exercise.positions.beside ? "beside" : "front";
 }
 
-// One chip per exercise, grouped under the muscle they train.
+// One chip per exercise, grouped by where you train.
 function renderChips(): void {
+  // Every tap renders the chips again, which must not fold up the gym
+  // section someone just opened.
+  const gymWasOpen = chipsEl.querySelector("details")?.open ?? false;
+  const selected = findExercise(selectedExerciseId);
   chipsEl.replaceChildren();
-  for (const group of MUSCLE_GROUPS) {
-    const heading = document.createElement("h3");
-    heading.className =
-      "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
-    heading.textContent = group;
-
+  for (const section of SECTIONS) {
     const row = document.createElement("div");
     row.className = "flex flex-wrap gap-2";
-    for (const exercise of EXERCISES.filter((e) => e.group === group)) {
+    for (const exercise of EXERCISES.filter((e) => e.section === section)) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.textContent = exercise.name;
@@ -269,12 +293,45 @@ function renderChips(): void {
       row.append(chip);
     }
 
-    const section = document.createElement("div");
-    section.className = "flex flex-col gap-2";
-    section.append(heading, row);
-    chipsEl.append(section);
+    if (section === GYM_SECTION) {
+      const open = gymWasOpen || selected.section === section;
+      chipsEl.append(gymSection(row, open));
+      continue;
+    }
+
+    const heading = document.createElement("h3");
+    heading.className =
+      "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
+    heading.textContent = section;
+
+    const block = document.createElement("div");
+    block.className = "flex flex-col gap-2";
+    block.append(heading, row);
+    chipsEl.append(block);
   }
   renderExerciseCard();
+}
+
+// The gym lifts start folded away, with a warning: a bench or a machine
+// hides part of the body, so tracking there is the least reliable. Styled
+// like More options.
+function gymSection(row: HTMLElement, open: boolean): HTMLDetailsElement {
+  const details = document.createElement("details");
+  details.className = "group rounded-2xl border border-line bg-panel";
+  details.open = open;
+  details.innerHTML = `
+    <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+      <span class="flex min-w-0 flex-col gap-0.5">
+        <span class="text-[15px] font-semibold">At the gym: benches and machines</span>
+        <span class="text-[12px] leading-snug text-muted">Equipment hides your body. Expect false alarms.</span>
+      </span>
+      ${CHEVRON_ICON}
+    </summary>`;
+  const body = document.createElement("div");
+  body.className = "border-t border-line px-4 py-3";
+  body.append(row);
+  details.append(body);
+  return details;
 }
 
 // The card under the chips: the exercise, where the phone goes if there is
@@ -343,6 +400,14 @@ function writeSetting(key: string, value: string): void {
   } catch (err) {
     console.warn(`Could not save ${key}`, err);
   }
+}
+
+// This session's number on this phone, 1 for the first. Without storage,
+// every session is the first.
+function countSession(): number {
+  const nth = (Number(readSetting(SESSIONS_STORAGE_KEY)) || 0) + 1;
+  writeSetting(SESSIONS_STORAGE_KEY, String(nth));
+  return nth;
 }
 
 function loadFacingMode(): FacingMode {
@@ -682,6 +747,13 @@ function showSummary(record: SessionRecord): void {
   renderClips(clips, record.exerciseId);
   showSummaryOffer(currentStats.totalReps);
   summaryScreen.hidden = false;
+  // With session_start, shows who finishes a session and who comes back
+  // for another.
+  track("session_complete", {
+    exercise: activeExercise?.id ?? record.exerciseId,
+    reps: currentStats.totalReps,
+    nth: countSession(),
+  });
 }
 
 // Add a stopped clip to the list. The video file is ready a moment later,
@@ -884,6 +956,9 @@ startBtn.addEventListener("click", async () => {
     running = true;
     lastVideoTime = -1;
     requestAnimationFrame(loop);
+    // The camera is on screen with the model loaded, so a failed camera
+    // request or model download is not counted as a session.
+    track("session_start", { exercise: activeExercise.id });
   } catch (err) {
     console.error(err);
     stopCamera();

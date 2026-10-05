@@ -17,6 +17,15 @@ export const PERKS = [
   "Early access to new features",
 ];
 
+// Shown on the start screen and the founding sheet. An empty quote hides
+// the card in both places.
+export const TESTIMONIAL = {
+  quote:
+    "It really helped me adjust my form in doing bent over barbell rows. I cannot wait for more workouts and tracking.",
+  name: "Evans",
+  context: "trains barbell rows with Repchek",
+};
+
 // Never below 0, so taking one spot too many still reads as sold out.
 export function spotsLeft(): number {
   return Math.max(0, SPOTS_TOTAL - SPOTS_TAKEN);
