@@ -60,6 +60,35 @@ The first pick is the highest score. After that we stay with that person:
 - When a set ends we choose again by score. The arm movement history is
   kept, so the person who just did the reps still scores highest.
 
+## One person seen twice
+
+The model can return one person as two poses. It happens when the body is
+hard to read, like the bottom of a push-up filmed from the front, where the
+head hides the torso. The extra pose is a ghost: a squashed copy lying on
+top of the real one.
+
+Left alone, a ghost breaks the lock. It starts a track of its own, the real
+pose gets matched to that track on the next frame, and the lock is left on
+a track with nobody in it. Three rules stop that:
+
+- A pose whose shoulders and most of its box (70 percent) are inside a
+  bigger pose's box is a ghost, and is dropped before matching. A real
+  second person stands beside or behind the lifter, with most of their body
+  outside the lifter's box, so they are kept.
+- A track is only believed to be a second person once it keeps showing up
+  in the same frames as the lifter. On every frame where the lifter is
+  seen, its count goes up if it is seen too and down if it is not. A ghost
+  that got through shows up when the real pose is missing, so its count
+  stays near 0. Frames where the lifter is hidden change nothing, so a real
+  bystander stays a second person while the lifter is out of sight. The
+  lifter and proven second people choose their poses first, everyone else
+  chooses last.
+- If the lifter's track finds nothing and exactly one unclaimed pose is
+  left, within half a screen width of where the lifter last was, that pose
+  is the lifter. With the phone close, a body moves a long way across the
+  screen in the few frames the model can lose it for, further than the
+  normal matching distance.
+
 ## Tap to lock
 
 If the app still picks the wrong person, tap yourself on the screen. The
@@ -67,5 +96,5 @@ tap is matched to the person whose nearest joint is closest to it (with
 the front camera the picture is mirrored, so the tap is flipped to match),
 and a notice says "Locked onto you". A tap lock turns off automatic picking
 until the session ends, or until that person has not been seen for 3
-seconds. The first time more than one person is seen, a notice says "More
-than one person seen. Tap yourself to lock on."
+seconds. The first time a proven second person is in view, a notice says
+"More than one person seen. Tap yourself to lock on."

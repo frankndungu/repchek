@@ -32,6 +32,23 @@ import { LANDMARK } from "./types";
 //   - A tap on someone locks onto them (see chooseAt): no automatic
 //     switching until that person has not been seen for TAP_LOCK_LOST_MS or
 //     the session ends.
+//
+// One person can come back from the model as two poses. It happens when the
+// body is hard to read, like the bottom of a push-up filmed from the front,
+// where the head hides the torso. The extra pose is a ghost: a squashed
+// copy sitting on top of the real one. Left alone, the ghost starts a track
+// of its own, the real pose gets matched to that track on the next frame,
+// and our lock is left on a track nobody is in. So:
+//   - Ghosts are removed before matching (see withoutGhosts).
+//   - We only believe a track is a second person once it keeps being
+//     seen in the same frames as the lifter (SEPARATE_AFTER_FRAMES). A
+//     ghost that got through never is, because it shows up when the real
+//     pose is missing or squashed.
+//   - A track that is not a proven second person chooses last, so it
+//     cannot take a pose from the lifter or from a real bystander.
+//   - When the lifter's track finds nothing and one unclaimed pose is
+//     left, near where the lifter last was, that pose is the lifter
+//     (LONE_REACH), even after a jump too big for MAX_JUMP.
 
 // Score weights. First guesses, to be tuned on real gym clips.
 const MOVEMENT_WEIGHT = 3;
@@ -51,6 +68,26 @@ const MIN_HISTORY_MS = 500;
 // A pose is only matched to a track within this distance of where that
 // person last was, as a share of the screen width.
 const MAX_JUMP = 0.25;
+
+// When the lifter's track finds nothing and one unclaimed pose is left, it
+// is taken for the lifter when it is within this distance of where the
+// lifter last was. Wider than MAX_JUMP,
+// because with the phone close a body moves a long way across the screen
+// in the few frames the model can lose it for.
+const LONE_REACH = 0.5;
+
+// A second person is in view at the same time as the lifter. A track that
+// has a pose on this many more of the lifter's frames than it misses is a
+// second person, not another view of the lifter. The count stops rising at
+// the cap, so someone who walks off is forgotten as a second person
+// within a second or so.
+const SEPARATE_AFTER_FRAMES = 10;
+const SEEN_WITH_LIFTER_CAP = 30;
+
+// A ghost lies on top of the real pose: at least this share of its box is
+// inside the bigger one. A spotter standing behind a bench overlaps the
+// lifter too, but most of their body is outside the lifter's box.
+const GHOST_OVERLAP = 0.7;
 
 // A track not matched for this long is forgotten. Longer than the gate's
 // 1.5 s lost time and the tap lock's 3 s, so a lifter hidden for a moment
@@ -95,6 +132,9 @@ interface Sample {
 interface Track {
   shoulders: Point;
   lastSeenAt: number;
+  // Counted on frames where the lifter has a pose: up when this track has
+  // one too, down when it does not.
+  seenWithLifter: number;
   samples: Sample[];
   // This frame only: the pose matched to this track (null if none), and
   // the score it got.
@@ -193,6 +233,74 @@ function movement(samples: Sample[]): number {
   return joints > 0 ? total / joints / scale : 0;
 }
 
+// The box around a pose, from every landmark, in image coordinates.
+interface Box {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+function boxOf(pose: Landmark[]): Box {
+  const xs = pose.map((landmark) => landmark.x);
+  const ys = pose.map((landmark) => landmark.y);
+  return {
+    left: Math.min(...xs),
+    right: Math.max(...xs),
+    top: Math.min(...ys),
+    bottom: Math.max(...ys),
+  };
+}
+
+// How much of the screen a box covers. x is in screen widths and y in
+// screen heights, which is fine for comparing two boxes in one frame.
+function area(box: Box): number {
+  return (box.right - box.left) * (box.bottom - box.top);
+}
+
+// The share of `box` that lies inside `other`, 0 to 1.
+function shareInside(box: Box, other: Box): number {
+  const width =
+    Math.min(box.right, other.right) - Math.max(box.left, other.left);
+  const height =
+    Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top);
+  if (width <= 0 || height <= 0) return 0;
+  const own = area(box);
+  return own > 0 ? (width * height) / own : 1;
+}
+
+function inside(point: Point, box: Box): boolean {
+  return (
+    point.x >= box.left &&
+    point.x <= box.right &&
+    point.y >= box.top &&
+    point.y <= box.bottom
+  );
+}
+
+// Remove ghosts: a pose that lies on top of a bigger one (its shoulders and
+// most of its box inside the bigger pose's box) is the same person seen
+// twice, and the smaller one goes. A real second person stands beside or
+// behind the lifter, with most of their body outside the lifter's box, so
+// they are kept.
+export function withoutGhosts(poses: Landmark[][]): Landmark[][] {
+  if (poses.length < 2) return poses;
+  const boxes = poses.map(boxOf);
+  return poses.filter((pose, i) => {
+    const shoulders = shoulderMid(pose);
+    return !poses.some(
+      (_, j) =>
+        j !== i &&
+        inside(shoulders, boxes[j]) &&
+        shareInside(boxes[i], boxes[j]) >= GHOST_OVERLAP &&
+        // The bigger box wins. On an exact tie the earlier pose wins, so
+        // two identical poses do not remove each other.
+        (area(boxes[j]) > area(boxes[i]) ||
+          (area(boxes[j]) === area(boxes[i]) && j < i)),
+    );
+  });
+}
+
 function best(tracks: Track[]): Track | null {
   let top: Track | null = null;
   for (const track of tracks) {
@@ -220,6 +328,17 @@ export class LifterLock {
   // How many people were in the last frame.
   get peopleSeen(): number {
     return this.visible().length;
+  }
+
+  // Is someone other than the lifter in view? Ghosts and other stray
+  // poses do not count, only a proven second person.
+  get hasCompany(): boolean {
+    return this.tracks.some(
+      (track) =>
+        track !== this.lock &&
+        track.pose !== null &&
+        track.seenWithLifter >= SEPARATE_AFTER_FRAMES,
+    );
   }
 
   get isTapLocked(): boolean {
@@ -313,33 +432,63 @@ export class LifterLock {
     return this.tracks.filter((track) => track.pose !== null);
   }
 
-  // Give each pose to the track it is nearest to, closest pairs first, so
-  // two people standing close together do not swap tracks. A pose with no
-  // track near it starts a new one.
-  private matchPoses(poses: Landmark[][], aspect: number, now: number): void {
+  // Give each pose to a track. A pose with no track near it starts a new
+  // one. In order:
+  //   1. Ghosts are dropped.
+  //   2. The lifter and proven second people take their nearest pose,
+  //      closest pairs first, so two people standing close together do
+  //      not swap tracks.
+  //   3. If the lifter got nothing and one pose is left, near where the
+  //      lifter last was, it is the lifter.
+  //   4. Everyone else takes what is left, closest pairs first.
+  private matchPoses(all: Landmark[][], aspect: number, now: number): void {
     for (const track of this.tracks) track.pose = null;
+    const poses = withoutGhosts(all);
 
-    const pairs: Array<{ pose: number; track: Track; d: number }> = [];
-    poses.forEach((pose, p) => {
-      const shoulders = shoulderMid(pose);
-      for (const track of this.tracks) {
-        const d = distance(shoulders, track.shoulders, aspect);
-        if (d <= MAX_JUMP) pairs.push({ pose: p, track, d });
-      }
-    });
-    pairs.sort((a, b) => a.d - b.d);
-
+    const lock =
+      this.lock && this.tracks.includes(this.lock) ? this.lock : null;
+    const proven = (track: Track) =>
+      track === lock || track.seenWithLifter >= SEPARATE_AFTER_FRAMES;
     const usedPoses = new Set<number>();
-    for (const { pose, track } of pairs) {
-      if (usedPoses.has(pose) || track.pose) continue;
-      track.pose = poses[pose];
-      usedPoses.add(pose);
+
+    // Closest pairs first, among these tracks and the poses still free.
+    const matchNearest = (tracks: Track[]) => {
+      const pairs: Array<{ pose: number; track: Track; d: number }> = [];
+      poses.forEach((pose, p) => {
+        if (usedPoses.has(p)) return;
+        const shoulders = shoulderMid(pose);
+        for (const track of tracks) {
+          const d = distance(shoulders, track.shoulders, aspect);
+          if (d <= MAX_JUMP) pairs.push({ pose: p, track, d });
+        }
+      });
+      pairs.sort((a, b) => a.d - b.d);
+      for (const { pose, track } of pairs) {
+        if (usedPoses.has(pose) || track.pose) continue;
+        track.pose = poses[pose];
+        usedPoses.add(pose);
+      }
+    };
+
+    matchNearest(this.tracks.filter(proven));
+
+    const free = poses.map((_, p) => p).filter((p) => !usedPoses.has(p));
+    if (lock && !lock.pose && free.length === 1) {
+      const d = distance(shoulderMid(poses[free[0]]), lock.shoulders, aspect);
+      if (d <= LONE_REACH) {
+        lock.pose = poses[free[0]];
+        usedPoses.add(free[0]);
+      }
     }
+
+    matchNearest(this.tracks.filter((track) => !proven(track)));
+
     poses.forEach((pose, p) => {
       if (usedPoses.has(p)) return;
       this.tracks.push({
         shoulders: shoulderMid(pose),
         lastSeenAt: now,
+        seenWithLifter: 0,
         samples: [],
         pose,
         score: 0,
@@ -352,6 +501,19 @@ export class LifterLock {
       track.lastSeenAt = now;
       track.samples.push(takeSample(track.pose, aspect, now));
       track.samples = track.samples.filter((s) => now - s.at <= HISTORY_MS);
+    }
+    // A second person is in view on the same frames as the lifter. A ghost
+    // that got through shows up when the lifter's own pose is missing, so
+    // on the lifter's frames it is nearly always absent and its count
+    // stays near 0. Frames without the lifter change nothing, so a real
+    // bystander stays proven while the lifter is hidden.
+    if (lock?.pose) {
+      for (const track of this.tracks) {
+        if (track === lock) continue;
+        track.seenWithLifter = track.pose
+          ? Math.min(track.seenWithLifter + 1, SEEN_WITH_LIFTER_CAP)
+          : Math.max(track.seenWithLifter - 1, 0);
+      }
     }
     this.tracks = this.tracks.filter(
       (track) => now - track.lastSeenAt <= FORGET_AFTER_MS,
