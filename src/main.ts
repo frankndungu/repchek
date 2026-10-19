@@ -1,6 +1,20 @@
 import { inject, track } from "@vercel/analytics";
-import { startCamera, explainCameraError, isUserFacing } from "./camera";
+import {
+  startCamera,
+  explainCameraError,
+  isUserFacing,
+  stopCameraStream,
+} from "./camera";
 import type { CameraOptions } from "./camera";
+import {
+  acquireStartupResources,
+  AnimationLoop,
+  CompletionTimer,
+  releaseWakeLock,
+  releaseStartupResources,
+  StartupGuard,
+} from "./sessionLifecycle";
+import type { StartupResources } from "./sessionLifecycle";
 import { PoseEstimator } from "./engine/pose";
 import { LifterLock } from "./engine/lifter";
 import { FrontReferenceTracker } from "./engine/reference";
@@ -203,6 +217,7 @@ let lifter: LifterLock | null = null;
 let crowdTipShown = false;
 
 let estimator: PoseEstimator | null = null;
+let estimatorPromise: Promise<PoseEstimator> | null = null;
 let stream: MediaStream | null = null;
 let wakeLock: WakeLockSentinel | null = null;
 let judge: Judge | null = null;
@@ -237,6 +252,12 @@ let clips: SetClip[] = [];
 let sessionStartedAt: Date | null = null;
 let finishing = false;
 let running = false;
+const startupGuard = new StartupGuard();
+const animationLoop = new AnimationLoop(
+  (callback) => window.requestAnimationFrame(callback),
+  (id) => window.cancelAnimationFrame(id),
+);
+const completionTimer = new CompletionTimer();
 let lastVideoTime = -1;
 let lowConfidenceSince: number | null = null;
 let trackingHint = "";
@@ -701,24 +722,31 @@ function updateCounterDisplay(profile: ExerciseProfile, phase: RepPhase): void {
   );
 }
 
-async function keepScreenAwake(): Promise<void> {
+async function keepScreenAwake(): Promise<WakeLockSentinel | null> {
   try {
     if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
+      return await navigator.wakeLock.request("screen");
     }
   } catch (err) {
     console.warn("Wake lock unavailable", err);
   }
+  return null;
 }
 
 function releaseScreen(): void {
-  void wakeLock?.release();
+  releaseWakeLock(wakeLock);
   wakeLock = null;
 }
 
 function stopCamera(): void {
+  startupGuard.invalidate();
+  startBtn.disabled = false;
+  completionTimer.clear();
   running = false;
-  stream?.getTracks().forEach((track) => track.stop());
+  animationLoop.stop();
+  if (stream) {
+    stopCameraStream(video, stream);
+  }
   stream = null;
   releaseScreen();
   clearCanvas(ctx);
@@ -729,6 +757,8 @@ function stopCamera(): void {
   endBtn.hidden = true;
   debugEl.hidden = true;
   status.textContent = "";
+  session = null;
+  sessionStartedAt = null;
 }
 
 function buildRecord(): SessionRecord | null {
@@ -822,7 +852,7 @@ function closedSet(sessionEvent: SessionEvent | null): SetRecord | undefined {
 
 // Show the summary straight away, save to the phone in the background.
 function finishSession(): void {
-  if (finishing) return;
+  if (finishing || !running) return;
   finishing = true;
   const record = buildRecord();
   // Keeps a running set clip, or the standby recording as an attempt when
@@ -839,6 +869,35 @@ function finishSession(): void {
     startScreen.hidden = false;
   }
   finishing = false;
+}
+
+function loadPoseEstimator(): Promise<PoseEstimator> {
+  if (estimator) return Promise.resolve(estimator);
+  if (!estimatorPromise) {
+    estimatorPromise = PoseEstimator.create().then(
+      (loaded) => {
+        estimator = loaded;
+        return loaded;
+      },
+      (err: unknown) => {
+        estimatorPromise = null;
+        throw err;
+      },
+    );
+  }
+  return estimatorPromise;
+}
+
+function clearFailedStartup(): void {
+  lifter = null;
+  judge = null;
+  repCounter = null;
+  gate = null;
+  frontReference = null;
+  learnedTrigger = null;
+  probe = null;
+  probeJudge = null;
+  currentRepFaults.clear();
 }
 
 // Auto-calibration: with turnRatio set, the rep range comes from the
@@ -907,14 +966,22 @@ function armCounting(now: number): void {
 }
 
 startBtn.addEventListener("click", async () => {
+  if (running) return;
+  const attempt = startupGuard.begin();
+  if (attempt === null) return;
+  startBtn.disabled = true;
+
+  let resources: StartupResources<PoseEstimator> | null = null;
+  let startupRecorder: SetRecorder | null = null;
   try {
     unlockAudio();
     // Must happen inside this tap, or iPhones never speak the cues.
     voice.warmUp();
 
     // The profile is the chosen exercise with the phone where it is.
-    activeExercise = findExercise(selectedExerciseId);
-    activeProfile = profileFor(activeExercise, phonePosition(activeExercise));
+    const exercise = findExercise(selectedExerciseId);
+    activeExercise = exercise;
+    activeProfile = profileFor(exercise, phonePosition(exercise));
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
@@ -935,7 +1002,7 @@ startBtn.addEventListener("click", async () => {
     });
     sessionStartedAt = new Date();
     currentRepFaults.clear();
-    showExercise(activeExercise.name);
+    showExercise(exercise.name);
     lowConfidenceSince = null;
     trackingHint = "";
 
@@ -943,37 +1010,68 @@ startBtn.addEventListener("click", async () => {
     // facingMode is only "ideal" inside startCamera, so if the chosen camera
     // is missing (some laptops only have a front one) the browser falls back
     // to whichever camera exists instead of failing.
-    stream = await startCamera(video, { facingMode });
+    resources = await acquireStartupResources(
+      video,
+      () => startupGuard.isCurrent(attempt),
+      () =>
+        startCamera(
+          video,
+          { facingMode },
+          () => startupGuard.isCurrent(attempt),
+        ),
+      loadPoseEstimator,
+      keepScreenAwake,
+        () => {
+          status.textContent = "Loading pose model, first time takes a moment...";
+        },
+    );
+    if (!resources || !startupGuard.isCurrent(attempt)) return;
 
-    mirrored = isUserFacing(stream);
+    mirrored = isUserFacing(resources.stream);
     video.classList.toggle("mirrored", mirrored);
     canvas.classList.toggle("mirrored", mirrored);
 
-    status.textContent = "Loading pose model, first time takes a moment...";
-    estimator = estimator ?? (await PoseEstimator.create());
+    startupRecorder =
+      recordSets && SetRecorder.isSupported() ? new SetRecorder() : null;
+    // Record from the first frame, in case the gate never arms.
+    startupRecorder?.startStandby();
 
-    await keepScreenAwake();
     startScreen.hidden = true;
     summaryScreen.hidden = true;
     endBtn.hidden = false;
     debugEl.hidden = false;
-    recorder =
-      recordSets && SetRecorder.isSupported() ? new SetRecorder() : null;
-    // Record from the first frame, in case the gate never arms.
-    recorder?.startStandby();
+    stream = resources.stream;
+    wakeLock = resources.wakeLock;
+    resources = null;
+    recorder = startupRecorder;
+    startupRecorder = null;
     running = true;
     lastVideoTime = -1;
-    requestAnimationFrame(loop);
+    animationLoop.start(loop);
     // The camera is on screen with the model loaded, so a failed camera
     // request or model download is not counted as a session.
-    track("session_start", { exercise: activeExercise.id });
+    track("session_start", { exercise: exercise.id });
   } catch (err) {
+    if (!startupGuard.isCurrent(attempt)) {
+      if (resources) releaseStartupResources(video, resources);
+      startupRecorder?.dispose();
+      return;
+    }
     console.error(err);
+    if (resources) releaseStartupResources(video, resources);
+    startupRecorder?.dispose();
     stopCamera();
+    recorder?.dispose();
+    recorder = null;
+    clearFailedStartup();
+    startScreen.hidden = false;
+    summaryScreen.hidden = true;
     status.textContent =
       err instanceof DOMException
         ? explainCameraError(err)
         : "Failed to load the pose model. Check the console.";
+  } finally {
+    if (startupGuard.finish(attempt)) startBtn.disabled = false;
   }
 });
 
@@ -1116,7 +1214,7 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
     showNotice("Session complete", 1500);
     bellFinish();
     if (recorder) collectClip(recorder.stop());
-    setTimeout(() => finishSession(), 1500);
+    completionTimer.scheduleOnce(() => finishSession(), 1500);
   }
 }
 
@@ -1308,5 +1406,4 @@ function loop(): void {
     }
   }
 
-  requestAnimationFrame(loop);
 }

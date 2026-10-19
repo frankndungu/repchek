@@ -13,6 +13,7 @@ const DEFAULTS: CameraOptions = {
 export async function startCamera(
   video: HTMLVideoElement,
   options: Partial<CameraOptions> = {},
+  isCurrent: () => boolean = () => true,
 ): Promise<MediaStream> {
   const { facingMode, width, height } = { ...DEFAULTS, ...options };
 
@@ -31,9 +32,43 @@ export async function startCamera(
     audio: false,
   });
 
-  video.srcObject = stream;
-  await video.play();
-  return stream;
+  try {
+    if (!isCurrent()) {
+      throw new DOMException("Camera startup was cancelled.", "AbortError");
+    }
+    video.srcObject = stream;
+    await video.play();
+    if (!isCurrent()) {
+      throw new DOMException("Camera startup was cancelled.", "AbortError");
+    }
+    return stream;
+  } catch (err) {
+    stopCameraStream(video, stream);
+    throw err;
+  }
+}
+
+export function stopCameraStream(
+  video: HTMLVideoElement,
+  stream: MediaStream,
+): void {
+  try {
+    if (video.srcObject === stream) video.srcObject = null;
+  } catch (err) {
+    console.warn("Could not clear the camera video source", err);
+  }
+
+  try {
+    stream.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch (err) {
+        console.warn("Could not stop a camera track", err);
+      }
+    });
+  } catch (err) {
+    console.warn("Could not read camera tracks", err);
+  }
 }
 
 export function explainCameraError(err: unknown): string {
