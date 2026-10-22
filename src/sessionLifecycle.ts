@@ -1,4 +1,9 @@
 import { stopCameraStream } from "./camera";
+import { SessionTracker } from "./engine/session";
+import type {
+  ActiveWorkoutCheckpoint,
+  ActiveWorkoutCheckpointInput,
+} from "./storage/db";
 
 export class StartupGuard {
   private generation = 0;
@@ -92,6 +97,65 @@ export class CompletionTimer {
     this.cancel(this.timerId);
     this.timerId = null;
   }
+}
+
+export class ActiveCheckpointWriter {
+  private pending: Promise<void> = Promise.resolve();
+  private readonly saveCheckpoint: (
+    checkpoint: ActiveWorkoutCheckpointInput,
+  ) => Promise<unknown>;
+  private readonly deleteCheckpoint: (id: string) => Promise<void>;
+
+  constructor(
+    saveCheckpoint: (checkpoint: ActiveWorkoutCheckpointInput) => Promise<unknown>,
+    deleteCheckpoint: (id: string) => Promise<void>,
+  ) {
+    this.saveCheckpoint = saveCheckpoint;
+    this.deleteCheckpoint = deleteCheckpoint;
+  }
+
+  save(checkpoint: ActiveWorkoutCheckpointInput): Promise<void> {
+    const result = this.pending.then(() =>
+      this.saveCheckpoint(checkpoint).then(() => undefined),
+    );
+    this.pending = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+
+  async complete(
+    id: string,
+    saveCompletedSession: () => Promise<void>,
+  ): Promise<void> {
+    await this.pending;
+    await saveCompletedSession();
+    await this.deleteCheckpoint(id);
+  }
+}
+
+export function restoreActiveWorkout(
+  checkpoint: ActiveWorkoutCheckpoint,
+): {
+  session: SessionTracker;
+  startedAt: Date;
+  target: ActiveWorkoutCheckpoint["target"];
+  weightKg: number | null;
+} {
+  return {
+    session: SessionTracker.restoreCheckpoint(checkpoint.checkpoint),
+    startedAt: new Date(checkpoint.startedAt),
+    target: { ...checkpoint.target },
+    weightKg: checkpoint.weightKg,
+  };
+}
+
+export function canStartNewWorkout(
+  recoveryReady: boolean,
+  recoverableCount: number,
+): boolean {
+  return recoveryReady && recoverableCount === 0;
 }
 
 export function releaseWakeLock(wakeLock: WakeLockSentinel | null): void {

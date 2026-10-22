@@ -10,6 +10,9 @@ import {
   acquireStartupResources,
   AnimationLoop,
   CompletionTimer,
+  ActiveCheckpointWriter,
+  canStartNewWorkout,
+  restoreActiveWorkout,
   releaseWakeLock,
   releaseStartupResources,
   StartupGuard,
@@ -37,6 +40,7 @@ import { SessionTracker } from "./engine/session";
 import type {
   SessionEvent,
   SessionRecord,
+  SetTarget,
   SetRecord,
 } from "./engine/session";
 import type {
@@ -55,7 +59,18 @@ import {
   profileFor,
 } from "./profiles";
 import type { ExerciseChoice, PhonePosition, Section } from "./profiles";
-import { saveSession } from "./storage/db";
+import {
+  deleteActiveWorkoutCheckpoint,
+  getActiveWorkoutCheckpoint,
+  listActiveWorkoutCheckpointIds,
+  listSessions,
+  saveActiveWorkoutCheckpoint,
+  saveSession,
+} from "./storage/db";
+import type {
+  ActiveWorkoutCheckpoint,
+  ActiveWorkoutCheckpointInput,
+} from "./storage/db";
 import {
   syncCanvasToVideo,
   drawSkeleton,
@@ -176,6 +191,12 @@ const q = <T extends Element>(selector: string) =>
 const video = q<HTMLVideoElement>("#camera");
 const canvas = q<HTMLCanvasElement>("#overlay");
 const startScreen = q<HTMLElement>("#start-screen");
+const recoveryPrompt = document.createElement("section");
+recoveryPrompt.className =
+  "flex flex-col gap-3 rounded-2xl border border-lime/40 bg-panel p-4";
+recoveryPrompt.hidden = true;
+recoveryPrompt.setAttribute("aria-live", "polite");
+startScreen.insertBefore(recoveryPrompt, startScreen.children[1] ?? null);
 const demoVideo = q<HTMLVideoElement>("#demo-video");
 const demoFallback = q<HTMLElement>("#demo-fallback");
 const summaryScreen = q<HTMLElement>("#summary-screen");
@@ -184,6 +205,7 @@ const howBtn = q<HTMLButtonElement>("#how-btn");
 const howBackBtn = q<HTMLButtonElement>("#how-back");
 const howDoneBtn = q<HTMLButtonElement>("#how-done");
 const startBtn = q<HTMLButtonElement>("#start-btn");
+startBtn.disabled = true;
 const endBtn = q<HTMLButtonElement>("#end-btn");
 const shareBtn = q<HTMLButtonElement>("#share-btn");
 const doneBtn = q<HTMLButtonElement>("#done-btn");
@@ -250,6 +272,22 @@ let coachMode: CoachMode = loadCoachMode();
 let recorder: SetRecorder | null = null;
 let clips: SetClip[] = [];
 let sessionStartedAt: Date | null = null;
+let sessionTarget: SetTarget | null = null;
+let sessionWeightKg: number | null = null;
+let checkpointWrites: ActiveCheckpointWriter | null = null;
+let completionRecord: SessionRecord | null = null;
+let completionPersistence: Promise<void> | null = null;
+interface RecoveryEntry {
+  id: string;
+  checkpoint: ActiveWorkoutCheckpoint | null;
+  alreadyCompleted?: boolean;
+  actionError?: string;
+}
+let recoveryEntries: RecoveryEntry[] = [];
+let recoveryReady = false;
+let recoveryLoadError: unknown = null;
+let recoveryLoadGeneration = 0;
+let recoveryActionBusy = false;
 let finishing = false;
 let running = false;
 const startupGuard = new StartupGuard();
@@ -424,6 +462,170 @@ function writeSetting(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch (err) {
     console.warn(`Could not save ${key}`, err);
+  }
+}
+
+function renderRecoveryPrompt(): void {
+  recoveryPrompt.replaceChildren();
+  if (recoveryLoadError) {
+    const title = document.createElement("h2");
+    title.className = "font-display text-xl text-lime";
+    title.textContent = "Saved workout check unavailable";
+    const message = document.createElement("p");
+    message.className = "text-sm text-muted";
+    message.textContent =
+      "RepChek couldn't check for an unfinished workout. Retry before starting a new one.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className =
+      "min-h-11 rounded-xl border border-line px-4 font-semibold";
+    retry.textContent = "Retry";
+    retry.addEventListener("click", () => void refreshRecoveryPrompt());
+    recoveryPrompt.append(title, message, retry);
+    recoveryPrompt.hidden = false;
+    return;
+  }
+
+  for (const entry of recoveryEntries) {
+    const card = document.createElement("div");
+    card.className = "flex flex-col gap-2 border-b border-line pb-3 last:border-0";
+    const title = document.createElement("h2");
+    title.className = "font-display text-xl text-lime";
+    title.textContent =
+      entry.checkpoint?.exerciseName ?? "Saved workout needs attention";
+
+    const details = document.createElement("p");
+    details.className = "text-sm text-muted";
+    if (entry.checkpoint) {
+      const checkpoint = entry.checkpoint.checkpoint;
+      const completedSets = checkpoint.completed.length;
+      const reps =
+        checkpoint.completed.reduce(
+          (total, set) => total + set.reps.length,
+          0,
+        ) + checkpoint.currentReps.length;
+      const partials =
+        checkpoint.completed.reduce(
+          (total, set) => total + set.partials,
+          0,
+        ) + checkpoint.currentPartials;
+      details.textContent =
+        `${completedSets} completed ${completedSets === 1 ? "set" : "sets"} · ` +
+        `${reps} committed ${reps === 1 ? "rep" : "reps"} · ` +
+        `${partials} partial ${partials === 1 ? "rep" : "reps"}`;
+    } else {
+      details.textContent =
+        entry.actionError ??
+        (entry.alreadyCompleted
+          ? "This workout is already in your history. Discard the stale checkpoint."
+          : "This saved workout is invalid or from an unsupported version. Discard it to continue.");
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "flex flex-wrap gap-2";
+    if (entry.checkpoint) {
+      const resume = document.createElement("button");
+      resume.type = "button";
+      resume.className =
+        "min-h-11 rounded-xl bg-lime px-4 font-semibold text-ink";
+      resume.textContent = "Resume workout";
+      resume.disabled = !recoveryReady || recoveryActionBusy;
+      resume.addEventListener("click", () => {
+        const saved = entry.checkpoint;
+        if (!saved) return;
+        void startWorkout(saved);
+      });
+      actions.append(resume);
+    }
+
+    const discard = document.createElement("button");
+    discard.type = "button";
+    discard.className =
+      "min-h-11 rounded-xl border border-line px-4 font-semibold";
+    discard.textContent = "Discard workout";
+    discard.disabled = recoveryActionBusy;
+    discard.addEventListener("click", () => void discardRecovery(entry));
+    actions.append(discard);
+    card.append(title, details);
+    if (entry.actionError) {
+      const error = document.createElement("p");
+      error.className = "text-sm text-red-400";
+      error.textContent = entry.actionError;
+      card.append(error);
+    }
+    card.append(actions);
+    recoveryPrompt.append(card);
+  }
+  recoveryPrompt.hidden = recoveryEntries.length === 0;
+}
+
+async function refreshRecoveryPrompt(): Promise<void> {
+  const generation = ++recoveryLoadGeneration;
+  recoveryReady = false;
+  recoveryLoadError = null;
+  startBtn.disabled = true;
+  renderRecoveryPrompt();
+  try {
+    const ids = await listActiveWorkoutCheckpointIds();
+    const completedIds = new Set(
+      ids.length ? (await listSessions()).map((record) => record.id) : [],
+    );
+    const entries = await Promise.all(
+      ids.map(async (id): Promise<RecoveryEntry | null> => {
+        try {
+          const checkpoint = await getActiveWorkoutCheckpoint(id);
+          if (!checkpoint) return null;
+          if (completedIds.has(id)) {
+            return {
+              id,
+              checkpoint: null,
+              alreadyCompleted: true,
+            };
+          }
+          const exercise = findExercise(checkpoint.exerciseId);
+          profileFor(exercise, phonePosition(exercise));
+          return { id, checkpoint };
+        } catch (err) {
+          console.warn("Could not restore saved workout checkpoint", err);
+          return {
+            id,
+            checkpoint: null,
+            actionError: "This saved workout could not be validated.",
+          };
+        }
+      }),
+    );
+    if (generation !== recoveryLoadGeneration) return;
+    recoveryEntries = entries.filter(
+      (entry): entry is RecoveryEntry => entry !== null,
+    );
+    recoveryReady = true;
+  } catch (err) {
+    if (generation !== recoveryLoadGeneration) return;
+    recoveryLoadError = err;
+    console.error("Could not check saved workout checkpoints", err);
+  }
+  startBtn.disabled = !recoveryReady || recoveryEntries.length > 0;
+  renderRecoveryPrompt();
+}
+
+async function discardRecovery(entry: RecoveryEntry): Promise<void> {
+  if (recoveryActionBusy) return;
+  recoveryActionBusy = true;
+  renderRecoveryPrompt();
+  try {
+    await deleteActiveWorkoutCheckpoint(entry.id);
+    recoveryEntries = recoveryEntries.filter(
+      (candidate) => candidate.id !== entry.id,
+    );
+    recoveryLoadError = null;
+  } catch (err) {
+    console.error("Could not discard saved workout", err);
+    entry.actionError = "Could not discard this workout. Please try again.";
+  } finally {
+    recoveryActionBusy = false;
+    startBtn.disabled = !recoveryReady || recoveryEntries.length > 0;
+    renderRecoveryPrompt();
   }
 }
 
@@ -759,6 +961,54 @@ function stopCamera(): void {
   status.textContent = "";
   session = null;
   sessionStartedAt = null;
+  sessionTarget = null;
+  sessionWeightKg = null;
+}
+
+function activeCheckpointInput(): ActiveWorkoutCheckpointInput | null {
+  if (
+    !session ||
+    session.isFinished ||
+    !activeExercise ||
+    !sessionTarget ||
+    !sessionStartedAt
+  ) {
+    return null;
+  }
+  const id = sessionStartedAt.toISOString();
+  return {
+    version: 1,
+    id,
+    checkpoint: session.exportCheckpoint({ id, startedAt: sessionStartedAt }),
+    exerciseId: activeExercise.id,
+    exerciseName: activeExercise.name,
+    target: { ...sessionTarget },
+    weightKg: sessionWeightKg,
+    startedAt: id,
+  };
+}
+
+function checkpointCommitted(): Promise<void> | null {
+  const input = activeCheckpointInput();
+  if (!input || !checkpointWrites) return null;
+  return checkpointWrites.save(input);
+}
+
+function reportCheckpointFailure(err: unknown): void {
+  console.error("Could not save active workout checkpoint", err);
+}
+
+function persistCompletedSession(record: SessionRecord): void {
+  if (completionPersistence) return;
+  const writes = checkpointWrites;
+  checkpointWrites = null;
+  completionPersistence = (
+    writes
+      ? writes.complete(record.id, () => saveSession(record))
+      : saveSession(record)
+  ).catch((err) => {
+    console.error("Could not save completed session or clear its checkpoint", err);
+  });
 }
 
 function buildRecord(): SessionRecord | null {
@@ -854,7 +1104,7 @@ function closedSet(sessionEvent: SessionEvent | null): SetRecord | undefined {
 function finishSession(): void {
   if (finishing || !running) return;
   finishing = true;
-  const record = buildRecord();
+  const record = completionRecord ?? buildRecord();
   // Keeps a running set clip, or the standby recording as an attempt when
   // nothing was ever counted.
   if (recorder) collectClip(recorder.finish());
@@ -862,11 +1112,10 @@ function finishSession(): void {
   stopCamera();
   if (record) {
     showSummary(record);
-    saveSession(record).catch((err) =>
-      console.error("Could not save session", err),
-    );
+    persistCompletedSession(record);
   } else {
     startScreen.hidden = false;
+    checkpointWrites = null;
   }
   finishing = false;
 }
@@ -965,10 +1214,23 @@ function armCounting(now: number): void {
   if (session) recorder?.start(session.set);
 }
 
-startBtn.addEventListener("click", async () => {
-  if (running) return;
+async function startWorkout(
+  recovery?: ActiveWorkoutCheckpoint,
+): Promise<void> {
+  if (
+    running ||
+    (!recovery && !canStartNewWorkout(recoveryReady, recoveryEntries.length)) ||
+    (recovery && !recoveryReady) ||
+    (recovery && !recoveryEntries.some((entry) => entry.id === recovery.id))
+  ) {
+    return;
+  }
   const attempt = startupGuard.begin();
   if (attempt === null) return;
+  if (recovery) {
+    recoveryActionBusy = true;
+    renderRecoveryPrompt();
+  }
   startBtn.disabled = true;
 
   let resources: StartupResources<PoseEstimator> | null = null;
@@ -979,8 +1241,11 @@ startBtn.addEventListener("click", async () => {
     voice.warmUp();
 
     // The profile is the chosen exercise with the phone where it is.
-    const exercise = findExercise(selectedExerciseId);
-    activeExercise = exercise;
+    const exercise = findExercise(recovery?.exerciseId ?? selectedExerciseId);
+    selectedExerciseId = exercise.id;
+    activeExercise = recovery
+      ? { ...exercise, name: recovery.exerciseName }
+      : exercise;
     activeProfile = profileFor(exercise, phonePosition(exercise));
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
@@ -996,13 +1261,31 @@ startBtn.addEventListener("click", async () => {
         ? new FrontReferenceTracker()
         : null;
     crowdTipShown = false;
-    session = new SessionTracker({
-      sets: Number(setsInput.value) || 4,
-      reps: Number(repsInput.value) || 12,
-    });
-    sessionStartedAt = new Date();
+    const restored = recovery ? restoreActiveWorkout(recovery) : null;
+    sessionTarget = restored
+      ? restored.target
+      : {
+          sets: Number(setsInput.value) || 4,
+          reps: Number(repsInput.value) || 12,
+        };
+    session = restored?.session ?? new SessionTracker(sessionTarget);
+    sessionStartedAt = restored?.startedAt ?? new Date();
+    sessionWeightKg = restored
+      ? restored.weightKg
+      : Number(weightInput.value) > 0
+        ? Number(weightInput.value)
+        : null;
+    if (recovery) {
+      setsInput.value = String(recovery.target.sets);
+      repsInput.value = String(recovery.target.reps);
+      weightInput.value =
+        recovery.weightKg === null ? "" : String(recovery.weightKg);
+      renderChips();
+    }
+    completionRecord = null;
+    completionPersistence = null;
     currentRepFaults.clear();
-    showExercise(exercise.name);
+    showExercise(activeExercise.name);
     lowConfidenceSince = null;
     trackingHint = "";
 
@@ -1045,12 +1328,24 @@ startBtn.addEventListener("click", async () => {
     resources = null;
     recorder = startupRecorder;
     startupRecorder = null;
+    checkpointWrites = new ActiveCheckpointWriter(
+      saveActiveWorkoutCheckpoint,
+      deleteActiveWorkoutCheckpoint,
+    );
     running = true;
     lastVideoTime = -1;
     animationLoop.start(loop);
     // The camera is on screen with the model loaded, so a failed camera
     // request or model download is not counted as a session.
     track("session_start", { exercise: exercise.id });
+    if (recovery) {
+      recoveryEntries = recoveryEntries.filter(
+        (entry) => entry.id !== recovery.id,
+      );
+      renderRecoveryPrompt();
+    }
+    const initialCheckpoint = checkpointCommitted();
+    void initialCheckpoint?.catch(reportCheckpointFailure);
   } catch (err) {
     if (!startupGuard.isCurrent(attempt)) {
       if (resources) releaseStartupResources(video, resources);
@@ -1063,16 +1358,34 @@ startBtn.addEventListener("click", async () => {
     stopCamera();
     recorder?.dispose();
     recorder = null;
+    checkpointWrites = null;
     clearFailedStartup();
     startScreen.hidden = false;
     summaryScreen.hidden = true;
     status.textContent =
       err instanceof DOMException
         ? explainCameraError(err)
-        : "Failed to load the pose model. Check the console.";
+        : recovery
+          ? "Could not resume the saved workout. Your checkpoint is still available."
+          : "Failed to load the pose model. Check the console.";
+    startBtn.disabled = !canStartNewWorkout(
+      recoveryReady,
+      recoveryEntries.length,
+    );
   } finally {
-    if (startupGuard.finish(attempt)) startBtn.disabled = false;
+    if (recovery) {
+      recoveryActionBusy = false;
+      renderRecoveryPrompt();
+    }
+    if (startupGuard.finish(attempt)) {
+      startBtn.disabled = !recoveryReady || recoveryEntries.length > 0;
+      renderRecoveryPrompt();
+    }
   }
+}
+
+startBtn.addEventListener("click", () => {
+  void startWorkout();
 });
 
 endBtn.addEventListener("click", () => {
@@ -1083,7 +1396,13 @@ doneBtn.addEventListener("click", () => {
   freeClips();
   summaryScreen.hidden = true;
   startScreen.hidden = false;
+  void (async () => {
+    await completionPersistence;
+    await refreshRecoveryPrompt();
+  })();
 });
+
+void refreshRecoveryPrompt();
 
 shareBtn.addEventListener("click", async () => {
   if (!currentRecord || !currentStats) return;
@@ -1197,6 +1516,8 @@ type SessionEventLike =
 
 function handleSessionEvent(sessionEvent: SessionEventLike): void {
   if (sessionEvent?.type === "set-complete") {
+    const pendingCheckpoint = checkpointCommitted();
+    void pendingCheckpoint?.catch(reportCheckpointFailure);
     showNotice(`Set ${sessionEvent.record?.set ?? ""} done, rest`, 3000);
     chimeSetDone();
     lifter?.newSet();
@@ -1211,6 +1532,8 @@ function handleSessionEvent(sessionEvent: SessionEventLike): void {
     currentRepFaults.clear();
   }
   if (sessionEvent?.type === "session-complete") {
+    completionRecord = buildRecord();
+    if (completionRecord) persistCompletedSession(completionRecord);
     showNotice("Session complete", 1500);
     bellFinish();
     if (recorder) collectClip(recorder.stop());
@@ -1379,6 +1702,8 @@ function loop(): void {
               Array.from(currentRepFaults),
               now,
             );
+            const pendingCheckpoint = checkpointCommitted();
+            void pendingCheckpoint?.catch(reportCheckpointFailure);
             currentRepFaults.clear();
           } else {
             sessionEvent = session.tick(now);
