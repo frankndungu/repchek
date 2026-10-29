@@ -4,21 +4,30 @@ import { shortName } from "./summary";
 
 const W = 1080;
 const H = 1350;
-const INK = "#070707";
-const PANEL = "#111110";
-const LINE = "#2a2a28";
-const PAPER = "#f5f5f2";
-const MUTED = "#a8a8a2";
-const LIME = "#c6f135";
-const BAD = "#ef4444";
+const BG = "#ffffff";
+const INK = "#0f0f0f";
+const SAND = "#f2efe9";
+const LINE = "#e6e2da";
+const MUTED = "#5f5f5a";
+const FOREST = "#17352b";
+const BAD = "#e5484d";
 export const SITE = "repchek.fit";
-const BRAND = "REPCHEK";
+const BRAND = "repchek";
 const MARGIN = 88;
+
+// The two shapes of the logo, from public/repchek-logo.svg (viewBox 0 8 108 94).
+const LOGO_LEAF = "M6 44C10 36 22 34 29 42L42 58C36 68 25 69 18 62Z";
+const LOGO_CHECK =
+  "M38 86C45 77 54 71 62 62C73 48 84 33 96 20C98 43 88 65 72 79C62 87 50 91 42 90C37 89 35 88 38 86Z";
+const LOGO_W = 108;
+const LOGO_H = 94;
+
+const SANS = '"Inter", system-ui, sans-serif';
 
 const TONE_COLOR: Record<Note["tone"], string> = {
   bad: BAD,
   muted: MUTED,
-  good: LIME,
+  good: FOREST,
 };
 
 function roundedRect(
@@ -38,18 +47,27 @@ function roundedRect(
   ctx.closePath();
 }
 
+// Tight headline spacing, where the browser can do it.
+function spacing(ctx: CanvasRenderingContext2D, px: number): void {
+  if ("letterSpacing" in ctx) ctx.letterSpacing = `${px}px`;
+}
+
 function fitFontSize(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
   startSize: number,
-  family: string,
+  weight: number,
 ): number {
   let size = startSize;
-  ctx.font = `${size}px ${family}`;
+  const apply = () => {
+    ctx.font = `${weight} ${size}px ${SANS}`;
+    spacing(ctx, -0.03 * size);
+  };
+  apply();
   while (ctx.measureText(text).width > maxWidth && size > 60) {
     size -= 8;
-    ctx.font = `${size}px ${family}`;
+    apply();
   }
   return size;
 }
@@ -67,33 +85,51 @@ export function truncate(
   return `${cut.trimEnd()}...`;
 }
 
+function drawLogo(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  centerY: number,
+  scale: number,
+): void {
+  ctx.save();
+  // The viewBox starts at y = 8 and is 94 tall.
+  ctx.translate(x, centerY - (8 + LOGO_H / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = FOREST;
+  ctx.save();
+  ctx.translate(4, 5);
+  ctx.fill(new Path2D(LOGO_LEAF));
+  ctx.restore();
+  ctx.fill(new Path2D(LOGO_CHECK));
+  ctx.restore();
+}
+
 export async function drawShareCard(
   record: SessionRecord,
   stats: SessionStats,
 ): Promise<HTMLCanvasElement> {
   await Promise.all([
-    document.fonts.load('220px "Bebas Neue"'),
-    document.fonts.load('600 26px "IBM Plex Sans"'),
+    document.fonts.load(`800 150px "Inter"`),
+    document.fonts.load(`600 26px "Inter"`),
+    document.fonts.load(`400 26px "Inter"`),
   ]);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
-  const display = '"Bebas Neue", "Archivo", system-ui, sans-serif';
-  const sans = '"IBM Plex Sans", system-ui, sans-serif';
 
-  ctx.fillStyle = INK;
+  ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = LIME;
-  ctx.beginPath();
-  ctx.arc(MARGIN + 9, 116, 9, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = PAPER;
-  ctx.font = `44px ${display}`;
+  const logoScale = 0.55;
+  drawLogo(ctx, MARGIN, 116, logoScale);
+  ctx.fillStyle = INK;
+  ctx.font = `800 52px ${SANS}`;
+  spacing(ctx, -0.045 * 52);
   ctx.textBaseline = "middle";
-  ctx.fillText(BRAND, MARGIN + 34, 116);
+  ctx.fillText(BRAND, MARGIN + LOGO_W * logoScale + 18, 118);
+  spacing(ctx, 0);
 
   const date = new Date(record.startedAt).toLocaleDateString("en-GB", {
     weekday: "short",
@@ -102,20 +138,20 @@ export async function drawShareCard(
     year: "numeric",
   });
   ctx.fillStyle = MUTED;
-  ctx.font = `26px ${sans}`;
+  ctx.font = `400 26px ${SANS}`;
   ctx.textAlign = "right";
   ctx.fillText(date, W - MARGIN, 116);
   ctx.textAlign = "left";
 
-  const name = shortName(record.exerciseName).toUpperCase();
-  const nameSize = fitFontSize(ctx, name, W - MARGIN * 2, 200, display);
-  const nameBaseline = 190 + nameSize * 0.85;
-  ctx.fillStyle = PAPER;
+  const name = shortName(record.exerciseName);
+  const nameSize = fitFontSize(ctx, name, W - MARGIN * 2, 150, 800);
+  const nameBaseline = 200 + nameSize * 0.85;
+  ctx.fillStyle = INK;
   ctx.textBaseline = "alphabetic";
-  ctx.font = `${nameSize}px ${display}`;
   ctx.fillText(name, MARGIN, nameBaseline);
+  spacing(ctx, 0);
   ctx.fillStyle = MUTED;
-  ctx.font = `34px ${sans}`;
+  ctx.font = `400 34px ${SANS}`;
   ctx.fillText(
     record.weightKg
       ? `${record.weightKg} kg`
@@ -127,35 +163,39 @@ export async function drawShareCard(
   const statsTop = 480;
   const boxW = (W - MARGIN * 2 - 48) / 3;
   const statBoxes: Array<{ value: string; label: string; color: string }> = [
-    { value: String(stats.totalReps), label: "REPS", color: PAPER },
-    { value: String(stats.sets.length), label: "SETS", color: PAPER },
-    { value: `${stats.cleanPct}%`, label: "CLEAN FORM", color: LIME },
+    { value: String(stats.totalReps), label: "REPS", color: INK },
+    { value: String(stats.sets.length), label: "SETS", color: INK },
+    { value: `${stats.cleanPct}%`, label: "CLEAN FORM", color: FOREST },
   ];
   statBoxes.forEach((box, i) => {
     const x = MARGIN + i * (boxW + 24);
-    ctx.fillStyle = PANEL;
+    ctx.fillStyle = SAND;
     roundedRect(ctx, x, statsTop, boxW, 200, 28);
     ctx.fill();
     ctx.strokeStyle = LINE;
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.fillStyle = box.color;
-    ctx.font = `104px ${display}`;
-    ctx.fillText(box.value, x + 32, statsTop + 120);
+    ctx.font = `800 96px ${SANS}`;
+    spacing(ctx, -0.03 * 96);
+    ctx.fillText(box.value, x + 32, statsTop + 118);
+    spacing(ctx, 0);
     ctx.fillStyle = MUTED;
-    ctx.font = `24px ${sans}`;
+    ctx.font = `600 22px ${SANS}`;
+    spacing(ctx, 0.12 * 22);
     ctx.fillText(box.label, x + 32, statsTop + 168);
+    spacing(ctx, 0);
   });
 
   let y = 740;
-  ctx.font = `600 26px ${sans}`;
+  ctx.font = `600 26px ${SANS}`;
   for (const s of stats.sets.slice(0, 6)) {
     ctx.fillStyle = MUTED;
     ctx.textBaseline = "middle";
     ctx.fillText(`Set ${s.set}`, MARGIN, y + 14);
     const barX = MARGIN + 132;
     const barW = W - MARGIN - 130 - barX;
-    ctx.fillStyle = "#1c1c1a";
+    ctx.fillStyle = SAND;
     roundedRect(ctx, barX, y, barW, 28, 14);
     ctx.fill();
     if (s.reps > 0) {
@@ -163,13 +203,13 @@ export async function drawShareCard(
       roundedRect(ctx, barX, y, barW, 28, 14);
       ctx.clip();
       const cleanW = (s.clean / s.reps) * barW;
-      ctx.fillStyle = LIME;
+      ctx.fillStyle = FOREST;
       ctx.fillRect(barX, y, cleanW, 28);
       ctx.fillStyle = BAD;
       ctx.fillRect(barX + cleanW, y, barW - cleanW, 28);
       ctx.restore();
     }
-    ctx.fillStyle = PAPER;
+    ctx.fillStyle = INK;
     ctx.textAlign = "right";
     ctx.fillText(String(s.reps), W - MARGIN, y + 14);
     ctx.textAlign = "left";
@@ -178,11 +218,11 @@ export async function drawShareCard(
 
   const notesTop = Math.max(y + 40, 1040);
   ctx.fillStyle = MUTED;
-  ctx.font = `600 22px ${sans}`;
+  ctx.font = `600 26px ${SANS}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`${BRAND} NOTICED`, MARGIN, notesTop);
+  ctx.fillText(`What ${BRAND} noticed`, MARGIN, notesTop);
 
-  ctx.font = `28px ${sans}`;
+  ctx.font = `400 28px ${SANS}`;
   const notes = stats.notes.slice(0, 3);
   notes.forEach((note, i) => {
     const lineY = notesTop + 50 + i * 46;
@@ -190,7 +230,7 @@ export async function drawShareCard(
     ctx.beginPath();
     ctx.arc(MARGIN + 8, lineY - 9, 7, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = PAPER;
+    ctx.fillStyle = INK;
     ctx.fillText(
       truncate(ctx, note.text, W - MARGIN * 2 - 36),
       MARGIN + 32,
@@ -199,7 +239,7 @@ export async function drawShareCard(
   });
 
   ctx.fillStyle = MUTED;
-  ctx.font = `24px ${sans}`;
+  ctx.font = `600 24px ${SANS}`;
   ctx.textAlign = "right";
   ctx.fillText(SITE, W - MARGIN, H - 64);
   ctx.textAlign = "left";
