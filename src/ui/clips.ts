@@ -75,7 +75,7 @@ export function renderClips(clips: SetClip[], exerciseId: string): void {
     const button = document.createElement("button");
     button.type = "button";
     button.className =
-      "min-h-11 rounded-full border-2 border-lime px-4 text-[15px] font-semibold text-lime";
+      "min-h-11 rounded-full border-[1.5px] border-forest px-4 text-[15px] font-semibold text-forest";
     button.textContent = "Share";
     button.addEventListener("click", async () => {
       button.disabled = true;

@@ -307,7 +307,7 @@ const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
 
-// The demo panel shows a drawing of a red rep until the clip has a frame
+// The demo frame shows a drawing of a red rep until the clip has a frame
 // to show, and keeps it if the clip cannot load (not uploaded yet, or the
 // network failed). The clip can load before this script runs, so check
 // for that too.

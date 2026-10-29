@@ -247,7 +247,7 @@ function buildNotes(
 const TONE_CLASS: Record<Note["tone"], string> = {
   bad: "bg-bad",
   muted: "bg-muted",
-  good: "bg-lime",
+  good: "bg-forest",
 };
 
 function dot(tone: Note["tone"]): HTMLSpanElement {
@@ -273,7 +273,7 @@ function repSquares(reps: number, faultyReps: Set<number>): HTMLElement {
   for (let rep = 1; rep <= reps; rep++) {
     const faulty = faultyReps.has(rep);
     const square = textSpan(
-      `flex aspect-square items-center justify-center rounded-md text-[13px] font-semibold ${faulty ? "bg-bad text-paper" : "bg-good text-ink"}`,
+      `flex aspect-square items-center justify-center rounded-md text-[13px] font-semibold ${faulty ? "bg-bad text-white" : "bg-forest text-white"}`,
       String(rep),
     );
     square.setAttribute("role", "img");
@@ -308,7 +308,7 @@ function faultLine(fault: FaultRep): HTMLButtonElement {
   watch.dataset.watch = "";
   watch.hidden = true;
   watch.className =
-    "flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-lime";
+    "flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-forest";
   watch.innerHTML = `${PLAY_ICON}Watch`;
 
   line.append(text, watch);
@@ -335,7 +335,7 @@ function renderRepByRep(stats: SessionStats): void {
 
     const card = document.createElement("div");
     card.className =
-      "flex flex-col gap-3 rounded-2xl border border-line bg-panel px-4 py-3.5";
+      "flex flex-col gap-3 rounded-3xl border border-line bg-sand px-4 py-3.5";
     card.append(header, repSquares(s.reps, new Set(faults.map((f) => f.rep))));
 
     if (faults.length > 0) {
@@ -368,9 +368,7 @@ export function renderSummary(
     hour: "2-digit",
     minute: "2-digit",
   });
-  el("summary-exercise").textContent = shortName(
-    record.exerciseName,
-  ).toUpperCase();
+  el("summary-exercise").textContent = shortName(record.exerciseName);
 
   const load = describeLoad(record);
   el("summary-meta").textContent = [
@@ -397,8 +395,8 @@ export function renderSummary(
       s.clean === s.reps ? `${s.reps} clean` : `${s.clean} of ${s.reps}`;
     row.innerHTML = `
       <span class="w-11 text-[13px] font-semibold text-muted">Set ${s.set}</span>
-      <span class="flex h-3 grow overflow-hidden rounded-md bg-[#1c1c1a]">
-        <span class="h-full bg-lime" style="width:${cleanPct}%"></span>
+      <span class="flex h-3 grow overflow-hidden rounded-md bg-sand">
+        <span class="h-full bg-forest" style="width:${cleanPct}%"></span>
         <span class="h-full bg-bad" style="width:${badPct}%"></span>
       </span>
       <span class="w-16 text-right text-[13px] font-semibold">${countText}</span>`;

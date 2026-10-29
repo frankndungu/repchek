@@ -40,12 +40,12 @@ function fill(name: string, value: number): void {
   }
 }
 
-// One line per perk with a lime dot, like the notes on the summary.
+// One line per perk with a white dot, like the notes on the summary.
 function renderPerks(list: HTMLElement): void {
   list.replaceChildren(
     ...PERKS.map((perk) => {
       const dot = document.createElement("span");
-      dot.className = "mt-1.5 h-2 w-2 shrink-0 rounded-full bg-lime";
+      dot.className = "mt-1.5 h-2 w-2 shrink-0 rounded-full bg-white";
       const item = document.createElement("li");
       item.className = "flex items-start gap-2.5 text-sm leading-snug";
       item.append(dot, perk);
