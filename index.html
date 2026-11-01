@@ -6,16 +6,17 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>Repchek, your form coach</title>
+    <title>repchek | AI workout form checker with rep counting</title>
+    <meta name="robots" content="noindex" />
     <meta
       name="description"
-      content="Repchek watches your home workout. Push-ups, free weights and more. It turns red and beeps when your form breaks, counts every rep, and nothing leaves your phone."
+      content="repchek watches your workout through your phone camera, counts every rep and tells you when your form breaks."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Repchek, your form coach" />
+    <meta property="og:title" content="repchek | AI workout form checker with rep counting" />
     <meta
       property="og:description"
-      content="Repchek watches your home workout. Push-ups, free weights and more. It turns red and beeps when your form breaks, counts every rep, and nothing leaves your phone."
+      content="repchek watches your workout through your phone camera, counts every rep and tells you when your form breaks."
     />
     <meta property="og:url" content="https://repchek.fit" />
     <meta name="twitter:card" content="summary" />
@@ -113,95 +114,7 @@
               How it works
             </button>
           </div>
-          <p
-            class="flex items-center gap-2 text-[13px] font-medium tracking-wide text-muted"
-          >
-            <span class="h-2 w-2 rounded-full bg-forest"></span>
-            A trainer watching your home workout.
-          </p>
         </header>
-
-        <figure id="demo" class="flex flex-col gap-2">
-          <div
-            class="relative h-[220px] w-full overflow-hidden rounded-3xl border border-line bg-[#0b0b0b]"
-          >
-            <video
-              id="demo-video"
-              class="absolute inset-0 h-full w-full object-cover"
-              src="/demo.mp4"
-              poster="/demo.jpg"
-              autoplay
-              muted
-              loop
-              playsinline
-            ></video>
-            <!-- A drawing of a red rep covers the clip until it has loaded,
-                 and stays if it cannot load. main.ts hides it. The video
-                 stays in the layout underneath, because iPhones may not
-                 load or autoplay a video that is display: none. -->
-            <div id="demo-fallback" class="absolute inset-0 bg-[#0b0b0b]">
-              <span
-                class="absolute top-3 left-3 rounded-full bg-black/65 px-3 py-1.5 text-[13px] font-bold text-white"
-                >7 of 12, set 2</span
-              >
-              <span
-                class="absolute top-3 right-3 rounded-full bg-bad px-3 py-1.5 text-[13px] font-bold text-white"
-                >Straight body</span
-              >
-              <!-- Sits on the bottom of the frame, like the floor in a
-                   camera frame. -->
-              <div class="absolute inset-x-4 bottom-4">
-                <svg
-                  viewBox="0 30 320 120"
-                  class="block h-auto w-full"
-                  fill="none"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  role="img"
-                  aria-label="A push-up seen from the side, drawn in red, with the hips sagging below the straight line from shoulder to ankle"
-                >
-                  <line
-                    x1="12"
-                    y1="142"
-                    x2="308"
-                    y2="142"
-                    class="stroke-white/20"
-                    stroke-width="2"
-                  ></line>
-                  <!-- Where the body should be: straight from shoulder to
-                       ankle. -->
-                  <line
-                    x1="72"
-                    y1="64"
-                    x2="280"
-                    y2="126"
-                    class="stroke-dim"
-                    stroke-width="2"
-                    stroke-dasharray="6 6"
-                  ></line>
-                  <!-- Wrist, elbow, shoulder, sagging hip, knee, ankle, toe. -->
-                  <polyline
-                    points="72,136 74,100 72,64 170,114 226,121 280,126 292,136"
-                    class="stroke-bad"
-                    stroke-width="4"
-                  ></polyline>
-                  <g class="fill-bad">
-                    <circle cx="52" cy="50" r="10"></circle>
-                    <circle cx="72" cy="136" r="5"></circle>
-                    <circle cx="74" cy="100" r="5"></circle>
-                    <circle cx="72" cy="64" r="5"></circle>
-                    <circle cx="170" cy="114" r="5"></circle>
-                    <circle cx="226" cy="121" r="5"></circle>
-                    <circle cx="280" cy="126" r="5"></circle>
-                  </g>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <figcaption class="text-[13px] leading-snug text-muted">
-            Red means your form broke. After the set, tap that rep to watch it.
-          </figcaption>
-        </figure>
 
         <p
           id="browser-hint"
@@ -748,26 +661,6 @@
 
         <div class="grow"></div>
 
-        <div class="flex flex-col gap-3.5">
-          <p class="text-center text-[12px] leading-relaxed text-muted">
-            Nothing leaves your phone. No video is uploaded.
-          </p>
-          <p class="text-center text-[11px] leading-relaxed text-muted">
-            Built by Francis Ndungu.
-            <a href="mailto:ndungufrank01@gmail.com" class="text-forest underline"
-              >ndungufrank01@gmail.com</a
-            >
-            <span class="mx-1">|</span>
-            <a
-              href="https://x.com/francodosha"
-              target="_blank"
-              rel="noopener"
-              class="text-forest underline"
-              >@francodosha</a
-            >
-          </p>
-        </div>
-
         <!-- Pinned to the bottom, so Start camera is always one tap away
              however far down the page someone has scrolled. -->
         <div
@@ -783,7 +676,6 @@
           >
             Start camera
           </button>
-          <p class="text-center text-[13px] text-muted">Free. No sign-up.</p>
         </div>
       </section>
 

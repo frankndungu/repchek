@@ -193,8 +193,6 @@ recoveryPrompt.className =
 recoveryPrompt.hidden = true;
 recoveryPrompt.setAttribute("aria-live", "polite");
 startScreen.insertBefore(recoveryPrompt, startScreen.children[1] ?? null);
-const demoVideo = q<HTMLVideoElement>("#demo-video");
-const demoFallback = q<HTMLElement>("#demo-fallback");
 const summaryScreen = q<HTMLElement>("#summary-screen");
 const howScreen = q<HTMLElement>("#how-screen");
 const howBtn = q<HTMLButtonElement>("#how-btn");
@@ -301,19 +299,6 @@ let currentStats: SessionStats | null = null;
 const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
-
-// The demo frame shows a drawing of a red rep until the clip has a frame
-// to show, and keeps it if the clip cannot load (not uploaded yet, or the
-// network failed). The clip can load before this script runs, so check
-// for that too.
-function showDemoClip(loaded: boolean): void {
-  demoFallback.hidden = loaded;
-}
-demoVideo.addEventListener("loadeddata", () => showDemoClip(true));
-demoVideo.addEventListener("error", () => showDemoClip(false));
-if (demoVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-  showDemoClip(true);
-}
 
 // Short name, plus "(front)" for front view profiles. Only used in the
 // debug line: everywhere else shows the exercise name.
