@@ -138,12 +138,13 @@ const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
   "hipDrop",
 ]);
 
-const CHIP_BASE = "min-h-11 rounded-full border-2 px-4 py-2.5 text-[15px]";
+const CHIP_BASE =
+  "min-h-11 rounded-full border-[1.5px] px-4 py-2.5 text-[15px]";
 // The coach voice chips sit inside More options, so they are a size down.
 const SMALL_CHIP_BASE =
-  "min-h-11 min-w-11 rounded-full border-2 px-3.5 py-2 text-[14px]";
-const CHIP_ON = "border-lime bg-lime text-ink font-semibold";
-const CHIP_OFF = "border-line bg-panel text-paper font-medium";
+  "min-h-11 min-w-11 rounded-full border-[1.5px] px-3.5 py-2 text-[14px]";
+const CHIP_ON = "border-ink bg-ink text-white font-semibold";
+const CHIP_OFF = "border-[#c9c4b9] bg-white text-ink font-medium";
 
 // Selected on the start screen until someone picks another. No equipment,
 // and the camera sees the whole body on the floor.
@@ -193,7 +194,7 @@ const canvas = q<HTMLCanvasElement>("#overlay");
 const startScreen = q<HTMLElement>("#start-screen");
 const recoveryPrompt = document.createElement("section");
 recoveryPrompt.className =
-  "flex flex-col gap-3 rounded-2xl border border-lime/40 bg-panel p-4";
+  "flex flex-col gap-3 rounded-3xl border border-line bg-sand p-4";
 recoveryPrompt.hidden = true;
 recoveryPrompt.setAttribute("aria-live", "polite");
 startScreen.insertBefore(recoveryPrompt, startScreen.children[1] ?? null);
@@ -306,7 +307,7 @@ const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
 
-// The demo panel shows a drawing of a red rep until the clip has a frame
+// The demo frame shows a drawing of a red rep until the clip has a frame
 // to show, and keeps it if the clip cannot load (not uploaded yet, or the
 // network failed). The clip can load before this script runs, so check
 // for that too.
@@ -380,7 +381,7 @@ function renderChips(): void {
 // like More options.
 function gymSection(row: HTMLElement, open: boolean): HTMLDetailsElement {
   const details = document.createElement("details");
-  details.className = "group rounded-2xl border border-line bg-panel";
+  details.className = "group rounded-3xl border border-line bg-sand";
   details.open = open;
   details.innerHTML = `
     <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
@@ -469,7 +470,7 @@ function renderRecoveryPrompt(): void {
   recoveryPrompt.replaceChildren();
   if (recoveryLoadError) {
     const title = document.createElement("h2");
-    title.className = "font-display text-xl text-lime";
+    title.className = "text-xl font-bold tracking-tight text-forest";
     title.textContent = "Saved workout check unavailable";
     const message = document.createElement("p");
     message.className = "text-sm text-muted";
@@ -478,7 +479,7 @@ function renderRecoveryPrompt(): void {
     const retry = document.createElement("button");
     retry.type = "button";
     retry.className =
-      "min-h-11 rounded-xl border border-line px-4 font-semibold";
+      "min-h-11 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-5 font-semibold";
     retry.textContent = "Retry";
     retry.addEventListener("click", () => void refreshRecoveryPrompt());
     recoveryPrompt.append(title, message, retry);
@@ -490,7 +491,7 @@ function renderRecoveryPrompt(): void {
     const card = document.createElement("div");
     card.className = "flex flex-col gap-2 border-b border-line pb-3 last:border-0";
     const title = document.createElement("h2");
-    title.className = "font-display text-xl text-lime";
+    title.className = "text-xl font-bold tracking-tight text-forest";
     title.textContent =
       entry.checkpoint?.exerciseName ?? "Saved workout needs attention";
 
@@ -527,7 +528,7 @@ function renderRecoveryPrompt(): void {
       const resume = document.createElement("button");
       resume.type = "button";
       resume.className =
-        "min-h-11 rounded-xl bg-lime px-4 font-semibold text-ink";
+        "min-h-11 rounded-full bg-ink px-5 font-semibold text-white";
       resume.textContent = "Resume workout";
       resume.disabled = !recoveryReady || recoveryActionBusy;
       resume.addEventListener("click", () => {
@@ -541,7 +542,7 @@ function renderRecoveryPrompt(): void {
     const discard = document.createElement("button");
     discard.type = "button";
     discard.className =
-      "min-h-11 rounded-xl border border-line px-4 font-semibold";
+      "min-h-11 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-5 font-semibold";
     discard.textContent = "Discard workout";
     discard.disabled = recoveryActionBusy;
     discard.addEventListener("click", () => void discardRecovery(entry));
@@ -549,7 +550,7 @@ function renderRecoveryPrompt(): void {
     card.append(title, details);
     if (entry.actionError) {
       const error = document.createElement("p");
-      error.className = "text-sm text-red-400";
+      error.className = "text-sm text-bad";
       error.textContent = entry.actionError;
       card.append(error);
     }
@@ -654,9 +655,9 @@ function renderToggle(
   }
 }
 
-// Choice cards (phone position, camera): the chosen one has a lime border.
+// Choice cards (phone position, camera): the chosen one has a forest border.
 function markCard(card: HTMLElement, on: boolean): void {
-  card.classList.toggle("border-lime", on);
+  card.classList.toggle("border-forest", on);
   card.classList.toggle("border-line", !on);
   card.setAttribute("aria-pressed", String(on));
 }
@@ -730,11 +731,11 @@ const targetInputs = [setsInput, repsInput, weightInput];
 const TARGET_FONT_PX = 36;
 
 // A long number ("100" on a narrow phone, "102.5") gets a smaller font so it
-// fits between the buttons. Bebas Neue digits are 0.4 em wide, the point 0.2.
+// fits between the buttons. Inter digits are about 0.65 em wide, the point 0.3.
 function fitNumber(input: HTMLInputElement): void {
   if (!input.clientWidth) return;
   const em = [...input.value].reduce(
-    (sum, char) => sum + (char === "." ? 0.2 : 0.4),
+    (sum, char) => sum + (char === "." ? 0.3 : 0.65),
     0,
   );
   const fit = em > 0 ? Math.floor(input.clientWidth / em) : TARGET_FONT_PX;

@@ -1,0 +1,196 @@
+<title>repchek Exercise Demos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap">
+<style>
+/* Layout: three phone screens, one per exercise. Each shows a looping mannequin with the app's own skeleton on top. */
+:root{--bg:#fff;--ink:#0F0F0F;--muted:#5f5f5a;--sand:#F2EFE9;--line:#e6e2da;--forest:#17352B;--cam:#0b0b0b;--glass:rgba(0,0,0,.62);--font:Inter,system-ui,sans-serif;color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:clamp(34px,6vw,56px);letter-spacing:-.03em;line-height:1.05;margin:0 0 10px;font-weight:800;text-wrap:balance}
+h1 em{font-style:italic;font-weight:500;color:var(--forest)}
+.lead{color:var(--muted);font-size:17px;max-width:580px;margin:0 0 36px}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:44px 24px;justify-items:center}
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+figcaption{max-width:262px;font-size:14px;color:var(--muted);text-align:center}
+figcaption b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+.ph{width:262px;height:540px;border:6px solid #111;border-radius:38px;overflow:hidden;position:relative;background:var(--bg);flex:none}
+.scr{position:absolute;inset:0;padding:36px 16px 16px;display:flex;flex-direction:column;gap:12px}
+h2{margin:0;font-size:24px;letter-spacing:-.03em;line-height:1.1;font-weight:700}
+.stage{position:relative;border-radius:20px;background:var(--cam);overflow:hidden;height:168px;flex:none}
+.stage canvas{display:block;width:100%;height:100%}
+.chip{position:absolute;left:10px;top:10px;background:var(--glass);color:#fff;border-radius:999px;font-size:10px;font-weight:600;padding:5px 10px}
+.cue{display:flex;flex-direction:column;gap:3px}
+.cue b{font-size:14px;line-height:1.3}
+.cue span{font-size:12px;color:var(--muted)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sand);border-radius:999px;padding:4px}
+.seg span{text-align:center;font-size:12px;font-weight:600;padding:10px 4px;border-radius:999px;color:var(--muted)}
+.seg .on{background:var(--ink);color:#fff}
+.btn{display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:14px;min-height:48px}
+.sp{flex:1}
+:focus-visible{outline:3px solid var(--forest);outline-offset:3px}
+</style>
+
+<div class="wrap">
+<h1>Show the move <em>first.</em></h1>
+<p class="lead">A short loop plays before each set. It uses the same skeleton and blue back line the app tracks. Screens use sample data.</p>
+
+<div class="flow">
+
+<figure>
+<div class="ph"><div class="scr">
+  <h2>Push-up</h2>
+  <div class="stage"><canvas data-ex="pushup" role="img" aria-label="Looping demo of a push-up from the side. The body stays in one straight line as the chest lowers and rises."></canvas><span class="chip">Side view</span></div>
+  <div class="cue"><b>Keep your body in one straight line.</b><span>Phone on the floor, side on.</span></div>
+  <div class="seg"><span class="on">Back camera</span><span>Front camera</span></div>
+  <div class="sp"></div>
+  <div class="btn">Start camera</div>
+</div></div>
+<figcaption><b>Push-up</b>The loop shows the straight body line the app checks.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr">
+  <h2>Barbell row</h2>
+  <div class="stage"><canvas data-ex="row" role="img" aria-label="Looping demo of a bent-over barbell row from the side. The back stays flat while the bar is pulled to the belly."></canvas><span class="chip">Side view</span></div>
+  <div class="cue"><b>Back flat, eyes forward. Pull the bar to your belly.</b><span>Phone side on, whole body in frame.</span></div>
+  <div class="seg"><span class="on">Back camera</span><span>Front camera</span></div>
+  <div class="sp"></div>
+  <div class="btn">Start camera</div>
+</div></div>
+<figcaption><b>Barbell row</b>The blue line is the back the app watches.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr">
+  <h2>Mountain climbers</h2>
+  <div class="stage"><canvas data-ex="climber" role="img" aria-label="Looping demo of mountain climbers from the side. The knees drive forward one at a time while the arms stay straight."></canvas><span class="chip">Side view</span></div>
+  <div class="cue"><b>Hands under shoulders. Drive one knee at a time.</b><span>Phone on the floor, side on.</span></div>
+  <div class="seg"><span class="on">Back camera</span><span>Front camera</span></div>
+  <div class="sp"></div>
+  <div class="btn">Start camera</div>
+</div></div>
+<figcaption><b>Mountain climbers</b>Knees alternate. The loop is faster than the push-up.</figcaption>
+</figure>
+
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var TAU=Math.PI*2, G=186;
+var L={torso:60,thigh:50,shin:48,uarm:35,farm:34};
+function lerp(a,b,t){return a+(b-a)*t}
+function add(p,q){return [p[0]+q[0],p[1]+q[1]]}
+function vup(len,deg){var r=deg*Math.PI/180;return [len*Math.sin(r),-len*Math.cos(r)]}
+function ease(t){return .5-.5*Math.cos(TAU*t)}
+/* Two-bone solver: keeps every limb at its real length. sign picks the bend side. */
+function ik(a,b,l1,l2,sign){
+  var dx=b[0]-a[0],dy=b[1]-a[1],dist=Math.hypot(dx,dy)||1e-6;
+  var d=Math.min(Math.max(dist,Math.abs(l1-l2)+1e-3),l1+l2-1e-3);
+  var ux=dx/dist,uy=dy/dist,x=(l1*l1-l2*l2+d*d)/(2*d),h=Math.sqrt(Math.max(l1*l1-x*x,0))*sign;
+  return {mid:[a[0]+ux*x-uy*h,a[1]+uy*x+ux*h],end:[a[0]+ux*d,a[1]+uy*d]};
+}
+
+function pushup(t){
+  var e=ease(t),A=[78,G-5],T=L.torso+L.thigh+L.shin,wy=G-2,arm=L.uarm+L.farm;
+  var shUp=wy-arm+0.8,shDown=G-32;
+  var phiUp=Math.asin((A[1]-shUp)/T),wx=A[0]+T*Math.cos(phiUp);
+  var phi=Math.asin((A[1]-lerp(shUp,shDown,e))/T),u=[Math.cos(phi),-Math.sin(phi)];
+  function P(d){return [A[0]+u[0]*d,A[1]+u[1]*d]}
+  var sh=P(T),hip=P(L.shin+L.thigh),kn=P(L.shin),wr=[wx,wy];
+  var el=ik(sh,wr,L.uarm,L.farm,1).mid,toe=[A[0]+8,A[1]+4];
+  return {head:add(sh,[u[0]*20,u[1]*20]),sh:sh,el:el,wr:wr,hip:hip,kn:kn,an:A,toe:toe,
+    far:[{hip:hip,kn:kn,an:A,toe:toe}],bar:false};
+}
+
+function row(t){
+  var e=ease(t),A=[140,G-3];
+  var kn=add(A,vup(L.shin,6)),hip=add(kn,vup(L.thigh,-30)),sh=add(hip,vup(L.torso,50));
+  var w0=[sh[0]+1,sh[1]+L.uarm+L.farm-1.5],w1=[sh[0]-14,sh[1]+33];
+  var wr=[lerp(w0[0],w1[0],e),lerp(w0[1],w1[1],e)];
+  var el=ik(sh,wr,L.uarm,L.farm,1).mid,toe=[A[0]+14,A[1]+3];
+  return {head:add(sh,vup(21,52)),sh:sh,el:el,wr:wr,hip:hip,kn:kn,an:A,toe:toe,
+    far:[{hip:hip,kn:kn,an:A,toe:toe}],bar:true};
+}
+
+function climber(t){
+  var e=ease(t),wx=236,wy=G-2,rising=t<0.5;
+  var sh=[wx,wy-(L.uarm+L.farm)+0.8],baseY=sh[1]+10;
+  /* Hips lift a little as the legs cross, so the knee passes above the floor. */
+  var hipY=baseY-7*Math.sin(Math.PI*e),s=(hipY-sh[1])/L.torso;
+  var hip=[wx-L.torso*Math.sqrt(1-s*s),hipY],wr=[wx,wy];
+  var baseX=wx-L.torso*Math.sqrt(1-Math.pow(10/L.torso,2));
+  var aExt=[baseX-Math.sqrt(96*96-Math.pow(G-4-baseY,2)),G-4],aDrv=[baseX-4,G-4];
+  /* The leg driving forward lifts its foot. The leg sweeping back stays low. */
+  function leg(p,up){
+    var an=[lerp(aExt[0],aDrv[0],p),lerp(aExt[1],aDrv[1],p)-(up?30:8)*Math.sin(Math.PI*p)];
+    var r=ik(hip,an,L.thigh,L.shin,-1);
+    return {hip:hip,kn:r.mid,an:r.end,toe:[r.end[0]+7,r.end[1]+4]};
+  }
+  var near=leg(e,rising),far=leg(1-e,!rising),el=ik(sh,wr,L.uarm,L.farm,1).mid;
+  return {head:[sh[0]+19.6,sh[1]-4],sh:sh,el:el,wr:wr,hip:hip,kn:near.kn,an:near.an,toe:near.toe,
+    far:[far],bar:false};
+}
+
+var EX={
+  pushup:{pose:pushup,period:3.4,view:{cx:172,cy:150,w:215}},
+  row:{pose:row,period:3,view:{cx:152,cy:112,w:250}},
+  climber:{pose:climber,period:1.5,view:{cx:178,cy:150,w:215}}
+};
+
+var C={near:'#d9d5cc',far:'#7b837d',plate:'#2b2f2d',plateRing:'#9aa19b',floor:'#111413',line:'#2f3532',green:'#22c55e',blue:'#38bdf8'};
+function path(ctx,pts,w,col){
+  ctx.lineWidth=w;ctx.strokeStyle=col;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();for(var i=0;i<pts.length;i++){if(i)ctx.lineTo(pts[i][0],pts[i][1]);else ctx.moveTo(pts[i][0],pts[i][1])}
+  ctx.stroke();
+}
+function dot(ctx,p,r,col){ctx.fillStyle=col;ctx.beginPath();ctx.arc(p[0],p[1],r,0,TAU);ctx.fill()}
+function leg(ctx,l,col){path(ctx,[l.hip,l.kn],17,col);path(ctx,[l.kn,l.an],13,col);path(ctx,[l.an,l.toe],8,col)}
+
+function render(it,t){
+  var ctx=it.ctx,w=it.w,h=it.h,ex=EX[it.ex],p=ex.pose(t),v=ex.view,s=w/v.w;
+  ctx.setTransform(it.dpr,0,0,it.dpr,0,0);
+  ctx.fillStyle='#0b0b0b';ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.translate(w/2-v.cx*s,h/2-v.cy*s);ctx.scale(s,s);
+  ctx.fillStyle=C.floor;ctx.fillRect(-300,G,900,400);
+  path(ctx,[[-300,G],[700,G]],2,C.line);
+  p.far.forEach(function(f){leg(ctx,f,C.far)});
+  path(ctx,[p.sh,p.el],12,C.far);path(ctx,[p.el,p.wr],10,C.far);
+  path(ctx,[p.hip,p.sh],24,C.near);
+  path(ctx,[p.sh,[lerp(p.sh[0],p.hip[0],.35),lerp(p.sh[1],p.hip[1],.35)]],28,C.near);
+  path(ctx,[p.sh,p.head],8,C.near);
+  dot(ctx,p.head,11,C.near);
+  leg(ctx,p,C.near);
+  path(ctx,[p.sh,p.el],12,C.near);path(ctx,[p.el,p.wr],10,C.near);dot(ctx,p.wr,5.5,C.near);
+  if(p.bar){dot(ctx,p.wr,19,C.plate);ctx.lineWidth=3;ctx.strokeStyle=C.plateRing;ctx.beginPath();ctx.arc(p.wr[0],p.wr[1],19,0,TAU);ctx.stroke();dot(ctx,p.wr,4,C.plateRing)}
+  path(ctx,[p.sh,p.el,p.wr],2.6,C.green);path(ctx,[p.kn,p.an],2.6,C.green);
+  path(ctx,[p.head,p.sh,p.hip,p.kn],5,'rgba(56,189,248,.85)');
+  [p.head,p.sh,p.el,p.wr,p.hip,p.kn,p.an].forEach(function(j){dot(ctx,j,3.4,C.green)});
+  ctx.restore();
+}
+
+var items=[].slice.call(document.querySelectorAll('canvas[data-ex]')).map(function(c){return {c:c,ex:c.getAttribute('data-ex'),vis:true,t0:0,t:0}});
+function fit(it){
+  var r=it.c.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);
+  it.w=r.width;it.h=r.height;it.dpr=d;it.c.width=Math.round(r.width*d);it.c.height=Math.round(r.height*d);
+  it.ctx=it.c.getContext('2d');render(it,it.t);
+}
+var still=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+items.forEach(fit);
+window.addEventListener('resize',function(){items.forEach(fit)});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){items.forEach(function(it){if(it.c===e.target)it.vis=e.isIntersecting})})});
+  items.forEach(function(it){io.observe(it.c)});
+}
+function frame(ts){
+  items.forEach(function(it){if(!it.vis)return;it.t=((ts/1000)/EX[it.ex].period)%1;render(it,it.t)});
+  requestAnimationFrame(frame);
+}
+if(!still)requestAnimationFrame(frame);
+window.repchekDemo={EX:EX,items:items,render:render,G:G,L:L};
+})();
+</script>

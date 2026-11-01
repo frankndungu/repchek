@@ -70,7 +70,7 @@ const MIME_TYPES = [
   "video/webm",
 ];
 
-const FONT = '"IBM Plex Sans", system-ui, sans-serif';
+const FONT = '"Inter", system-ui, sans-serif';
 const STRIP_COLOR = "rgba(0, 0, 0, 0.6)";
 const TEXT_COLOR = "#fff";
 const WATERMARK_COLOR = "rgba(255, 255, 255, 0.7)";

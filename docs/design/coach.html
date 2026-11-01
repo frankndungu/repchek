@@ -1,0 +1,154 @@
+<title>repchek Live Stats Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap">
+<style>
+/* Layout: four phone screens in a row. One job per screen, nothing shown twice. */
+:root{--bg:#fff;--ink:#0F0F0F;--muted:#5f5f5a;--sand:#F2EFE9;--line:#e6e2da;--forest:#17352B;--red:#e5484d;--cam:#0b0b0b;--glass:rgba(0,0,0,.62);--soft:#b9c2bc;--font:Inter,system-ui,sans-serif;color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:clamp(34px,6vw,56px);letter-spacing:-.03em;line-height:1.05;margin:0 0 10px;font-weight:800;text-wrap:balance}
+h1 em{font-style:italic;font-weight:500;color:var(--forest)}
+.lead{color:var(--muted);font-size:17px;max-width:560px;margin:0 0 36px}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:44px 24px;justify-items:center}
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+figcaption{max-width:262px;font-size:14px;color:var(--muted);text-align:center}
+figcaption b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+.ph{width:262px;height:540px;border:6px solid #111;border-radius:38px;overflow:hidden;position:relative;background:var(--bg);flex:none}
+.scr{position:absolute;inset:0;padding:36px 16px 16px;display:flex;flex-direction:column;gap:12px}
+h2{margin:0;font-size:24px;letter-spacing:-.03em;line-height:1.1;font-weight:700}
+.sub{color:var(--muted);font-size:13px;margin:-6px 0 0}
+.btn{display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:14px;min-height:48px}
+.sp{flex:1}
+
+/* camera choice */
+.opt{border:1.5px solid var(--line);border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center}
+.opt.on{border:2px solid var(--ink)}
+.opt b{display:block;font-size:14px}
+.opt span{font-size:12px;color:var(--muted)}
+.rad{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--line)}
+.opt.on .rad{border:6px solid var(--ink)}
+.tip{background:var(--sand);border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center;font-size:12px}
+.tip svg{flex:none}
+.trow{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:500}
+.tog{width:40px;height:24px;border-radius:999px;background:var(--forest);position:relative;flex:none}
+.tog::after{content:"";position:absolute;top:3px;left:19px;width:18px;height:18px;border-radius:50%;background:#fff}
+
+/* camera screen */
+.cam{background:var(--cam);color:#fff;padding:0}
+.fig{position:absolute;left:0;right:0;top:96px;height:250px;width:100%}
+.top{position:absolute;left:12px;right:12px;top:32px;display:flex;justify-content:space-between;align-items:center}
+.pill{border-radius:999px;font-size:11px;font-weight:700;padding:8px 13px;background:var(--glass);color:#fff}
+.pill.on{background:#fff;color:var(--ink)}
+.fin{border-radius:999px;font-size:11px;font-weight:700;padding:8px 14px;background:#fff;color:var(--ink)}
+.warn{position:absolute;left:12px;right:12px;top:76px;background:var(--red);border-radius:14px;padding:10px 12px;font-weight:600;font-size:12px;display:flex;align-items:center;gap:8px}
+.warn svg{flex:none}
+.reps{position:absolute;left:16px;bottom:18px;line-height:1}
+.reps b{font-size:56px;font-weight:800;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.reps span{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-top:4px}
+.stats{position:absolute;left:10px;right:10px;bottom:12px;background:var(--glass);border-radius:20px;padding:14px 12px 12px;display:flex;flex-direction:column;gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr)}
+.g4 div{text-align:center}
+.g4 b{display:block;font-size:20px;font-weight:700;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+.g4 span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600}
+.g4 div+div{border-left:1px solid rgba(255,255,255,.12)}
+.mv{display:flex;flex-direction:column;gap:5px}
+.track{height:6px;border-radius:4px;background:rgba(255,255,255,.18);position:relative}
+.track i{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:#fff;transform:translate(-50%,-50%)}
+.ends{display:flex;justify-content:space-between;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600}
+
+/* replay */
+.vid{border-radius:18px;background:var(--cam);position:relative;height:250px;overflow:hidden;flex:none}
+.vid .fig{top:20px;height:150px}
+.vid .stats{left:6px;right:6px;bottom:6px;padding:10px 8px;border-radius:14px}
+.vid .g4 b{font-size:15px}
+.tl{height:6px;border-radius:4px;background:var(--sand);position:relative;flex:none}
+.tl i{position:absolute;top:-4px;width:4px;height:14px;border-radius:2px;background:var(--red)}
+.tl u{position:absolute;top:-5px;left:30%;width:16px;height:16px;border-radius:50%;background:var(--ink);transform:translateX(-50%)}
+.ev{display:flex;justify-content:space-between;font-size:13px;padding:10px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.ev b{font-variant-numeric:tabular-nums}
+.ev span{color:var(--muted)}
+:focus-visible{outline:3px solid var(--forest);outline-offset:3px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="pu" viewBox="0 150 300 200">
+  <g fill="none" stroke="#22c55e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M40 250L110 238L200 228L255 292"/><path d="M200 228L214 278L214 318"/><path d="M110 238L132 282L132 318"/></g>
+  <path d="M40 250L110 238L200 228" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+  <g fill="#22c55e"><circle cx="40" cy="250" r="7"/><circle cx="110" cy="238" r="7"/><circle cx="200" cy="228" r="7"/><circle cx="255" cy="292" r="7"/><circle cx="214" cy="278" r="7"/><circle cx="132" cy="282" r="7"/></g>
+  <path d="M10 322H290" stroke="#2a2a2a" stroke-width="3"/>
+</symbol>
+<symbol id="pubad" viewBox="0 150 300 200">
+  <g fill="none" stroke="#ef4444" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M40 250L110 252L200 228L255 292"/><path d="M200 228L214 278L214 318"/><path d="M110 252L132 290L132 318"/></g>
+  <path d="M40 250L110 252L200 228" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+  <g fill="#ef4444"><circle cx="40" cy="250" r="7"/><circle cx="110" cy="252" r="7"/><circle cx="200" cy="228" r="7"/><circle cx="255" cy="292" r="7"/><circle cx="214" cy="278" r="7"/><circle cx="132" cy="290" r="7"/></g>
+  <path d="M10 322H290" stroke="#2a2a2a" stroke-width="3"/>
+</symbol>
+<symbol id="spk" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="#fff"/><path d="M16 9a4 4 0 0 1 0 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+<h1>Live <em>stats.</em></h1>
+<p class="lead">The voice tells you when something is wrong. Stats show your numbers. Each thing appears once. Screens use sample data.</p>
+
+<div class="flow">
+
+<figure>
+<div class="ph"><div class="scr">
+  <h2>Set up your camera</h2>
+  <p class="sub">Push-up</p>
+  <div class="opt on"><span class="rad"></span><div><b>Back camera</b><span>Best tracking</span></div></div>
+  <div class="opt"><span class="rad"></span><div><b>Front camera</b><span>See yourself on screen</span></div></div>
+  <div class="tip">
+    <svg width="54" height="40" viewBox="0 0 54 40" aria-hidden="true"><rect x="2" y="14" width="10" height="18" rx="2" fill="#0F0F0F"/><path d="M24 26L36 24L48 23" stroke="#17352B" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="22" r="3" fill="#17352B"/><path d="M36 24L38 32M24 26L27 32" stroke="#17352B" stroke-width="3" stroke-linecap="round"/><path d="M16 33H52" stroke="#c9c4b9" stroke-width="2"/></svg>
+    <div>Phone on the floor, side on. Whole body in frame.</div>
+  </div>
+  <div class="trow">Voice feedback<span class="tog"></span></div>
+  <div class="sp"></div>
+  <div class="btn">Start</div>
+</div></div>
+<figcaption><b>1. Camera</b>Two choices and one tip. The app remembers them.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr cam">
+  <svg class="fig" aria-hidden="true"><use href="#pu"/></svg>
+  <div class="top"><span class="pill">Stats</span><span class="fin">Finish</span></div>
+  <div class="reps"><b>7</b><span>Reps</span></div>
+</div></div>
+<figcaption><b>2. Stats off</b>Just your reps. The clearest view.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr cam">
+  <svg class="fig" aria-hidden="true"><use href="#pubad"/></svg>
+  <div class="top"><span class="pill on">Stats</span><span class="fin">Finish</span></div>
+  <div class="warn"><svg width="16" height="16" aria-hidden="true"><use href="#spk"/></svg>Hips are sagging</div>
+  <div class="stats">
+    <div class="g4"><div><b>2/3</b><span>Set</span></div><div><b>7</b><span>Reps</span></div><div><b>0:42</b><span>Time</span></div><div><b>10/m</b><span>Pace</span></div></div>
+    <div class="mv"><div class="track"><i style="left:62%"></i></div><div class="ends"><span>Rest</span><span>Peak</span></div></div>
+  </div>
+</div></div>
+<figcaption><b>3. Stats on</b>Four numbers and where you are in the rep. The red line is what the voice just said.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr">
+  <h2>Replay</h2>
+  <div class="vid">
+    <svg class="fig" aria-hidden="true"><use href="#pubad"/></svg>
+    <div class="stats"><div class="g4"><div><b>2/3</b><span>Set</span></div><div><b>7</b><span>Reps</span></div><div><b>0:42</b><span>Time</span></div><div><b>10/m</b><span>Pace</span></div></div></div>
+  </div>
+  <div class="tl"><u></u><i style="left:46%"></i><i style="left:71%"></i></div>
+  <div><div class="ev"><b>0:38</b><span>Hips sagging</span></div><div class="ev"><b>0:57</b><span>Go a bit lower</span></div></div>
+  <div class="sp"></div>
+  <div class="btn">Share</div>
+</div></div>
+<figcaption><b>4. Replay</b>Stats are in the video. Tap a moment to jump to it.</figcaption>
+</figure>
+
+</div>
+</div>
