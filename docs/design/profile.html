@@ -1,0 +1,171 @@
+<title>repchek Profile Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a gallery of phone screens, each captioned with the job it does in the freemium flow. Look matches repchek.fit. */
+:root{--bg:#fff;--ink:#0F0F0F;--muted:#5f5f5a;--sand:#F2EFE9;--line:#e6e2da;--forest:#17352B;--red:#e5484d;--green:#22a559;--cam:#0b0b0b;--font:Inter,system-ui,sans-serif;color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:clamp(34px,6vw,56px);letter-spacing:-.03em;line-height:1.05;margin:0 0 10px;font-weight:800;text-wrap:balance}
+h1 em{font-style:italic;font-weight:500;color:var(--forest)}
+.lead{color:var(--muted);font-size:17px;max-width:600px;margin:0 0 36px}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:44px 24px;justify-items:center}
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+figcaption{max-width:262px;font-size:14px;color:var(--muted);text-align:center}
+figcaption b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+.ph{width:262px;height:540px;border:6px solid #111;border-radius:38px;overflow:hidden;position:relative;background:var(--bg);flex:none}
+.scr{position:absolute;inset:0;padding:34px 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:12px}
+.brand{display:flex;align-items:center;gap:7px;font-weight:800;font-size:19px;letter-spacing:-.045em}
+.brand svg{width:26px;height:23px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pill{display:inline-block;border:1.5px solid var(--line);border-radius:999px;padding:5px 10px;font-size:11px;margin:0 3px 4px 0;background:#fff}
+.pill.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.tile{background:var(--sand);border-radius:16px;padding:11px}
+.tile.dark{background:var(--forest);color:#fff}
+.tile.line{background:#fff;border:1px solid var(--line)}
+.btn{display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:13px;padding:13px;min-height:44px}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid #c9c4b9}
+.btn.white{background:#fff;color:var(--ink)}
+.nums{display:flex;background:var(--sand);border-radius:16px}
+.nums div{flex:1;text-align:center;padding:10px 2px}
+.nums b{display:block;font-size:24px;line-height:1.1;letter-spacing:-.03em}
+.tag{display:inline-block;background:var(--sand);border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;color:var(--forest)}
+.tag.dk{background:var(--forest);color:#fff}
+.sp{flex:1}
+h2{margin:0;font-size:22px;letter-spacing:-.03em;line-height:1.1;font-weight:700}
+.cam{background:var(--cam);color:#fff;padding:0}
+.cam .hud{position:absolute;left:10px;top:30px;background:rgba(0,0,0,.65);border-radius:10px;padding:6px 9px;font-weight:600;font-size:10px}
+.cam .fin{position:absolute;right:10px;top:30px;background:#fff;color:var(--ink);border-radius:999px;font-weight:700;font-size:11px;padding:7px 13px}
+.cam .warn{position:absolute;left:10px;right:10px;bottom:16px;background:rgba(229,72,77,.95);border-radius:12px;padding:10px;text-align:center;font-weight:600;font-size:11px}
+.cam svg{position:absolute;inset:0;width:100%;height:100%}
+.bars{display:grid;gap:7px}
+.bar{height:8px;border-radius:5px;background:var(--red);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--forest)}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.35}
+.note i{flex:none;width:7px;height:7px;border-radius:50%;margin-top:4px}
+.chart{width:100%;height:auto;display:block}
+.locked{position:relative}
+.locked .blur{filter:blur(5px);opacity:.7;pointer-events:none}
+.locked .over{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:12px}
+.over b{font-size:14px}
+.over span{color:var(--muted);font-size:11px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:26px 26px 0 0;padding:16px 14px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -12px 40px rgba(0,0,0,.18)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.price{font-size:38px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.price small{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
+ul.t{list-style:none;padding:0;margin:0;display:grid;gap:7px;font-size:12px}
+ul.t li{padding-left:20px;position:relative}
+ul.t li::before{content:"";position:absolute;left:0;top:4px;width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:12px}
+.pr:first-child{border-top:0}
+.pr b{font-weight:700}
+.pr span{color:var(--muted)}
+.mark{font-size:10px;color:var(--muted);text-align:center}
+:focus-visible{outline:3px solid var(--forest);outline-offset:3px}
+.ava{width:26px;height:26px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.me .ava{background:var(--forest);color:#fff}
+.lb{display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px solid var(--line);font-size:12px}
+.lb:first-child{border-top:0}
+.lb .rk{width:14px;font-weight:700;color:var(--muted)}
+.lb .nm{flex:1;font-weight:600}
+.lb .v{font-weight:700;font-variant-numeric:tabular-nums}
+.dots{display:flex;gap:5px}
+.dots i{width:22px;height:22px;border-radius:50%;background:#fff;border:1.5px solid var(--line)}
+.dots i.d{background:var(--forest);border-color:var(--forest)}
+.meter{height:8px;border-radius:5px;background:#fff;overflow:hidden}
+.meter span{display:block;height:100%;background:var(--forest);border-radius:5px}
+.big{font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.tabs{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:9px 6px 12px;border-top:1px solid var(--line);background:#fff;font-size:10px;color:var(--muted);font-weight:500}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:54px}
+.tabs span::before{content:"";width:5px;height:5px;border-radius:50%;background:transparent}
+.tabs .on{color:var(--ink);font-weight:700}
+.tabs .on::before{background:var(--forest)}
+.pad{padding-bottom:62px}
+.badge{border:1px solid var(--line);border-radius:16px;padding:10px;flex:1;min-width:0}
+.badge b{display:block;font-size:11px;line-height:1.25}
+.badge span{font-size:10px;color:var(--muted)}
+.badge.lock{opacity:.5;border-style:dashed}
+.ava.big{width:56px;height:56px;font-size:18px;background:var(--forest);color:#fff}
+.tog{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;flex:none}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tog.on{background:var(--forest)}
+.tog.on::after{left:19px}
+.st{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:12px}
+.st:first-child{border-top:0}
+.st small{display:block;color:var(--muted);font-size:10px;margin-top:1px}
+.st .r{color:var(--muted)}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="logo" viewBox="2 14 98 80" fill="#17352B"><path transform="translate(4 5)" d="M6 44C10 36 22 34 29 42L42 58C36 68 25 69 18 62Z"/><path d="M38 86C45 77 54 71 62 62C73 48 84 33 96 20C98 43 88 65 72 79C62 87 50 91 42 90C37 89 35 88 38 86Z"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+<h1>Your profile and <em>account.</em></h1>
+<p class="lead">Where people see their level, streak and milestones, and manage their account and plan. Screens use sample data.</p>
+<div class="flow">
+
+<figure>
+<div class="ph"><div class="scr pad">
+  <div class="row" style="justify-content:flex-start;gap:12px"><span class="ava big">FN</span><div><h2 style="font-size:22px">Frank</h2><span class="tag">Free</span></div></div>
+  <div class="tile dark"><div class="row"><span class="big" style="font-size:24px">Level 4</span><span class="lbl" style="color:#c5d3cc">320 / 500 XP</span></div><div class="meter" style="margin-top:9px;background:rgba(255,255,255,.2)"><span style="width:64%;background:#fff"></span></div></div>
+  <div class="tile"><div class="row"><b style="font-size:13px">4 week streak</b><span class="lbl">3 of 3 this week</span></div><div class="dots" style="margin-top:8px"><i class="d"></i><i class="d"></i><i class="d"></i></div></div>
+  <div class="row" style="gap:6px"><div class="tile" style="flex:1"><span class="big" style="font-size:22px">18</span><br><span class="lbl">Sessions</span></div><div class="tile" style="flex:1"><span class="big" style="font-size:22px">1,240</span><br><span class="lbl">Clean reps</span></div></div>
+  <div class="row"><span class="lbl">Recent milestones</span><span class="lbl">See all</span></div>
+  <div class="row" style="gap:6px"><div class="badge"><b>First clean set</b><span>Earned</span></div><div class="badge"><b>3 week streak</b><span>Earned</span></div></div>
+</div><div class="tabs"><span class="">Train</span><span class="">History</span><span class="">Challenges</span><span class="on">Profile</span></div></div>
+<figcaption><b>1. Profile</b>Level, streak and totals. The first thing in the Profile tab.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr pad">
+  <div class="row"><h2>Milestones</h2><span class="lbl">4 of 12</span></div>
+  <div class="row" style="gap:6px"><div class="badge"><b>First clean set</b><span>Earned</span></div><div class="badge"><b>3 week streak</b><span>Earned</span></div></div>
+  <div class="row" style="gap:6px"><div class="badge"><b>100 clean reps</b><span>Earned</span></div><div class="badge"><b>Form focus</b><span>Earned</span></div></div>
+  <div class="row" style="gap:6px"><div class="badge lock"><b>Form streak</b><span>5 sessions above 90% clean</span></div><div class="badge lock"><b>1,000 clean push-ups</b><span>624 to go</span></div></div>
+  <div class="row" style="gap:6px"><div class="badge lock"><b>8 week streak</b><span>4 weeks to go</span></div><div class="badge lock"><b>First challenge</b><span>Finish a challenge</span></div></div>
+  <div style="color:var(--muted);font-size:11px;margin-top:2px">Milestones reward clean reps and steady weeks, never speed.</div>
+</div><div class="tabs"><span class="">Train</span><span class="">History</span><span class="">Challenges</span><span class="on">Profile</span></div></div>
+<figcaption><b>2. Milestones</b>Free. Earned and locked, each with what is left to do.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr pad">
+  <h2>Settings</h2>
+  <div class="tile line" style="padding:2px 12px">
+    <div class="st"><div>Name<small>Shown on leaderboards</small></div><span class="r">Frank</span></div>
+    <div class="st"><div>Email</div><span class="r">frank@email.com</span></div>
+    <div class="st"><div>Show me on leaderboards<small>Off keeps you private</small></div><span class="tog on"></span></div>
+    <div class="st"><div>Weight unit</div><span class="r">kg</span></div>
+  </div>
+  <div class="tile"><div class="row"><b style="font-size:13px">Free plan</b><span class="lbl">7 days of history</span></div><div class="btn" style="margin-top:9px;min-height:40px;padding:10px">Upgrade to Premium</div></div>
+  <div class="tile line" style="padding:2px 12px">
+    <div class="st"><div>Send feedback</div><span class="r">&rsaquo;</span></div>
+    <div class="st"><div>Privacy and terms</div><span class="r">&rsaquo;</span></div>
+    <div class="st"><div>Sign out</div><span class="r">&rsaquo;</span></div>
+    <div class="st"><div style="color:var(--red)">Delete account</div><span class="r">&rsaquo;</span></div>
+  </div>
+</div><div class="tabs"><span class="">Train</span><span class="">History</span><span class="">Challenges</span><span class="on">Profile</span></div></div>
+<figcaption><b>3. Settings</b>Account, plan and the things every app needs.</figcaption>
+</figure>
+
+<figure>
+<div class="ph"><div class="scr pad">
+  <h2>Settings</h2>
+  <div class="tile dark"><div class="row"><b style="font-size:13px">Premium</b><span class="lbl" style="color:#c5d3cc">$3.99 a month</span></div><div style="color:#c5d3cc;font-size:11px;margin:4px 0 9px">Renews on 29 Nov 2026.</div><div class="btn white" style="min-height:40px;padding:10px">Manage subscription</div></div>
+  <div class="tile line" style="padding:2px 12px">
+    <div class="st"><div>Name</div><span class="r">Frank</span></div>
+    <div class="st"><div>Email</div><span class="r">frank@email.com</span></div>
+    <div class="st"><div>Show me on leaderboards</div><span class="tog on"></span></div>
+  </div>
+  <div style="color:var(--muted);font-size:11px">Cancel in Manage subscription. You keep Premium until 29 Nov.</div>
+</div><div class="tabs"><span class="">Train</span><span class="">History</span><span class="">Challenges</span><span class="on">Profile</span></div></div>
+<figcaption><b>4. Settings, Premium</b>The plan tile changes. Manage subscription opens the Polar customer page.</figcaption>
+</figure>
+
+</div>
+</div>

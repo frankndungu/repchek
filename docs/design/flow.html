@@ -1,0 +1,184 @@
+<title>repchek Sign Up Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a gallery of phone screens, each captioned with the job it does in the freemium flow. Look matches repchek.fit. */
+:root{--bg:#fff;--ink:#0F0F0F;--muted:#5f5f5a;--sand:#F2EFE9;--line:#e6e2da;--forest:#17352B;--red:#e5484d;--green:#22a559;--cam:#0b0b0b;--font:Inter,system-ui,sans-serif;color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:clamp(34px,6vw,56px);letter-spacing:-.03em;line-height:1.05;margin:0 0 10px;font-weight:800;text-wrap:balance}
+h1 em{font-style:italic;font-weight:500;color:var(--forest)}
+.lead{color:var(--muted);font-size:17px;max-width:600px;margin:0 0 36px}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:44px 24px;justify-items:center}
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+figcaption{max-width:262px;font-size:14px;color:var(--muted);text-align:center}
+figcaption b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+.ph{width:262px;height:540px;border:6px solid #111;border-radius:38px;overflow:hidden;position:relative;background:var(--bg);flex:none}
+.scr{position:absolute;inset:0;padding:34px 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:12px}
+.brand{display:flex;align-items:center;gap:7px;font-weight:800;font-size:19px;letter-spacing:-.045em}
+.brand svg{width:26px;height:23px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pill{display:inline-block;border:1.5px solid var(--line);border-radius:999px;padding:5px 10px;font-size:11px;margin:0 3px 4px 0;background:#fff}
+.pill.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.tile{background:var(--sand);border-radius:16px;padding:11px}
+.tile.dark{background:var(--forest);color:#fff}
+.tile.line{background:#fff;border:1px solid var(--line)}
+.btn{display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:13px;padding:13px;min-height:44px}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid #c9c4b9}
+.btn.white{background:#fff;color:var(--ink)}
+.nums{display:flex;background:var(--sand);border-radius:16px}
+.nums div{flex:1;text-align:center;padding:10px 2px}
+.nums b{display:block;font-size:24px;line-height:1.1;letter-spacing:-.03em}
+.tag{display:inline-block;background:var(--sand);border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;color:var(--forest)}
+.tag.dk{background:var(--forest);color:#fff}
+.sp{flex:1}
+h2{margin:0;font-size:22px;letter-spacing:-.03em;line-height:1.1;font-weight:700}
+.cam{background:var(--cam);color:#fff;padding:0}
+.cam .hud{position:absolute;left:10px;top:30px;background:rgba(0,0,0,.65);border-radius:10px;padding:6px 9px;font-weight:600;font-size:10px}
+.cam .fin{position:absolute;right:10px;top:30px;background:#fff;color:var(--ink);border-radius:999px;font-weight:700;font-size:11px;padding:7px 13px}
+.cam .warn{position:absolute;left:10px;right:10px;bottom:16px;background:rgba(229,72,77,.95);border-radius:12px;padding:10px;text-align:center;font-weight:600;font-size:11px}
+.cam svg{position:absolute;inset:0;width:100%;height:100%}
+.bars{display:grid;gap:7px}
+.bar{height:8px;border-radius:5px;background:var(--red);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--forest)}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.35}
+.note i{flex:none;width:7px;height:7px;border-radius:50%;margin-top:4px}
+.chart{width:100%;height:auto;display:block}
+.locked{position:relative}
+.locked .blur{filter:blur(5px);opacity:.7;pointer-events:none}
+.locked .over{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:12px}
+.over b{font-size:14px}
+.over span{color:var(--muted);font-size:11px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:26px 26px 0 0;padding:16px 14px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -12px 40px rgba(0,0,0,.18)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.price{font-size:38px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.price small{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
+ul.t{list-style:none;padding:0;margin:0;display:grid;gap:7px;font-size:12px}
+ul.t li{padding-left:20px;position:relative}
+ul.t li::before{content:"";position:absolute;left:0;top:4px;width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:12px}
+.pr:first-child{border-top:0}
+.pr b{font-weight:700}
+.pr span{color:var(--muted)}
+.mark{font-size:10px;color:var(--muted);text-align:center}
+:focus-visible{outline:3px solid var(--forest);outline-offset:3px}
+.ava{width:26px;height:26px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.me .ava{background:var(--forest);color:#fff}
+.lb{display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px solid var(--line);font-size:12px}
+.lb:first-child{border-top:0}
+.lb .rk{width:14px;font-weight:700;color:var(--muted)}
+.lb .nm{flex:1;font-weight:600}
+.lb .v{font-weight:700;font-variant-numeric:tabular-nums}
+.dots{display:flex;gap:5px}
+.dots i{width:22px;height:22px;border-radius:50%;background:#fff;border:1.5px solid var(--line)}
+.dots i.d{background:var(--forest);border-color:var(--forest)}
+.meter{height:8px;border-radius:5px;background:#fff;overflow:hidden}
+.meter span{display:block;height:100%;background:var(--forest);border-radius:5px}
+.big{font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.strip{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 20px;align-items:flex-start}
+.strip figure{flex:none}
+.arr{align-self:center;font-size:26px;color:var(--muted);flex:none;margin-top:-60px}
+.paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0 0 28px}
+.paths .tile{font-size:14px}
+.paths b{display:block;margin-bottom:2px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="logo" viewBox="2 14 98 80" fill="#17352B"><path transform="translate(4 5)" d="M6 44C10 36 22 34 29 42L42 58C36 68 25 69 18 62Z"/><path d="M38 86C45 77 54 71 62 62C73 48 84 33 96 20C98 43 88 65 72 79C62 87 50 91 42 90C37 89 35 88 38 86Z"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+<h1>From "Try repchek free" to <em>first workout.</em></h1>
+<p class="lead">Sign in comes first. After that, every session belongs to the account from the first rep. Screens use sample data.</p>
+<div class="paths">
+  <div class="tile"><b>New user</b>Steps 1 to 7. With Google, skip step 3.</div>
+  <div class="tile"><b>Returning user</b>Opens the app already signed in and lands on Start (step 5).</div>
+  <div class="tile"><b>Not signed in</b>Any visit to the app without an account goes to Sign in.</div>
+</div>
+<div class="strip" role="region" aria-label="Sign up flow, scroll sideways" tabindex="0"><figure>
+<div class="ph"><div class="scr" style="background:#fff">
+  <div class="row"><div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>repchek</div><span class="btn" style="min-height:30px;padding:6px 12px;font-size:10px">Try repchek free</span></div>
+  <div class="sp" style="flex:.5"></div>
+  <h2 style="font-size:30px;line-height:1.05">Every workout moves you <em style="font-style:italic;font-weight:500;color:var(--forest)">forward.</em></h2>
+  <div style="color:var(--muted);font-size:12px">Count your reps, get live form feedback, and track your progress at home or in the gym.</div>
+  <div class="btn" style="box-shadow:0 0 0 5px rgba(23,53,43,.18)">Try repchek free</div>
+  <div class="sp"></div>
+</div></div><figcaption><b>1. Landing page</b>"Try repchek free" opens the app.</figcaption></figure><div class="arr" aria-hidden="true">&rarr;</div><figure>
+<div class="ph"><div class="scr">
+  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>repchek</div>
+  <div class="sp" style="flex:.6"></div>
+  <h2 style="font-size:26px">Let's get you started</h2>
+  <div style="color:var(--muted);font-size:13px">Sign in to save your workouts and keep your streak.</div>
+  <div class="sp" style="flex:.3"></div>
+  <div class="btn ghost" style="gap:9px"><span style="width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:11px;font-weight:800">G</span>Continue with Google</div>
+  <div class="row" style="color:var(--muted);font-size:11px"><span style="flex:1;height:1px;background:var(--line)"></span>or<span style="flex:1;height:1px;background:var(--line)"></span></div>
+  <div class="tile line" style="padding:13px;color:var(--muted);font-size:13px">you@email.com</div>
+  <div class="btn">Continue with email</div>
+  <div class="sp"></div>
+  
+</div></div>
+<figcaption><b>2. Sign in</b>Google is one tap. Email goes to step 3.</figcaption>
+</figure><div class="arr" aria-hidden="true">&rarr;</div><figure>
+<div class="ph"><div class="scr">
+  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>repchek</div>
+  <div class="sp" style="flex:.6"></div>
+  <h2 style="font-size:26px">Enter your code</h2>
+  <div style="color:var(--muted);font-size:13px">We sent a 6 digit code to you@email.com.</div>
+  <div class="row" style="gap:6px;margin-top:6px">
+    <span class="tile line" style="flex:1;text-align:center;font-size:20px;font-weight:700;padding:12px 0">4</span><span class="tile line" style="flex:1;text-align:center;font-size:20px;font-weight:700;padding:12px 0">8</span><span class="tile line" style="flex:1;text-align:center;font-size:20px;font-weight:700;padding:12px 0">2</span><span class="tile line" style="flex:1;text-align:center;font-size:20px;font-weight:700;padding:12px 0">&nbsp;</span><span class="tile line" style="flex:1;text-align:center;font-size:20px;font-weight:700;padding:12px 0">&nbsp;</span><span class="tile line" style="flex:1;text-align:center;font-size:20px;font-weight:700;padding:12px 0">&nbsp;</span>
+  </div>
+  <div class="btn" style="margin-top:6px">Continue</div>
+  <div class="row" style="color:var(--muted);font-size:12px;margin-top:2px"><span>Resend code</span><span>Change email</span></div>
+  <div class="sp"></div>
+</div></div>
+<figcaption><b>3. Enter code</b>Email only. A 6 digit code.</figcaption>
+</figure><div class="arr" aria-hidden="true">&rarr;</div><figure>
+<div class="ph"><div class="scr">
+  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>repchek</div>
+  <div class="sp" style="flex:.7"></div>
+  <div style="width:72px;height:72px;border-radius:50%;background:var(--sand);display:grid;place-items:center"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#17352B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
+  <h2 style="font-size:26px">Allow your camera</h2>
+  <div style="color:var(--muted);font-size:13px">repchek uses it to count your reps and check your form.</div>
+  <div class="sp"></div>
+  <div class="btn">Allow camera</div>
+</div></div><figcaption><b>4. Camera</b>Asked once, then the browser prompt.</figcaption></figure><div class="arr" aria-hidden="true">&rarr;</div><figure>
+<div class="ph"><div class="scr">
+  <div class="row"><div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>repchek</div><span class="lbl">Level 4</span></div>
+  <div class="tile"><div class="row"><b style="font-size:13px">4 week streak</b><span class="lbl">3 of 3 this week</span></div><div class="dots" style="margin-top:8px"><i class="d"></i><i class="d"></i><i class="d"></i></div></div>
+  <span class="lbl">Pick your exercise</span>
+  <div><span class="pill on">Push-up</span><span class="pill">Mountain climbers</span><span class="pill">Deadlift</span><span class="pill">Barbell row</span></div>
+  <div class="nums"><div><b>3</b><span class="lbl">Sets</span></div><div><b>12</b><span class="lbl">Reps</span></div><div><b>BW</b><span class="lbl">Extra kg</span></div></div>
+  <div class="sp"></div>
+  <div class="btn">Start camera</div>
+</div></div>
+<figcaption><b>5. Start</b>Pick an exercise and go.</figcaption>
+</figure><div class="arr" aria-hidden="true">&rarr;</div><figure>
+<div class="ph"><div class="scr cam">
+  <div class="hud">Set 2/3 | Reps 7 | PRESSING</div><div class="fin">Finish</div>
+  <svg viewBox="0 0 300 400" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+    <g fill="none" stroke="#ef4444" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M60 250L120 240L200 235L250 300"/><path d="M200 235L215 290L215 330"/><path d="M120 240L140 290L140 330"/></g>
+    <path d="M60 250L120 240L200 235" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+    <g fill="#ef4444"><circle cx="60" cy="250" r="7"/><circle cx="120" cy="240" r="7"/><circle cx="200" cy="235" r="7"/><circle cx="250" cy="300" r="7"/></g>
+    <path d="M20 335H280" stroke="#2a2a2a" stroke-width="3"/>
+  </svg>
+  <div class="warn">Hips are sagging, brace your core</div>
+</div></div>
+<figcaption><b>6. Train</b>Live feedback and counting.</figcaption>
+</figure><div class="arr" aria-hidden="true">&rarr;</div><figure>
+<div class="ph"><div class="scr">
+  <span class="lbl">Session complete</span>
+  <h2>Push-up</h2>
+  <div class="row" style="gap:6px"><div class="tile" style="flex:1"><span class="big" style="font-size:24px">34</span><br><span class="lbl">Reps</span></div><div class="tile" style="flex:1"><span class="big" style="font-size:24px;color:var(--forest)">85%</span><br><span class="lbl">Clean</span></div></div>
+  <div class="tile dark"><div class="row"><span class="big" style="font-size:26px">+29 XP</span><span class="lbl" style="color:#c5d3cc">Level 4</span></div><div class="meter" style="margin-top:9px;background:rgba(255,255,255,.2)"><span style="width:64%;background:#fff"></span></div><div style="color:#c5d3cc;margin-top:7px;font-size:11px">XP comes from clean reps only.</div></div>
+  <div class="tile line"><div class="note"><i style="background:var(--red)"></i>Hips sagging on 5 reps, mostly in set 3.</div></div>
+  <div class="sp"></div>
+  <div class="btn">Save my sessions</div>
+  <div class="btn ghost" style="min-height:40px;padding:10px">Share</div>
+</div></div>
+<figcaption><b>7. Report</b>Saved to the account automatically.</figcaption>
+</figure></div>
+</div>
