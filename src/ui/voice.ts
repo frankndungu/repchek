@@ -1,6 +1,6 @@
 // Spoken coach cues ("Chest up", "Elbows in") using the browser's built-in
 // speech, window.speechSynthesis. The phone's own voice speaks the words:
-// nothing is downloaded and nothing leaves the phone.
+// nothing is downloaded and no audio is sent anywhere.
 //
 // A fault usually lasts many frames, and main.ts calls say() on every one
 // of them. So say() is picky about when it actually speaks:

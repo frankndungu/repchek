@@ -96,14 +96,10 @@ import { computeStats, renderSummary, shortName } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
 import * as voice from "./ui/voice";
+import { initAuth } from "./ui/auth";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
-import {
-  openFoundingFromHash,
-  showSummaryOffer,
-  showWelcomeIfPaid,
-} from "./ui/founding";
 
 inject();
 
@@ -182,7 +178,7 @@ const FIGURE_COLORS: Record<string, string> = {
 type CoachMode = "voice" | "beep" | "off";
 
 const IN_APP_BROWSER =
-  /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
+  /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|TikTok|musical_ly|Line\//i.test(
     navigator.userAgent,
   );
 
@@ -198,8 +194,6 @@ recoveryPrompt.className =
 recoveryPrompt.hidden = true;
 recoveryPrompt.setAttribute("aria-live", "polite");
 startScreen.insertBefore(recoveryPrompt, startScreen.children[1] ?? null);
-const demoVideo = q<HTMLVideoElement>("#demo-video");
-const demoFallback = q<HTMLElement>("#demo-fallback");
 const summaryScreen = q<HTMLElement>("#summary-screen");
 const howScreen = q<HTMLElement>("#how-screen");
 const howBtn = q<HTMLButtonElement>("#how-btn");
@@ -306,19 +300,6 @@ let currentStats: SessionStats | null = null;
 const currentRepFaults = new Set<string>();
 
 browserHint.hidden = !IN_APP_BROWSER;
-
-// The demo frame shows a drawing of a red rep until the clip has a frame
-// to show, and keeps it if the clip cannot load (not uploaded yet, or the
-// network failed). The clip can load before this script runs, so check
-// for that too.
-function showDemoClip(loaded: boolean): void {
-  demoFallback.hidden = loaded;
-}
-demoVideo.addEventListener("loadeddata", () => showDemoClip(true));
-demoVideo.addEventListener("error", () => showDemoClip(false));
-if (demoVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-  showDemoClip(true);
-}
 
 // Short name, plus "(front)" for front view profiles. Only used in the
 // debug line: everywhere else shows the exercise name.
@@ -815,14 +796,21 @@ howBtn.addEventListener("click", openHow);
 howBackBtn.addEventListener("click", closeHow);
 howDoneBtn.addEventListener("click", closeHow);
 
-// Back from Polar after paying, or a link to the founding offer: that
-// screen opens instead, and How it works waits for the next visit.
-const openedOnLoad = showWelcomeIfPaid() || openFoundingFromHash();
+// The route guard. Until there is a session, nothing below can start the
+// camera, the pose model or a workout.
+let signedIn = false;
 
-if (!openedOnLoad && readSetting(SEEN_HOW_STORAGE_KEY) === null) {
-  writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
-  openHow();
-}
+initAuth((value) => {
+  signedIn = value;
+  if (!value) {
+    howScreen.hidden = true;
+    return;
+  }
+  if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
+    writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
+    openHow();
+  }
+});
 
 // A form fault this frame: tell the lifter, the way they chose. With
 // several faults at once, only the first is spoken; say() itself stops
@@ -1030,7 +1018,6 @@ function showSummary(record: SessionRecord): void {
   currentStats = computeStats(record);
   renderSummary(record, currentStats);
   renderClips(clips, record.exerciseId);
-  showSummaryOffer(currentStats.totalReps);
   summaryScreen.hidden = false;
   // With session_start, shows who finishes a session and who comes back
   // for another.
@@ -1219,6 +1206,7 @@ async function startWorkout(
   recovery?: ActiveWorkoutCheckpoint,
 ): Promise<void> {
   if (
+    !signedIn ||
     running ||
     (!recovery && !canStartNewWorkout(recoveryReady, recoveryEntries.length)) ||
     (recovery && !recoveryReady) ||
@@ -1386,6 +1374,7 @@ async function startWorkout(
 }
 
 startBtn.addEventListener("click", () => {
+  if (!signedIn) return;
   void startWorkout();
 });
 

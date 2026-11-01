@@ -446,3 +446,10 @@ trusting it.
 
 Lesson, again: record it, read the numbers, then change the code. The
 camera was a wrong guess that two recordings made look right.
+
+## Founding member offer removed
+
+The founding member offer is gone: the start screen row, the summary card,
+the offer sheet, the welcome screen, the testimonial card, the Polar
+checkout link and the code behind them. Nobody signed up. Premium replaces
+it later. The history above is kept as it was.
