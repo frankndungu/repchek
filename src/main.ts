@@ -96,6 +96,7 @@ import { computeStats, renderSummary, shortName } from "./ui/summary";
 import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
 import * as voice from "./ui/voice";
+import { initAuth } from "./ui/auth";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
@@ -177,7 +178,7 @@ const FIGURE_COLORS: Record<string, string> = {
 type CoachMode = "voice" | "beep" | "off";
 
 const IN_APP_BROWSER =
-  /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|Line\//i.test(
+  /FBAN|FBAV|Instagram|Twitter|TwitterAndroid|Snapchat|TikTok|musical_ly|Line\//i.test(
     navigator.userAgent,
   );
 
@@ -795,10 +796,21 @@ howBtn.addEventListener("click", openHow);
 howBackBtn.addEventListener("click", closeHow);
 howDoneBtn.addEventListener("click", closeHow);
 
-if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
-  writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
-  openHow();
-}
+// The route guard. Until there is a session, nothing below can start the
+// camera, the pose model or a workout.
+let signedIn = false;
+
+initAuth((value) => {
+  signedIn = value;
+  if (!value) {
+    howScreen.hidden = true;
+    return;
+  }
+  if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
+    writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
+    openHow();
+  }
+});
 
 // A form fault this frame: tell the lifter, the way they chose. With
 // several faults at once, only the first is spoken; say() itself stops
@@ -1194,6 +1206,7 @@ async function startWorkout(
   recovery?: ActiveWorkoutCheckpoint,
 ): Promise<void> {
   if (
+    !signedIn ||
     running ||
     (!recovery && !canStartNewWorkout(recoveryReady, recoveryEntries.length)) ||
     (recovery && !recoveryReady) ||
@@ -1361,6 +1374,7 @@ async function startWorkout(
 }
 
 startBtn.addEventListener("click", () => {
+  if (!signedIn) return;
   void startWorkout();
 });
 

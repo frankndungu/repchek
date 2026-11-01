@@ -655,6 +655,13 @@
                   </button>
                 </div>
               </div>
+              <button
+                id="signout-btn"
+                type="button"
+                class="flex min-h-11 w-full items-center py-3 text-left text-[15px] font-semibold"
+              >
+                Sign out
+              </button>
             </div>
           </details>
         </section>
@@ -1121,6 +1128,176 @@
           playsinline
         ></video>
       </div>
+
+      <!-- Sign in. Covers everything until there is a session. Built from
+           docs/design/flow.html. Code is in ui/auth.ts. -->
+      <section
+        id="auth-screen"
+        class="absolute inset-0 z-50 overflow-y-auto bg-white px-5 pt-12 pb-8 text-ink"
+        aria-label="Sign in"
+      >
+        <div
+          id="auth-inner"
+          class="mx-auto flex min-h-full w-full max-w-md flex-col gap-4"
+          hidden
+        >
+          <div
+            class="flex items-center gap-2 text-[28px] leading-none font-extrabold tracking-[-0.045em]"
+          >
+            <img
+              src="/repchek-logo.svg"
+              alt=""
+              width="32"
+              height="28"
+              class="h-7 w-8"
+            />
+            repchek
+          </div>
+
+          <div id="auth-signin" class="flex flex-1 flex-col gap-4">
+            <div class="grow basis-0"></div>
+            <div class="flex flex-col gap-2">
+              <h1
+                class="text-[32px] leading-[1.05] font-extrabold tracking-[-0.03em]"
+              >
+                Let's get you started
+              </h1>
+              <p class="text-[15px] leading-snug text-muted">
+                Sign in to save your workouts and keep your streak.
+              </p>
+            </div>
+
+            <p
+              id="auth-setup"
+              class="rounded-2xl border border-line bg-sand px-4 py-3 text-sm text-ink"
+              hidden
+            >
+              Sign in is not set up yet
+            </p>
+
+            <p
+              id="auth-browser-hint"
+              class="rounded-2xl border border-line bg-sand px-4 py-3 text-sm text-ink"
+              hidden
+            >
+              Open this page in Safari or Chrome to use Google. Email works
+              here.
+            </p>
+
+            <button
+              id="auth-google"
+              type="button"
+              class="flex min-h-14 w-full items-center justify-center gap-2.5 rounded-full bg-ink text-[16px] font-semibold text-white disabled:opacity-40"
+            >
+              <span
+                class="flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-white text-[11px] font-extrabold"
+                aria-hidden="true"
+                >G</span
+              >
+              Continue with Google
+            </button>
+
+            <div
+              class="flex items-center gap-3 text-[13px] text-muted"
+              aria-hidden="true"
+            >
+              <span class="h-px grow bg-line"></span>or<span
+                class="h-px grow bg-line"
+              ></span>
+            </div>
+
+            <form id="auth-email-form" class="flex flex-col gap-3" novalidate>
+              <label for="auth-email" class="sr-only">Email</label>
+              <input
+                id="auth-email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="you@email.com"
+                class="min-h-14 w-full rounded-2xl border border-line bg-white px-4 text-[16px] text-ink outline-none placeholder:text-muted focus:border-forest"
+              />
+              <p
+                id="auth-email-error"
+                class="text-sm text-bad empty:hidden"
+                role="alert"
+              ></p>
+              <button
+                id="auth-email-btn"
+                type="submit"
+                class="min-h-14 w-full rounded-full border-[1.5px] border-ink bg-white text-[16px] font-semibold text-ink disabled:opacity-40"
+              >
+                Continue with email
+              </button>
+            </form>
+            <div class="grow basis-0"></div>
+          </div>
+
+          <form
+            id="auth-code-view"
+            class="flex flex-1 flex-col gap-4"
+            novalidate
+            hidden
+          >
+            <div class="grow basis-0"></div>
+            <div class="flex flex-col gap-2">
+              <h1
+                class="text-[32px] leading-[1.05] font-extrabold tracking-[-0.03em]"
+              >
+                Enter your code
+              </h1>
+              <p class="text-[15px] leading-snug text-muted">
+                We sent a 6 digit code to
+                <span id="auth-code-email" class="font-semibold text-ink"></span>.
+              </p>
+            </div>
+
+            <div class="relative">
+              <div id="auth-tiles" class="flex gap-2" aria-hidden="true"></div>
+              <label for="auth-code" class="sr-only">6 digit code</label>
+              <input
+                id="auth-code"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                pattern="[0-9]*"
+                class="absolute inset-0 h-full w-full cursor-text bg-transparent text-transparent caret-transparent opacity-0 outline-none"
+              />
+            </div>
+            <p
+              id="auth-code-error"
+              class="text-sm text-bad empty:hidden"
+              role="alert"
+            ></p>
+
+            <button
+              id="auth-code-btn"
+              type="submit"
+              class="min-h-14 w-full rounded-full bg-ink text-[16px] font-semibold text-white disabled:opacity-40"
+            >
+              Continue
+            </button>
+            <div class="flex items-center justify-between text-[14px]">
+              <button
+                id="auth-resend"
+                type="button"
+                class="min-h-11 font-semibold text-forest underline disabled:text-muted disabled:no-underline"
+              >
+                Resend code
+              </button>
+              <button
+                id="auth-change"
+                type="button"
+                class="min-h-11 font-semibold text-forest underline"
+              >
+                Change email
+              </button>
+            </div>
+            <div class="grow basis-0"></div>
+          </form>
+        </div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
