@@ -1129,6 +1129,77 @@
         ></video>
       </div>
 
+      <!-- Shown once, before the browser asks for the camera. From step 4 of
+           docs/design/flow.html. -->
+      <section
+        id="camera-screen"
+        class="absolute inset-0 z-30 overflow-y-auto bg-white px-5 pt-12 pb-8 text-ink"
+        aria-labelledby="camera-title"
+        hidden
+      >
+        <div class="mx-auto flex min-h-full w-full max-w-md flex-col gap-4">
+          <div
+            class="flex items-center gap-2 text-[28px] leading-none font-extrabold tracking-[-0.045em]"
+          >
+            <img
+              src="/repchek-logo.svg"
+              alt=""
+              width="32"
+              height="28"
+              class="h-7 w-8"
+            />
+            repchek
+          </div>
+          <div class="grow basis-0"></div>
+          <div
+            class="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-sand"
+          >
+            <svg
+              width="34"
+              height="34"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#17352B"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+              />
+              <circle cx="12" cy="13" r="3.5" />
+            </svg>
+          </div>
+          <div class="flex flex-col gap-2">
+            <h1
+              id="camera-title"
+              class="text-[32px] leading-[1.05] font-extrabold tracking-[-0.03em]"
+            >
+              Allow your camera
+            </h1>
+            <p class="text-[15px] leading-snug text-muted">
+              repchek uses it to count your reps and check your form.
+            </p>
+          </div>
+          <div class="grow"></div>
+          <button
+            id="camera-allow"
+            type="button"
+            class="min-h-14 w-full rounded-full bg-ink text-[17px] font-semibold text-white"
+          >
+            Allow camera
+          </button>
+          <button
+            id="camera-later"
+            type="button"
+            class="min-h-11 w-full text-[14px] font-semibold text-muted underline"
+          >
+            Not now
+          </button>
+        </div>
+      </section>
+
       <!-- Sign in. Covers everything until there is a session. Built from
            docs/design/flow.html. Code is in ui/auth.ts. -->
       <section
