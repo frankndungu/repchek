@@ -13,6 +13,7 @@ import {
 } from "../account";
 import type { Profile } from "../account";
 import { signOut } from "../auth";
+import { checkoutEnabled, openPortal, startCheckout } from "../billing";
 import type { SessionRecord } from "../engine/session";
 import {
   levelFor,
@@ -106,6 +107,42 @@ function drawLevel(
   bar.style.width = `${Math.round((info.into / info.needed) * 100)}%`;
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function drawPlan(p: Profile): void {
+  const premium = p.plan === "premium";
+  q<HTMLElement>("#plan-free").hidden = premium;
+  q<HTMLElement>("#plan-premium").hidden = !premium;
+
+  const upgrade = q<HTMLButtonElement>("#plan-upgrade");
+  upgrade.disabled = !checkoutEnabled;
+  upgrade.textContent = checkoutEnabled
+    ? "Upgrade to Premium"
+    : "Premium is coming soon";
+
+  if (!premium) return;
+  q<HTMLElement>("#plan-premium-label").textContent = p.hasSubscription
+    ? "$3.99 a month"
+    : "Early access";
+  q<HTMLElement>("#plan-manage").hidden = !p.hasSubscription;
+  q<HTMLElement>("#plan-premium-note").textContent =
+    p.hasSubscription && p.premiumUntil
+      ? p.cancelAtPeriodEnd
+        ? `Ends on ${formatDate(p.premiumUntil)}. You keep Premium until then.`
+        : `Renews on ${formatDate(p.premiumUntil)}.`
+      : "Premium is on for this account.";
+}
+
+function planMessage(text: string): void {
+  q<HTMLElement>("#plan-message").textContent = text;
+}
+
 function initials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase() || "R";
 }
@@ -117,8 +154,7 @@ function drawProfile(): void {
       profile.plan === "premium" ? "Premium" : "Free";
     q<HTMLElement>("#profile-email").textContent = profile.email;
     if (document.activeElement !== nameInput) nameInput.value = profile.name;
-    q<HTMLElement>("#plan-free").hidden = profile.plan === "premium";
-    q<HTMLElement>("#plan-premium").hidden = profile.plan !== "premium";
+    drawPlan(profile);
 
     const avatar = q<HTMLElement>("#profile-avatar");
     if (profile.avatarUrl) {
@@ -336,6 +372,38 @@ export function initProfile(): void {
     });
   });
 
+  const upgrade = q<HTMLButtonElement>("#plan-upgrade");
+  upgrade.addEventListener("click", () => {
+    upgrade.disabled = true;
+    planMessage("");
+    void startCheckout().then(async (result) => {
+      if (result.ok) {
+        window.location.assign(result.url);
+        return;
+      }
+      upgrade.disabled = !checkoutEnabled;
+      if (result.reason === "already_premium") {
+        await refreshAccount();
+        return;
+      }
+      planMessage("Could not start checkout. Try again.");
+    });
+  });
+
+  const manage = q<HTMLButtonElement>("#plan-manage");
+  manage.addEventListener("click", () => {
+    manage.disabled = true;
+    planMessage("");
+    void openPortal().then((result) => {
+      if (result.ok) {
+        window.location.assign(result.url);
+        return;
+      }
+      manage.disabled = false;
+      planMessage("Could not open your subscription. Try again.");
+    });
+  });
+
   q<HTMLButtonElement>("#delete-open").addEventListener("click", () => {
     deleteConfirm.hidden = false;
   });
@@ -354,4 +422,25 @@ export function initProfile(): void {
       await signOut();
     });
   });
+}
+
+const PREMIUM_POLL_MS = 2000;
+const PREMIUM_POLL_TRIES = 30;
+
+// Polar tells us about a payment a moment after the customer returns, so
+// wait for the plan to change before saying it worked.
+export async function waitForPremium(): Promise<void> {
+  planMessage("Payment received. Turning on Premium...");
+  for (let i = 0; i < PREMIUM_POLL_TRIES; i++) {
+    const latest = await loadProfile();
+    if (latest?.plan === "premium") {
+      await refreshAccount();
+      planMessage("Premium is on. Thank you.");
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, PREMIUM_POLL_MS));
+  }
+  planMessage(
+    "Your payment went through. Premium can take a minute to turn on. Come back in a moment.",
+  );
 }

@@ -104,7 +104,12 @@ import {
   refreshAccount,
 } from "./ui/profile";
 import { showComparison } from "./ui/history";
-import { initTabs, resetTabs, showTab } from "./ui/tabs";
+import {
+  handleCheckoutReturn,
+  initTabs,
+  resetTabs,
+  showTab,
+} from "./ui/tabs";
 import { loadSessionRecord } from "./account";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
@@ -876,6 +881,7 @@ initAuth((value) => {
   }
   void refreshAccount();
   void afterSignIn();
+  handleCheckoutReturn();
 });
 
 // A form fault this frame: tell the lifter, the way they chose. With
