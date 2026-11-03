@@ -116,6 +116,22 @@
           </div>
         </header>
 
+        <!-- Filled from saved sessions by ui/profile.ts. Hidden until loaded. -->
+        <div
+          id="streak-tile"
+          class="flex flex-col gap-2 rounded-3xl border border-line bg-sand px-4 py-3.5"
+          hidden
+        >
+          <div class="flex items-center justify-between gap-3">
+            <b id="streak-title" class="text-[14px]"></b>
+            <span
+              id="streak-week"
+              class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
+            ></span>
+          </div>
+          <div id="streak-dots" class="flex gap-1.5" aria-hidden="true"></div>
+        </div>
+
         <p
           id="browser-hint"
           class="rounded-2xl border border-line bg-sand px-4 py-3 text-sm text-ink"
@@ -655,13 +671,6 @@
                   </button>
                 </div>
               </div>
-              <button
-                id="signout-btn"
-                type="button"
-                class="flex min-h-11 w-full items-center py-3 text-left text-[15px] font-semibold"
-              >
-                Sign out
-              </button>
             </div>
           </details>
         </section>
@@ -683,6 +692,24 @@
           >
             Start camera
           </button>
+          <nav class="flex" aria-label="Main">
+            <button
+              type="button"
+              data-tab="train" aria-current="page"
+              class="group flex min-h-12 flex-1 flex-col items-center justify-center gap-1 text-[12px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <span class="h-1.5 w-1.5 rounded-full group-aria-[current=page]:bg-forest" aria-hidden="true"></span>
+              Train
+            </button>
+            <button
+              type="button"
+              data-tab="profile"
+              class="group flex min-h-12 flex-1 flex-col items-center justify-center gap-1 text-[12px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <span class="h-1.5 w-1.5 rounded-full group-aria-[current=page]:bg-forest" aria-hidden="true"></span>
+              Profile
+            </button>
+          </nav>
         </div>
       </section>
 
@@ -1024,6 +1051,43 @@
           </div>
         </div>
 
+        <div
+          id="summary-xp"
+          class="flex flex-col gap-2 rounded-3xl bg-forest px-4 py-3.5 text-white"
+          hidden
+        >
+          <div class="flex items-baseline justify-between gap-3">
+            <span
+              id="summary-xp-gain"
+              class="text-[26px] leading-none font-extrabold tracking-[-0.04em]"
+            ></span>
+            <span
+              id="summary-xp-level"
+              class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase"
+            ></span>
+          </div>
+          <div class="h-2 overflow-hidden rounded-full bg-white/20">
+            <span
+              id="summary-xp-bar"
+              class="block h-full rounded-full bg-white"
+              style="width: 0%"
+            ></span>
+          </div>
+          <p class="text-[12px] text-[#c5d3cc]">XP comes from clean reps only.</p>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-[14px]">
+          <p id="summary-saved" class="text-muted" role="status"></p>
+          <button
+            id="summary-retry"
+            type="button"
+            class="min-h-11 shrink-0 font-semibold text-forest underline"
+            hidden
+          >
+            Try again
+          </button>
+        </div>
+
         <div class="flex flex-col gap-2.5">
           <h2
             class="text-xs font-semibold tracking-[0.14em] text-muted uppercase"
@@ -1128,6 +1192,241 @@
           playsinline
         ></video>
       </div>
+
+      <!-- Profile tab. From docs/design/profile.html. Filled by ui/profile.ts. -->
+      <section
+        id="profile-screen"
+        class="absolute inset-0 z-10 flex flex-col gap-4 overflow-y-auto bg-white px-5 pt-12 text-ink"
+        aria-label="Profile"
+        hidden
+      >
+        <div class="flex items-center gap-3">
+          <span
+            id="profile-avatar"
+            class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest text-[18px] font-bold text-white"
+            aria-hidden="true"
+          ></span>
+          <div class="flex min-w-0 flex-col items-start gap-1">
+            <h1
+              id="profile-name"
+              class="max-w-full truncate text-[24px] leading-none font-extrabold tracking-[-0.03em]"
+            ></h1>
+            <span
+              id="profile-plan"
+              class="rounded-full bg-sand px-2.5 py-0.5 text-[10px] font-bold tracking-[0.06em] text-forest uppercase"
+            ></span>
+          </div>
+        </div>
+
+        <p
+          id="profile-error"
+          class="rounded-2xl border border-line bg-sand px-4 py-3 text-sm"
+          role="status"
+          hidden
+        ></p>
+
+        <div class="flex flex-col gap-2.5 rounded-3xl bg-forest px-4 py-3.5 text-white">
+          <div class="flex items-baseline justify-between gap-3">
+            <span
+              id="profile-level"
+              class="text-[24px] leading-none font-extrabold tracking-[-0.04em]"
+            ></span>
+            <span
+              id="profile-xp"
+              class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase"
+            ></span>
+          </div>
+          <div class="h-2 overflow-hidden rounded-full bg-white/20">
+            <span
+              id="profile-xp-bar"
+              class="block h-full rounded-full bg-white"
+              style="width: 0%"
+            ></span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 rounded-3xl border border-line bg-sand px-4 py-3.5">
+          <div class="flex items-center justify-between gap-3">
+            <b id="profile-streak-title" class="text-[14px]"></b>
+            <span
+              id="profile-streak-week"
+              class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
+            ></span>
+          </div>
+          <div id="profile-streak-dots" class="flex gap-1.5" aria-hidden="true"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="flex flex-col gap-0.5 rounded-3xl border border-line bg-sand px-4 py-3.5">
+            <span id="profile-sessions" class="text-[28px] leading-none font-extrabold tracking-[-0.03em]"></span>
+            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Sessions</span>
+          </div>
+          <div class="flex flex-col gap-0.5 rounded-3xl border border-line bg-sand px-4 py-3.5">
+            <span id="profile-clean" class="text-[28px] leading-none font-extrabold tracking-[-0.03em]"></span>
+            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Clean reps</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <h2 class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Recent milestones</h2>
+          <button
+            id="milestones-open"
+            type="button"
+            class="min-h-11 text-[11px] font-semibold tracking-[0.12em] text-forest uppercase underline"
+          >
+            See all
+          </button>
+        </div>
+        <div id="profile-milestones" class="grid grid-cols-2 gap-2.5"></div>
+
+        <h2 class="mt-2 text-[22px] leading-none font-bold tracking-[-0.03em]">Settings</h2>
+
+        <div class="flex flex-col rounded-3xl border border-line bg-white px-4">
+          <div class="flex min-h-14 items-center justify-between gap-3 py-2">
+            <label for="profile-name-input" class="text-[14px]">Name</label>
+            <input
+              id="profile-name-input"
+              type="text"
+              maxlength="40"
+              autocomplete="given-name"
+              class="min-h-11 w-40 min-w-0 rounded-xl border border-transparent bg-transparent px-2 text-right text-[14px] text-muted outline-none focus:border-forest"
+            />
+          </div>
+          <div class="flex min-h-14 items-center justify-between gap-3 border-t border-line py-2">
+            <span class="text-[14px]">Email</span>
+            <span id="profile-email" class="min-w-0 truncate text-[14px] text-muted"></span>
+          </div>
+        </div>
+
+        <div
+          id="plan-free"
+          class="flex flex-col gap-2.5 rounded-3xl border border-line bg-sand px-4 py-3.5"
+          hidden
+        >
+          <div class="flex items-center justify-between gap-3">
+            <b class="text-[14px]">Free plan</b>
+            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">7 days of history</span>
+          </div>
+          <button
+            type="button"
+            disabled
+            class="min-h-11 w-full rounded-full bg-ink text-[14px] font-semibold text-white disabled:opacity-40"
+          >
+            Premium is coming soon
+          </button>
+        </div>
+        <div
+          id="plan-premium"
+          class="flex flex-col gap-1.5 rounded-3xl bg-forest px-4 py-3.5 text-white"
+          hidden
+        >
+          <div class="flex items-center justify-between gap-3">
+            <b class="text-[14px]">Premium</b>
+            <span class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase">Full history</span>
+          </div>
+          <p class="text-[12px] text-[#c5d3cc]">Premium is on for this account.</p>
+        </div>
+
+        <div class="flex flex-col rounded-3xl border border-line bg-white px-4">
+          <a
+            href="mailto:hello@repchek.fit?subject=repchek%20feedback"
+            class="flex min-h-14 items-center justify-between py-2 text-[14px]"
+          >
+            Send feedback<span class="text-muted" aria-hidden="true">&rsaquo;</span>
+          </a>
+          <div class="flex min-h-14 items-center justify-between gap-3 border-t border-line py-2 text-[14px]">
+            Privacy and terms
+            <span class="flex gap-4">
+              <a href="https://repchek.fit/privacy" target="_blank" rel="noopener" class="flex min-h-11 items-center text-forest underline">Privacy</a>
+              <a href="https://repchek.fit/terms" target="_blank" rel="noopener" class="flex min-h-11 items-center text-forest underline">Terms</a>
+            </span>
+          </div>
+          <button
+            id="signout-btn"
+            type="button"
+            class="flex min-h-14 w-full items-center justify-between border-t border-line py-2 text-left text-[14px]"
+          >
+            Sign out<span class="text-muted" aria-hidden="true">&rsaquo;</span>
+          </button>
+          <div class="flex flex-col border-t border-line">
+            <button
+              id="delete-open"
+              type="button"
+              class="flex min-h-14 w-full items-center justify-between py-2 text-left text-[14px] text-bad"
+            >
+              Delete account<span aria-hidden="true">&rsaquo;</span>
+            </button>
+            <div id="delete-confirm" class="flex flex-col gap-2.5 pb-3.5" hidden>
+              <p class="text-[13px] leading-snug text-muted">
+                This deletes your account and every saved session. It cannot be undone.
+              </p>
+              <div class="flex gap-2">
+                <button
+                  id="delete-yes"
+                  type="button"
+                  class="min-h-11 flex-1 rounded-full bg-bad text-[14px] font-semibold text-white disabled:opacity-40"
+                >
+                  Delete everything
+                </button>
+                <button
+                  id="delete-no"
+                  type="button"
+                  class="min-h-11 flex-1 rounded-full border-[1.5px] border-[#c9c4b9] bg-white text-[14px] font-semibold"
+                >
+                  Keep my account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grow"></div>
+
+        <div class="sticky bottom-0 -mx-5 border-t border-line bg-white px-5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <nav class="flex" aria-label="Main">
+            <button
+              type="button"
+              data-tab="train"
+              class="group flex min-h-12 flex-1 flex-col items-center justify-center gap-1 text-[12px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <span class="h-1.5 w-1.5 rounded-full group-aria-[current=page]:bg-forest" aria-hidden="true"></span>
+              Train
+            </button>
+            <button
+              type="button"
+              data-tab="profile" aria-current="page"
+              class="group flex min-h-12 flex-1 flex-col items-center justify-center gap-1 text-[12px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <span class="h-1.5 w-1.5 rounded-full group-aria-[current=page]:bg-forest" aria-hidden="true"></span>
+              Profile
+            </button>
+          </nav>
+        </div>
+      </section>
+
+      <section
+        id="milestones-screen"
+        class="absolute inset-0 z-10 flex flex-col gap-4 overflow-y-auto bg-white px-5 pt-12 pb-8 text-ink"
+        aria-labelledby="milestones-title"
+        hidden
+      >
+        <button
+          id="milestones-back"
+          type="button"
+          class="flex min-h-11 items-center gap-1 self-start rounded-full border-[1.5px] border-[#c9c4b9] bg-white pr-4 pl-2.5 text-[14px] font-semibold"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6"></path>
+          </svg>
+          Back
+        </button>
+        <div class="flex items-baseline justify-between gap-3">
+          <h1 id="milestones-title" class="text-[32px] leading-none font-extrabold tracking-[-0.03em]">Milestones</h1>
+          <span id="milestones-count" class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"></span>
+        </div>
+        <div id="milestones-list" class="grid grid-cols-2 gap-2.5"></div>
+        <p class="text-[13px] text-muted">Milestones reward clean reps and steady weeks, never speed.</p>
+      </section>
 
       <!-- Shown once, before the browser asks for the camera. From step 4 of
            docs/design/flow.html. -->

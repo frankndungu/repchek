@@ -97,6 +97,12 @@ import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
 import * as voice from "./ui/voice";
 import { initAuth } from "./ui/auth";
+import {
+  initProfile,
+  onSessionFinished,
+  refreshAccount,
+  resetAccountUi,
+} from "./ui/profile";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
@@ -854,13 +860,17 @@ q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
 
 q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
 
+initProfile();
+
 initAuth((value) => {
   signedIn = value;
   if (!value) {
     howScreen.hidden = true;
     cameraScreen.hidden = true;
+    resetAccountUi();
     return;
   }
+  void refreshAccount();
   void afterSignIn();
 });
 
@@ -1071,6 +1081,7 @@ function showSummary(record: SessionRecord): void {
   renderSummary(record, currentStats);
   renderClips(clips, record.exerciseId);
   summaryScreen.hidden = false;
+  void onSessionFinished(record, currentStats);
   // With session_start, shows who finishes a session and who comes back
   // for another.
   track("session_complete", {

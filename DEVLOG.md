@@ -453,3 +453,31 @@ The founding member offer is gone: the start screen row, the summary card,
 the offer sheet, the welcome screen, the testimonial card, the Polar
 checkout link and the code behind them. Nobody signed up. Premium replaces
 it later. The history above is kept as it was.
+
+## Sessions saved to the account, and the Profile tab
+
+Every finished session with at least one rep is saved to Supabase, one row
+in `sessions`, with the full record kept as JSON for the history screen
+later. If the phone is offline the session waits on the device and is sent
+the next time the app opens or the user opens Profile. A session is never
+saved twice: the database refuses a repeat of the same session id.
+
+Rules, all in `src/progress.ts` and covered by tests:
+
+- XP is clean reps. Nothing else earns it, so it is not stored.
+- Finishing level n takes 100 x (n + 1) XP. Level 4 is 500, as in the mockup.
+- A week counts when it has 3 sessions. The streak is weeks in a row that
+  counted. The week in progress adds to the streak once it is done and
+  never breaks it. Weeks start on Monday, in the user's own time zone.
+- Milestones are worked out from the saved sessions. Seven for now.
+
+Plans live in `profiles.plan`. A user cannot change their own plan: the
+database only lets them change their name. Premium is set by hand in
+Supabase, until payments exist.
+
+The SQL is in `supabase/migrations`. Tests of the row rules were run in
+Supabase as a signed in user, a different user and the account owner.
+
+Not built yet: History, Challenges, leaderboards, the weight unit setting,
+and payments. The Profile screen leaves out the leaderboard and weight unit
+rows for that reason.

@@ -92,6 +92,12 @@ export async function verifyCode(
     : { ok: true };
 }
 
+// The Supabase client for data calls, or null when sign in is off. Auth
+// calls stay in this file. Account data lives in account.ts.
+export function getClient(): SupabaseClient | null {
+  return client;
+}
+
 export async function getSession(): Promise<Session | null> {
   if (!client) return null;
   try {
