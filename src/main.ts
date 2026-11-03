@@ -802,6 +802,58 @@ howDoneBtn.addEventListener("click", closeHow);
 let signedIn = false;
 const cameraScreen = q<HTMLElement>("#camera-screen");
 
+// Right after sign in: the "Allow your camera" screen, once, then How it
+// works, once. Each is skipped if it was seen before.
+async function cameraPermission(): Promise<PermissionState> {
+  try {
+    const status = await navigator.permissions.query({
+      name: "camera" as PermissionName,
+    });
+    return status.state;
+  } catch {
+    // Some browsers cannot say. Show the screen once.
+    return "prompt";
+  }
+}
+
+function showHowOnce(): void {
+  if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
+    writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
+    openHow();
+  }
+}
+
+async function afterSignIn(): Promise<void> {
+  if (readSetting(SEEN_CAMERA_STORAGE_KEY) === null) {
+    const state = await cameraPermission();
+    if (!signedIn) return;
+    if (state === "prompt") {
+      cameraScreen.hidden = false;
+      return;
+    }
+    writeSetting(SEEN_CAMERA_STORAGE_KEY, "yes");
+  }
+  showHowOnce();
+}
+
+function endCameraStep(): void {
+  writeSetting(SEEN_CAMERA_STORAGE_KEY, "yes");
+  cameraScreen.hidden = true;
+  if (signedIn) showHowOnce();
+}
+
+// Asks the browser for the camera now, then lets go of it. Starting a
+// workout asks again and gets the answer without a prompt.
+q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
+  const stream = navigator.mediaDevices?.getUserMedia({ video: true });
+  void (stream ?? Promise.reject(new Error("no camera")))
+    .then((s) => s.getTracks().forEach((track) => track.stop()))
+    .catch(() => undefined)
+    .finally(endCameraStep);
+});
+
+q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
+
 initAuth((value) => {
   signedIn = value;
   if (!value) {
@@ -809,10 +861,7 @@ initAuth((value) => {
     cameraScreen.hidden = true;
     return;
   }
-  if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
-    writeSetting(SEEN_HOW_STORAGE_KEY, "yes");
-    openHow();
-  }
+  void afterSignIn();
 });
 
 // A form fault this frame: tell the lifter, the way they chose. With
@@ -1376,44 +1425,9 @@ async function startWorkout(
   }
 }
 
-// The first time, an "Allow your camera" screen comes before the browser's
-// own prompt. After that, or if the camera is already allowed, Start camera
-// goes straight in.
-async function cameraAlreadyAllowed(): Promise<boolean> {
-  try {
-    const status = await navigator.permissions.query({
-      name: "camera" as PermissionName,
-    });
-    return status.state === "granted";
-  } catch {
-    return false;
-  }
-}
-
 startBtn.addEventListener("click", () => {
   if (!signedIn) return;
-  if (readSetting(SEEN_CAMERA_STORAGE_KEY) !== null) {
-    void startWorkout();
-    return;
-  }
-  void cameraAlreadyAllowed().then((granted) => {
-    if (granted) {
-      writeSetting(SEEN_CAMERA_STORAGE_KEY, "yes");
-      void startWorkout();
-    } else {
-      cameraScreen.hidden = false;
-    }
-  });
-});
-
-q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
-  writeSetting(SEEN_CAMERA_STORAGE_KEY, "yes");
-  cameraScreen.hidden = true;
-  if (signedIn) void startWorkout();
-});
-
-q<HTMLButtonElement>("#camera-later").addEventListener("click", () => {
-  cameraScreen.hidden = true;
+  void startWorkout();
 });
 
 endBtn.addEventListener("click", () => {
