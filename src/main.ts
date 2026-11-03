@@ -161,6 +161,7 @@ const POSITION_STORAGE_KEY = "repchek.position.";
 const COACH_STORAGE_KEY = "repchek.coach";
 // Set once the How it works page has opened by itself on a first visit.
 const SEEN_HOW_STORAGE_KEY = "repchek.seenHow";
+const SEEN_CAMERA_STORAGE_KEY = "repchek.seenCameraPrimer";
 // How many sessions this phone has finished, for analytics.
 const SESSIONS_STORAGE_KEY = "repchek.sessions";
 
@@ -799,11 +800,13 @@ howDoneBtn.addEventListener("click", closeHow);
 // The route guard. Until there is a session, nothing below can start the
 // camera, the pose model or a workout.
 let signedIn = false;
+const cameraScreen = q<HTMLElement>("#camera-screen");
 
 initAuth((value) => {
   signedIn = value;
   if (!value) {
     howScreen.hidden = true;
+    cameraScreen.hidden = true;
     return;
   }
   if (readSetting(SEEN_HOW_STORAGE_KEY) === null) {
@@ -1373,9 +1376,44 @@ async function startWorkout(
   }
 }
 
+// The first time, an "Allow your camera" screen comes before the browser's
+// own prompt. After that, or if the camera is already allowed, Start camera
+// goes straight in.
+async function cameraAlreadyAllowed(): Promise<boolean> {
+  try {
+    const status = await navigator.permissions.query({
+      name: "camera" as PermissionName,
+    });
+    return status.state === "granted";
+  } catch {
+    return false;
+  }
+}
+
 startBtn.addEventListener("click", () => {
   if (!signedIn) return;
-  void startWorkout();
+  if (readSetting(SEEN_CAMERA_STORAGE_KEY) !== null) {
+    void startWorkout();
+    return;
+  }
+  void cameraAlreadyAllowed().then((granted) => {
+    if (granted) {
+      writeSetting(SEEN_CAMERA_STORAGE_KEY, "yes");
+      void startWorkout();
+    } else {
+      cameraScreen.hidden = false;
+    }
+  });
+});
+
+q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
+  writeSetting(SEEN_CAMERA_STORAGE_KEY, "yes");
+  cameraScreen.hidden = true;
+  if (signedIn) void startWorkout();
+});
+
+q<HTMLButtonElement>("#camera-later").addEventListener("click", () => {
+  cameraScreen.hidden = true;
 });
 
 endBtn.addEventListener("click", () => {
