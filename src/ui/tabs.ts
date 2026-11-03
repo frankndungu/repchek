@@ -33,8 +33,8 @@ export function resetTabs(): void {
   showTab("train");
 }
 
-export function initTabs(): void {
-  initHistory();
+export function initTabs(openReport: (id: string) => Promise<boolean>): void {
+  initHistory(openReport);
   document.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLElement>("[data-tab]");
     if (button) showTab(button.dataset.tab as Tab);

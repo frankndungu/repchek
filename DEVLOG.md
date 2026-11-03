@@ -495,3 +495,25 @@ a database function.
 
 Challenges is a "coming soon" screen. The upgrade sheet has no checkout, so
 its button is off until payments exist.
+
+## Free side of the new plan: complete history, reports, improvement signal
+
+Product split agreed: free records the training and builds the habit,
+Premium interprets it (charts, trends, comparisons, progression advice, and
+later an AI coach). Free now has:
+
+- Complete history. The 7 day limit and the locked tile are gone.
+- Reopen any past session's report from History.
+- An "am I improving" card on History: this week's clean rate against last
+  week's, with a small chart of the last 5 sessions. It follows the exercise
+  chip that is selected.
+- A "vs last time" line on every report, against the last session of the
+  same exercise. The first session of an exercise says so.
+- Personal bests per exercise on Profile: most clean reps in a session and
+  best clean rate (sessions of 10 reps or more).
+
+History is grouped by week with calm tiles and exercise chips. Logic is in
+`src/history.ts` and `src/progress.ts`, with tests.
+
+Next: the free share card gets the improvement line, per set data capture
+for analytics, then Premium analytics and the upgrade screen, then payments.
