@@ -481,3 +481,17 @@ Supabase as a signed in user, a different user and the account owner.
 Not built yet: History, Challenges, leaderboards, the weight unit setting,
 and payments. The Profile screen leaves out the leaderboard and weight unit
 rows for that reason.
+
+## History tab and the four tabs
+
+Tabs are now Train, History, Challenges and Profile, each with an icon.
+
+History lists saved sessions. A free account sees the last 7 days. Older
+sessions stay saved and show as a locked tile with their count. Premium
+sees every session. The 7 day limit is applied in the app, not in the
+database: it is a plan feature, not a security rule, and the Profile totals
+need the older sessions too. If it ever needs to be firm, it should move to
+a database function.
+
+Challenges is a "coming soon" screen. The upgrade sheet has no checkout, so
+its button is off until payments exist.

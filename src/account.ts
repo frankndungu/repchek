@@ -3,6 +3,7 @@
 
 import { getClient, getSession } from "./auth";
 import type { SessionRecord } from "./engine/session";
+import type { HistoryItem } from "./history";
 import type { SessionSummary } from "./progress";
 import type { SessionStats } from "./ui/summary";
 
@@ -168,6 +169,47 @@ export async function loadSessionSummaries(): Promise<SessionSummary[] | null> {
       totalReps: r.total_reps as number,
       cleanReps: r.clean_reps as number,
     }));
+  } catch {
+    return null;
+  }
+}
+
+// Saved sessions for the History tab, newest first. Pass a cutoff to get
+// only the sessions since then, and the count of older ones separately.
+export async function loadHistory(
+  since?: Date,
+): Promise<{ items: HistoryItem[]; older: number } | null> {
+  const client = getClient();
+  if (!client) return null;
+  try {
+    let query = client
+      .from("sessions")
+      .select("client_id, exercise_name, started_at, total_reps, clean_reps")
+      .order("started_at", { ascending: false })
+      .limit(MAX_ROWS);
+    if (since) query = query.gte("started_at", since.toISOString());
+    const { data, error } = await query;
+    if (error || !data) return null;
+
+    let older = 0;
+    if (since) {
+      const { count } = await client
+        .from("sessions")
+        .select("client_id", { count: "exact", head: true })
+        .lt("started_at", since.toISOString());
+      older = count ?? 0;
+    }
+
+    return {
+      items: data.map((r) => ({
+        id: r.client_id as string,
+        exerciseName: r.exercise_name as string,
+        startedAt: r.started_at as string,
+        totalReps: r.total_reps as number,
+        cleanReps: r.clean_reps as number,
+      })),
+      older,
+    };
   } catch {
     return null;
   }
