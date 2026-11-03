@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   levelFor,
   milestonesFor,
+  personalBests,
   streakFor,
   totalsFor,
   xpFor,
@@ -18,7 +19,13 @@ function session(
 ): SessionSummary {
   const d = new Date(NOW);
   d.setDate(d.getDate() - daysAgo);
-  return { startedAt: d.toISOString(), totalReps, cleanReps };
+  return {
+    exerciseId: "pushup",
+    exerciseName: "Push-up (side)",
+    startedAt: d.toISOString(),
+    totalReps,
+    cleanReps,
+  };
 }
 
 describe("xp and level", () => {
@@ -117,5 +124,41 @@ describe("milestones", () => {
       (x) => x.id === "clean-1000",
     );
     expect(m?.todo).toBe("980 reps to go");
+  });
+});
+
+describe("personal bests", () => {
+  it("gives one row per exercise with the best numbers", () => {
+    const row = (id: string, total: number, clean: number) => ({
+      ...session(1, total, clean),
+      exerciseId: id,
+      exerciseName: id === "pushup" ? "Push-up (side)" : "Deadlift",
+    });
+    const bests = personalBests([
+      row("pushup", 20, 15),
+      row("pushup", 30, 27),
+      row("deadlift", 8, 8),
+    ]);
+    expect(bests).toEqual([
+      {
+        exerciseId: "pushup",
+        exerciseName: "Push-up",
+        sessions: 2,
+        mostCleanReps: 27,
+        bestCleanPct: 90,
+      },
+      {
+        exerciseId: "deadlift",
+        exerciseName: "Deadlift",
+        sessions: 1,
+        mostCleanReps: 8,
+        // Under 10 reps, so no rate record yet.
+        bestCleanPct: null,
+      },
+    ]);
+  });
+
+  it("skips sessions with no reps", () => {
+    expect(personalBests([session(0, 0, 0)])).toEqual([]);
   });
 });

@@ -160,11 +160,13 @@ export async function loadSessionSummaries(): Promise<SessionSummary[] | null> {
   try {
     const { data, error } = await client
       .from("sessions")
-      .select("started_at, total_reps, clean_reps")
+      .select("exercise_id, exercise_name, started_at, total_reps, clean_reps")
       .order("started_at", { ascending: false })
       .limit(MAX_ROWS);
     if (error || !data) return null;
     return data.map((r) => ({
+      exerciseId: r.exercise_id as string,
+      exerciseName: r.exercise_name as string,
       startedAt: r.started_at as string,
       totalReps: r.total_reps as number,
       cleanReps: r.clean_reps as number,
@@ -174,42 +176,46 @@ export async function loadSessionSummaries(): Promise<SessionSummary[] | null> {
   }
 }
 
-// Saved sessions for the History tab, newest first. Pass a cutoff to get
-// only the sessions since then, and the count of older ones separately.
-export async function loadHistory(
-  since?: Date,
-): Promise<{ items: HistoryItem[]; older: number } | null> {
+// Every saved session for the History tab, newest first.
+export async function loadHistory(): Promise<HistoryItem[] | null> {
   const client = getClient();
   if (!client) return null;
   try {
-    let query = client
+    const { data, error } = await client
       .from("sessions")
-      .select("client_id, exercise_name, started_at, total_reps, clean_reps")
+      .select(
+        "client_id, exercise_id, exercise_name, started_at, total_reps, clean_reps",
+      )
       .order("started_at", { ascending: false })
       .limit(MAX_ROWS);
-    if (since) query = query.gte("started_at", since.toISOString());
-    const { data, error } = await query;
     if (error || !data) return null;
+    return data.map((r) => ({
+      id: r.client_id as string,
+      exerciseId: r.exercise_id as string,
+      exerciseName: r.exercise_name as string,
+      startedAt: r.started_at as string,
+      totalReps: r.total_reps as number,
+      cleanReps: r.clean_reps as number,
+    }));
+  } catch {
+    return null;
+  }
+}
 
-    let older = 0;
-    if (since) {
-      const { count } = await client
-        .from("sessions")
-        .select("client_id", { count: "exact", head: true })
-        .lt("started_at", since.toISOString());
-      older = count ?? 0;
-    }
-
-    return {
-      items: data.map((r) => ({
-        id: r.client_id as string,
-        exerciseName: r.exercise_name as string,
-        startedAt: r.started_at as string,
-        totalReps: r.total_reps as number,
-        cleanReps: r.clean_reps as number,
-      })),
-      older,
-    };
+// The full record of one saved session, to reopen its report.
+export async function loadSessionRecord(
+  clientId: string,
+): Promise<SessionRecord | null> {
+  const client = getClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client
+      .from("sessions")
+      .select("record")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data.record as SessionRecord;
   } catch {
     return null;
   }

@@ -97,8 +97,15 @@ import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
 import * as voice from "./ui/voice";
 import { initAuth } from "./ui/auth";
-import { initProfile, onSessionFinished, refreshAccount } from "./ui/profile";
-import { initTabs, resetTabs } from "./ui/tabs";
+import {
+  clearSummarySave,
+  initProfile,
+  onSessionFinished,
+  refreshAccount,
+} from "./ui/profile";
+import { showComparison } from "./ui/history";
+import { initTabs, resetTabs, showTab } from "./ui/tabs";
+import { loadSessionRecord } from "./account";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
@@ -857,7 +864,7 @@ q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
 q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
 
 initProfile();
-initTabs();
+initTabs(openSavedReport);
 
 initAuth((value) => {
   signedIn = value;
@@ -1072,7 +1079,35 @@ function buildRecord(): SessionRecord | null {
   });
 }
 
+// True while a report opened from History is on screen.
+let reportFromHistory = false;
+
+// Reopens a saved session's report. Clips are not kept, so it has none.
+async function openSavedReport(id: string): Promise<boolean> {
+  const record = await loadSessionRecord(id);
+  if (!record) return false;
+  reportFromHistory = true;
+  currentRecord = record;
+  currentStats = computeStats(record);
+  renderSummary(record, currentStats);
+  renderClips([], record.exerciseId);
+  clearSummarySave();
+  void showComparison({
+    exerciseId: record.exerciseId,
+    exerciseName: record.exerciseName,
+    startedAt: record.startedAt,
+    totalReps: currentStats.totalReps,
+    cleanReps: currentStats.cleanReps,
+  });
+  showTab("train");
+  startScreen.hidden = true;
+  summaryScreen.hidden = false;
+  summaryScreen.scrollTop = 0;
+  return true;
+}
+
 function showSummary(record: SessionRecord): void {
+  reportFromHistory = false;
   currentRecord = record;
   currentStats = computeStats(record);
   renderSummary(record, currentStats);
@@ -1443,6 +1478,13 @@ endBtn.addEventListener("click", () => {
 });
 
 doneBtn.addEventListener("click", () => {
+  if (reportFromHistory) {
+    reportFromHistory = false;
+    summaryScreen.hidden = true;
+    startScreen.hidden = false;
+    showTab("history");
+    return;
+  }
   freeClips();
   summaryScreen.hidden = true;
   startScreen.hidden = false;

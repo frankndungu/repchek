@@ -3,6 +3,8 @@
 
 // One saved session, as much as the maths needs.
 export interface SessionSummary {
+  exerciseId: string;
+  exerciseName: string;
   startedAt: string;
   totalReps: number;
   cleanReps: number;
@@ -219,4 +221,39 @@ export function milestonesFor(
       todo: toGo(8, best, "weeks"),
     },
   ];
+}
+
+export interface PersonalBest {
+  exerciseId: string;
+  exerciseName: string;
+  sessions: number;
+  // Most clean reps in one session.
+  mostCleanReps: number;
+  // Best clean rate in a session of at least BEST_RATE_MIN_REPS reps, so one
+  // clean rep cannot count as 100%. Null until there is such a session.
+  bestCleanPct: number | null;
+}
+
+const BEST_RATE_MIN_REPS = 10;
+
+// One row per exercise, most trained first.
+export function personalBests(sessions: SessionSummary[]): PersonalBest[] {
+  const byExercise = new Map<string, SessionSummary[]>();
+  for (const s of countedSessions(sessions)) {
+    byExercise.set(s.exerciseId, [...(byExercise.get(s.exerciseId) ?? []), s]);
+  }
+  return [...byExercise.entries()]
+    .map(([exerciseId, list]) => {
+      const rated = list.filter((s) => s.totalReps >= BEST_RATE_MIN_REPS);
+      return {
+        exerciseId,
+        exerciseName: list[0].exerciseName.split(" (")[0],
+        sessions: list.length,
+        mostCleanReps: Math.max(...list.map((s) => s.cleanReps)),
+        bestCleanPct: rated.length
+          ? Math.max(...rated.map((s) => Math.round((s.cleanReps / s.totalReps) * 100)))
+          : null,
+      };
+    })
+    .sort((a, b) => b.sessions - a.sessions);
 }

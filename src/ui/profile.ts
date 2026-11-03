@@ -17,12 +17,14 @@ import type { SessionRecord } from "../engine/session";
 import {
   levelFor,
   milestonesFor,
+  personalBests,
   streakFor,
   totalsFor,
   xpFor,
 } from "../progress";
 import type { Milestone, SessionSummary } from "../progress";
 import type { SessionStats } from "./summary";
+import { showComparison } from "./history";
 
 const q = <T extends Element>(selector: string) =>
   document.querySelector<T>(selector)!;
@@ -179,6 +181,43 @@ function drawProfile(): void {
   q<HTMLElement>("#milestones-count").textContent =
     `${earned.length} of ${all.length}`;
   q<HTMLElement>("#milestones-list").replaceChildren(...all.map(badge));
+  drawBests(sessions);
+}
+
+function drawBests(all: SessionSummary[]): void {
+  const box = q<HTMLElement>("#profile-bests");
+  const bests = personalBests(all);
+  if (bests.length === 0) {
+    const note = document.createElement("p");
+    note.className = "py-4 text-[13px] text-muted";
+    note.textContent = "Finish a session and your bests will show here.";
+    box.replaceChildren(note);
+    return;
+  }
+  box.replaceChildren(
+    ...bests.map((best, i) => {
+      const el = document.createElement("div");
+      el.className = `flex items-center justify-between gap-3 py-3${i === 0 ? "" : " border-t border-line"}`;
+      const name = document.createElement("b");
+      name.className = "min-w-0 truncate text-[14px]";
+      name.textContent = best.exerciseName;
+      const detail = document.createElement("span");
+      detail.className = "shrink-0 text-right text-[12px] leading-snug text-muted";
+      detail.textContent =
+        best.bestCleanPct === null
+          ? `${best.mostCleanReps} clean reps`
+          : `${best.mostCleanReps} clean reps, best rate ${best.bestCleanPct}%`;
+      el.append(name, detail);
+      return el;
+    }),
+  );
+}
+
+// Clears what a finished session showed, for a report opened from History.
+export function clearSummarySave(): void {
+  q<HTMLElement>("#summary-xp").hidden = true;
+  retryBtn.hidden = true;
+  savedLine.textContent = "";
 }
 
 // --- Loading --------------------------------------------------------------
@@ -249,6 +288,13 @@ export async function onSessionFinished(
       "Not saved yet. It will send when you are back online.";
     retryBtn.hidden = false;
   }
+  void showComparison({
+    exerciseId: record.exerciseId,
+    exerciseName: record.exerciseName,
+    startedAt: record.startedAt,
+    totalReps: stats.totalReps,
+    cleanReps: stats.cleanReps,
+  });
   const before = sessions ? xpFor(sessions) : 0;
   drawSummaryXp(stats.cleanReps, before + (saved ? 0 : stats.cleanReps));
 }

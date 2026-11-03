@@ -1119,6 +1119,12 @@
           </div>
         </div>
 
+        <p
+          id="summary-compare"
+          class="rounded-2xl border border-line bg-sand px-4 py-3 text-[14px] leading-snug"
+          hidden
+        ></p>
+
         <div
           id="summary-xp"
           class="flex flex-col gap-2 rounded-3xl bg-forest px-4 py-3.5 text-white"
@@ -1347,6 +1353,12 @@
         </div>
         <div id="profile-milestones" class="grid grid-cols-2 gap-2.5"></div>
 
+        <h2 class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Personal bests</h2>
+        <div
+          id="profile-bests"
+          class="flex flex-col rounded-3xl border border-line bg-white px-4"
+        ></div>
+
         <h2 class="mt-2 text-[22px] leading-none font-bold tracking-[-0.03em]">Settings</h2>
 
         <div class="flex flex-col rounded-3xl border border-line bg-white px-4">
@@ -1373,7 +1385,7 @@
         >
           <div class="flex items-center justify-between gap-3">
             <b class="text-[14px]">Free plan</b>
-            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">7 days of history</span>
+            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Full history</span>
           </div>
           <button
             type="button"
@@ -1390,7 +1402,7 @@
         >
           <div class="flex items-center justify-between gap-3">
             <b class="text-[14px]">Premium</b>
-            <span class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase">Full history</span>
+            <span class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase">Early access</span>
           </div>
           <p class="text-[12px] text-[#c5d3cc]">Premium is on for this account.</p>
         </div>
@@ -1571,53 +1583,40 @@
         aria-label="History"
         hidden
       >
-        <div class="flex items-center justify-between gap-3">
-          <h1 class="text-[32px] leading-none font-extrabold tracking-[-0.03em]">History</h1>
-          <span
-            id="history-plan"
-            class="rounded-full bg-sand px-3 py-1 text-[10px] font-bold tracking-[0.06em] text-forest uppercase"
-          ></span>
-        </div>
-        <p
-          id="history-window"
-          class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
-        ></p>
+        <h1 class="text-[32px] leading-none font-extrabold tracking-[-0.03em]">History</h1>
+
         <p
           id="history-error"
           class="rounded-2xl border border-line bg-sand px-4 py-3 text-sm"
           role="status"
           hidden
         ></p>
-        <p id="history-empty" class="text-[15px] leading-snug text-muted" hidden></p>
+
+        <!-- Am I improving? Filled by ui/history.ts. -->
         <div
-          id="history-list"
-          class="flex flex-col rounded-3xl border border-line bg-white px-4"
+          id="history-trend"
+          class="flex flex-col gap-2 rounded-3xl bg-forest px-4 py-4 text-white"
+          hidden
+        >
+          <span
+            id="history-trend-label"
+            class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase"
+          ></span>
+          <b id="history-trend-title" class="text-[26px] leading-none font-extrabold tracking-[-0.03em]"></b>
+          <p id="history-trend-sub" class="text-[13px] leading-snug text-[#c5d3cc]"></p>
+          <svg id="history-spark" viewBox="0 0 100 32" preserveAspectRatio="none" class="mt-1 h-9 w-full" aria-hidden="true" hidden></svg>
+        </div>
+
+        <div
+          id="history-chips"
+          class="-mx-5 flex shrink-0 gap-2 overflow-x-auto px-5 pb-1"
+          role="group"
+          aria-label="Exercise"
           hidden
         ></div>
 
-        <div
-          id="history-locked"
-          class="relative overflow-hidden rounded-3xl border border-line bg-white"
-          hidden
-        >
-          <div class="pointer-events-none flex flex-col gap-2 px-4 py-4 opacity-70 blur-[5px]" aria-hidden="true">
-            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">All sessions</span>
-            <svg viewBox="0 0 220 90" class="block h-auto w-full">
-              <g stroke="#e6e2da"><path d="M0 10H220M0 45H220M0 80H220" /></g>
-              <path d="M8 66L38 58L68 61L98 44L128 36L158 40L188 24L212 16" fill="none" stroke="#17352B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>
-          <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center">
-            <b id="history-locked-title" class="text-[14px]"></b>
-            <button
-              id="history-upgrade"
-              type="button"
-              class="min-h-11 rounded-full bg-ink px-5 text-[13px] font-semibold text-white"
-            >
-              See your progress
-            </button>
-          </div>
-        </div>
+        <div id="history-groups" class="flex flex-col gap-5"></div>
+        <p id="history-empty" class="text-[15px] leading-snug text-muted" hidden></p>
 
         <div class="grow"></div>
 
@@ -1812,42 +1811,6 @@
               Profile
             </button>
           </nav>
-        </div>
-      </section>
-
-      <!-- From step 7 of docs/design/app-mockup.html. There is no checkout yet. -->
-      <section
-        id="upgrade-sheet"
-        class="absolute inset-0 z-40 bg-black/35"
-        aria-labelledby="upgrade-title"
-        hidden
-      >
-        <div
-          class="absolute right-0 bottom-0 left-0 mx-auto flex max-w-md flex-col gap-3 rounded-t-[26px] bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
-        >
-          <b id="upgrade-title" class="text-[16px] tracking-[-0.02em]">repchek Premium</b>
-          <div class="text-[38px] leading-none font-extrabold tracking-[-0.04em]">
-            $3.99
-            <small class="text-[12px] font-medium tracking-normal text-muted">per month</small>
-          </div>
-          <ul class="flex flex-col gap-2 text-[14px]">
-            <li class="flex gap-2.5"><span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-ink" aria-hidden="true"></span>Your full history, every session</li>
-            <li class="flex gap-2.5"><span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-ink" aria-hidden="true"></span>Coming next: trends and personal records</li>
-          </ul>
-          <button
-            type="button"
-            disabled
-            class="min-h-14 w-full rounded-full bg-ink text-[16px] font-semibold text-white disabled:opacity-40"
-          >
-            Premium is coming soon
-          </button>
-          <button
-            id="upgrade-close"
-            type="button"
-            class="min-h-11 w-full rounded-full border-[1.5px] border-[#c9c4b9] bg-white text-[14px] font-semibold"
-          >
-            Not now
-          </button>
         </div>
       </section>
 
