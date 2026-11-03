@@ -1,7 +1,7 @@
 // The four tabs: Train, History, Challenges, Profile. Train is the start
 // screen. The other three are screens that sit on top of it.
 
-import { refreshAccount, resetAccountUi } from "./profile";
+import { refreshAccount, resetAccountUi, waitForPremium } from "./profile";
 import { initHistory, refreshHistory, resetHistory } from "./history";
 
 type Tab = "train" | "history" | "challenges" | "profile";
@@ -39,4 +39,20 @@ export function initTabs(openReport: (id: string) => Promise<boolean>): void {
     const button = (event.target as Element).closest<HTMLElement>("[data-tab]");
     if (button) showTab(button.dataset.tab as Tab);
   });
+}
+
+// Back from Polar after paying: the address ends in ?checkout=success. Open
+// Profile and wait for Premium to turn on.
+export function handleCheckoutReturn(): void {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("checkout") !== "success") return;
+  params.delete("checkout");
+  const rest = params.toString();
+  window.history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${rest ? `?${rest}` : ""}${window.location.hash}`,
+  );
+  showTab("profile");
+  void waitForPremium();
 }

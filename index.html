@@ -1387,7 +1387,11 @@
             <b class="text-[14px]">Free plan</b>
             <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Full history</span>
           </div>
+          <p class="text-[13px] leading-snug text-muted">
+            Premium adds progress charts, trends and what to try next.
+          </p>
           <button
+            id="plan-upgrade"
             type="button"
             disabled
             class="min-h-11 w-full rounded-full bg-ink text-[14px] font-semibold text-white disabled:opacity-40"
@@ -1397,15 +1401,27 @@
         </div>
         <div
           id="plan-premium"
-          class="flex flex-col gap-1.5 rounded-3xl bg-forest px-4 py-3.5 text-white"
+          class="flex flex-col gap-2 rounded-3xl bg-forest px-4 py-3.5 text-white"
           hidden
         >
           <div class="flex items-center justify-between gap-3">
             <b class="text-[14px]">Premium</b>
-            <span class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase">Early access</span>
+            <span
+              id="plan-premium-label"
+              class="text-[11px] font-semibold tracking-[0.12em] text-[#c5d3cc] uppercase"
+            ></span>
           </div>
-          <p class="text-[12px] text-[#c5d3cc]">Premium is on for this account.</p>
+          <p id="plan-premium-note" class="text-[12px] text-[#c5d3cc]"></p>
+          <button
+            id="plan-manage"
+            type="button"
+            class="min-h-11 w-full rounded-full bg-white text-[14px] font-semibold text-ink disabled:opacity-40"
+            hidden
+          >
+            Manage subscription
+          </button>
         </div>
+        <p id="plan-message" class="text-[13px] leading-snug text-muted empty:hidden" role="status"></p>
 
         <div class="flex flex-col rounded-3xl border border-line bg-white px-4">
           <a

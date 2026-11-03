@@ -15,6 +15,11 @@ export interface Profile {
   name: string;
   plan: Plan;
   avatarUrl: string | null;
+  // Set when the plan comes from a paid Polar subscription. Empty for a plan
+  // that was given by hand.
+  hasSubscription: boolean;
+  premiumUntil: string | null;
+  cancelAtPeriodEnd: boolean;
 }
 
 const PENDING_KEY = "repchek.pendingSessions";
@@ -117,14 +122,22 @@ export async function loadProfile(): Promise<Profile | null> {
   const user = session.user;
   let name = "";
   let plan: Plan = "free";
+  let hasSubscription = false;
+  let premiumUntil: string | null = null;
+  let cancelAtPeriodEnd = false;
   try {
     const { data } = await client
       .from("profiles")
-      .select("display_name, plan")
+      .select(
+        "display_name, plan, premium_until, cancel_at_period_end, polar_subscription_id",
+      )
       .eq("id", user.id)
       .maybeSingle();
     name = data?.display_name ?? "";
     plan = data?.plan === "premium" ? "premium" : "free";
+    hasSubscription = Boolean(data?.polar_subscription_id);
+    premiumUntil = (data?.premium_until as string | null) ?? null;
+    cancelAtPeriodEnd = data?.cancel_at_period_end === true;
   } catch {
     // Offline: fall through with the defaults.
   }
@@ -136,6 +149,9 @@ export async function loadProfile(): Promise<Profile | null> {
     name: name || email.split("@")[0] || "You",
     plan,
     avatarUrl: typeof meta.avatar_url === "string" ? meta.avatar_url : null,
+    hasSubscription,
+    premiumUntil,
+    cancelAtPeriodEnd,
   };
 }
 
