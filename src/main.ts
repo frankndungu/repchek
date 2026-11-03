@@ -1,4 +1,5 @@
 import { inject, track } from "@vercel/analytics";
+import { cleanAddressBar, stripSensitiveParams } from "./privacy";
 import {
   startCamera,
   explainCameraError,
@@ -115,7 +116,11 @@ import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
 
-inject();
+// Take credentials out of the address before anything can record it.
+cleanAddressBar();
+inject({
+  beforeSend: (event) => ({ ...event, url: stripSensitiveParams(event.url) }),
+});
 
 const GOOD_COLOR = "#22c55e";
 const BAD_COLOR = "#ef4444";
