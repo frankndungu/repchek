@@ -92,7 +92,7 @@ export function describeLoad(record: SessionRecord): string {
   return record.weightKg ? `${record.weightKg} kg` : "";
 }
 
-function faultMessage(exerciseId: string, ruleId: string): string {
+export function faultMessage(exerciseId: string, ruleId: string): string {
   const profile = PROFILES.find((p) => p.id === exerciseId);
   return profile?.rules.find((r) => r.id === ruleId)?.message ?? ruleId;
 }

@@ -3,6 +3,8 @@
 
 import { getClient, getSession } from "./auth";
 import type { SessionRecord } from "./engine/session";
+import { fromRecord } from "./analytics";
+import type { AnalyticsSession } from "./analytics";
 import type { HistoryItem } from "./history";
 import type { SessionSummary } from "./progress";
 import type { SessionStats } from "./ui/summary";
@@ -213,6 +215,26 @@ export async function loadHistory(): Promise<HistoryItem[] | null> {
       totalReps: r.total_reps as number,
       cleanReps: r.clean_reps as number,
     }));
+  } catch {
+    return null;
+  }
+}
+
+// The newest saved sessions with everything the analytics need. Heavier than
+// the history list, so it is only used for Premium.
+const ANALYTICS_ROWS = 500;
+
+export async function loadAnalyticsSessions(): Promise<AnalyticsSession[] | null> {
+  const client = getClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client
+      .from("sessions")
+      .select("record")
+      .order("started_at", { ascending: false })
+      .limit(ANALYTICS_ROWS);
+    if (error || !data) return null;
+    return data.map((r) => fromRecord(r.record as SessionRecord));
   } catch {
     return null;
   }

@@ -517,3 +517,33 @@ History is grouped by week with calm tiles and exercise chips. Logic is in
 
 Next: the free share card gets the improvement line, per set data capture
 for analytics, then Premium analytics and the upgrade screen, then payments.
+
+## Premium analytics
+
+History now has Sessions and Progress. Progress is the Premium product.
+
+Premium sees, per exercise and for 4 weeks, 12 weeks or all time:
+
+- A clean rate chart.
+- What we noticed: the clean rate trend, which set form slips in, the most
+  common fault and how it is changing, reps that slow down through a set,
+  and partial reps.
+- What to try next, from the last three sessions: more weight (2.5 kg) after
+  three clean sessions at a weight, more reps for bodyweight, clean up form
+  when the rate is under 70%, or hold.
+- A comparison of any two sessions.
+- A record timeline across every exercise.
+
+A free account sees a blurred chart of their own data and one real sentence
+about their trend, plus what Premium adds. Under 3 sessions of an exercise
+it says how many are missing.
+
+Everything is worked out from what is already saved (`src/analytics.ts`,
+with tests). No new data is captured. The engine's depth reading stops at
+the turning point, so it only separates full from partial reps, which the
+record already stores. Real range of motion needs a new measurement and
+should be tried on a phone first.
+
+As with the old history limit, the Premium gate is in the app, not the
+database. The analytics read the user's own sessions, so this is a plan
+feature and not a secret. Premium loads the newest 500 sessions.

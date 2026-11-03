@@ -3,6 +3,7 @@
 
 import { refreshAccount, resetAccountUi, waitForPremium } from "./profile";
 import { initHistory, refreshHistory, resetHistory } from "./history";
+import { initProgress, refreshProgress, resetProgress } from "./progress";
 
 type Tab = "train" | "history" | "challenges" | "profile";
 
@@ -23,18 +24,25 @@ export function showTab(tab: Tab): void {
     if (name === tab) el.scrollTop = 0;
   }
   if (tab === "profile") void refreshAccount();
-  if (tab === "history") void refreshAccount().then(refreshHistory);
+  if (tab === "history") {
+    void refreshAccount().then(async () => {
+      await refreshHistory();
+      await refreshProgress();
+    });
+  }
 }
 
 // Back to a clean state, for when the user signs out.
 export function resetTabs(): void {
   resetAccountUi();
   resetHistory();
+  resetProgress();
   showTab("train");
 }
 
 export function initTabs(openReport: (id: string) => Promise<boolean>): void {
   initHistory(openReport);
+  initProgress();
   document.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLElement>("[data-tab]");
     if (button) showTab(button.dataset.tab as Tab);
