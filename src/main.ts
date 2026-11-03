@@ -97,12 +97,8 @@ import type { SessionStats } from "./ui/summary";
 import { shareSession } from "./ui/share";
 import * as voice from "./ui/voice";
 import { initAuth } from "./ui/auth";
-import {
-  initProfile,
-  onSessionFinished,
-  refreshAccount,
-  resetAccountUi,
-} from "./ui/profile";
+import { initProfile, onSessionFinished, refreshAccount } from "./ui/profile";
+import { initTabs, resetTabs } from "./ui/tabs";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
@@ -861,13 +857,14 @@ q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
 q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
 
 initProfile();
+initTabs();
 
 initAuth((value) => {
   signedIn = value;
   if (!value) {
     howScreen.hidden = true;
     cameraScreen.hidden = true;
-    resetAccountUi();
+    resetTabs();
     return;
   }
   void refreshAccount();

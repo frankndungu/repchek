@@ -198,6 +198,11 @@ export async function refreshAccount(): Promise<void> {
   drawProfile();
 }
 
+// The plan of the signed in user. Free until the profile has loaded.
+export function currentPlan(): "free" | "premium" {
+  return profile?.plan ?? "free";
+}
+
 export function resetAccountUi(): void {
   profile = null;
   sessions = null;
@@ -254,26 +259,7 @@ retryBtn.addEventListener("click", () => {
 
 // --- Tabs and buttons -----------------------------------------------------
 
-function showProfile(): void {
-  milestonesScreen.hidden = true;
-  profileScreen.hidden = false;
-  profileScreen.scrollTop = 0;
-  void refreshAccount();
-}
-
-function showTrain(): void {
-  profileScreen.hidden = true;
-  milestonesScreen.hidden = true;
-}
-
 export function initProfile(): void {
-  document.addEventListener("click", (event) => {
-    const tab = (event.target as Element).closest<HTMLElement>("[data-tab]");
-    if (!tab) return;
-    if (tab.dataset.tab === "profile") showProfile();
-    else showTrain();
-  });
-
   q<HTMLButtonElement>("#milestones-open").addEventListener("click", () => {
     milestonesScreen.hidden = false;
     milestonesScreen.scrollTop = 0;
