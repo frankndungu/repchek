@@ -22,6 +22,8 @@ export interface Profile {
   hasSubscription: boolean;
   premiumUntil: string | null;
   cancelAtPeriodEnd: boolean;
+  // Two letters for the avatar, from the full name.
+  initials: string;
 }
 
 const PENDING_KEY = "repchek.pendingSessions";
@@ -117,6 +119,17 @@ export function clearPending(): void {
   writePending([]);
 }
 
+// "Frank Ndung'u" -> "FN", "frank@email.com" -> "FR".
+export function initialsOf(text: string): string {
+  const words = text
+    .split(/[\s@._-]+/)
+    .filter((w) => /[a-z0-9]/i.test(w));
+  if (words.length >= 2 && !text.includes("@")) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return (words[0] ?? "R").slice(0, 2).toUpperCase();
+}
+
 export async function loadProfile(): Promise<Profile | null> {
   const client = getClient();
   const session = await getSession();
@@ -154,6 +167,12 @@ export async function loadProfile(): Promise<Profile | null> {
     hasSubscription,
     premiumUntil,
     cancelAtPeriodEnd,
+    initials: initialsOf(
+      (typeof meta.full_name === "string" && meta.full_name) ||
+        (typeof meta.name === "string" && meta.name) ||
+        name ||
+        email,
+    ),
   };
 }
 
@@ -194,27 +213,44 @@ export async function loadSessionSummaries(): Promise<SessionSummary[] | null> {
   }
 }
 
-// Every saved session for the History tab, newest first.
+// Every saved session for the History tab, newest first. The planned sets and
+// reps and the weight are read out of the saved record for the Train screen.
+// If that part of the query is ever refused, the plain list still loads, so
+// History never depends on it.
+const HISTORY_COLUMNS =
+  "client_id, exercise_id, exercise_name, started_at, total_reps, clean_reps";
+
 export async function loadHistory(): Promise<HistoryItem[] | null> {
   const client = getClient();
   if (!client) return null;
-  try {
-    const { data, error } = await client
+  const ask = (columns: string) =>
+    client
       .from("sessions")
-      .select(
-        "client_id, exercise_id, exercise_name, started_at, total_reps, clean_reps",
-      )
+      .select(columns)
       .order("started_at", { ascending: false })
       .limit(MAX_ROWS);
+  try {
+    let { data, error } = await ask(
+      `${HISTORY_COLUMNS}, target:record->target, weight:record->weightKg`,
+    );
+    if (error || !data) {
+      ({ data, error } = await ask(HISTORY_COLUMNS));
+    }
     if (error || !data) return null;
-    return data.map((r) => ({
-      id: r.client_id as string,
-      exerciseId: r.exercise_id as string,
-      exerciseName: r.exercise_name as string,
-      startedAt: r.started_at as string,
-      totalReps: r.total_reps as number,
-      cleanReps: r.clean_reps as number,
-    }));
+    return (data as unknown as Record<string, unknown>[]).map((r) => {
+      const target = r.target as { sets?: number; reps?: number } | null;
+      return {
+        id: r.client_id as string,
+        exerciseId: r.exercise_id as string,
+        exerciseName: r.exercise_name as string,
+        startedAt: r.started_at as string,
+        totalReps: r.total_reps as number,
+        cleanReps: r.clean_reps as number,
+        targetSets: target?.sets,
+        targetReps: target?.reps,
+        weightKg: (r.weight as number | null | undefined) ?? null,
+      };
+    });
   } catch {
     return null;
   }

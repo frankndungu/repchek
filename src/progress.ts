@@ -38,7 +38,7 @@ export function levelFor(xp: number): LevelInfo {
   return { level, into: left, needed: xpToFinishLevel(level) };
 }
 
-// A week counts when it has this many sessions.
+// A week counts when you trained on this many different days.
 export const WEEKLY_GOAL = 3;
 
 // Monday of the week the date is in, in the lifter's own time zone, as a
@@ -54,23 +54,68 @@ function weekOf(date: Date): number {
 
 const DAYS_IN_WEEK = 7;
 
+// The calendar day a date is on, in the lifter's own time zone, as a count.
+function dayOf(date: Date): number {
+  return Math.round(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000,
+  );
+}
+
 function countedSessions(sessions: SessionSummary[]): SessionSummary[] {
   return sessions.filter((s) => s.totalReps > 0);
 }
 
-function weeksMet(sessions: SessionSummary[]): Map<number, number> {
-  const perWeek = new Map<number, number>();
+// The days of each week that had a session. Two sessions on one day are one
+// day, because the goal is days trained, not sessions.
+function daysByWeek(sessions: SessionSummary[]): Map<number, Set<number>> {
+  const perWeek = new Map<number, Set<number>>();
   for (const s of countedSessions(sessions)) {
-    const week = weekOf(new Date(s.startedAt));
-    perWeek.set(week, (perWeek.get(week) ?? 0) + 1);
+    const date = new Date(s.startedAt);
+    const week = weekOf(date);
+    const days = perWeek.get(week) ?? new Set<number>();
+    days.add(dayOf(date));
+    perWeek.set(week, days);
   }
   return perWeek;
+}
+
+function weeksMet(sessions: SessionSummary[]): Map<number, number> {
+  const perWeek = new Map<number, number>();
+  for (const [week, days] of daysByWeek(sessions)) perWeek.set(week, days.size);
+  return perWeek;
+}
+
+export interface WeekDay {
+  // "M", "T" and so on, or "Today" for today.
+  label: string;
+  trained: boolean;
+  today: boolean;
+}
+
+const WEEK_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
+
+// Monday to Sunday of this week: which days had a session.
+export function weekDays(
+  sessions: SessionSummary[],
+  now: Date = new Date(),
+): WeekDay[] {
+  const monday = weekOf(now);
+  const today = dayOf(now);
+  const trained = daysByWeek(sessions).get(monday) ?? new Set<number>();
+  return WEEK_LETTERS.map((letter, i) => {
+    const day = monday + i;
+    return {
+      label: day === today ? "Today" : letter,
+      trained: trained.has(day),
+      today: day === today,
+    };
+  });
 }
 
 export interface StreakInfo {
   // Weeks in a row that reached the goal. This week counts once it has.
   weeks: number;
-  // Sessions so far this week, and the goal.
+  // Days trained so far this week, and the goal.
   thisWeek: number;
   goal: number;
   // Best run ever.

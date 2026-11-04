@@ -4,6 +4,7 @@
 import { refreshAccount, resetAccountUi, waitForPremium } from "./profile";
 import { initHistory, refreshHistory, resetHistory } from "./history";
 import { initProgress, refreshProgress, resetProgress } from "./progress";
+import { hideExercises, refreshTrain, resetTrain } from "./train";
 
 type Tab = "train" | "history" | "challenges" | "profile";
 
@@ -19,10 +20,12 @@ const milestones = q<HTMLElement>("#milestones-screen");
 
 export function showTab(tab: Tab): void {
   milestones.hidden = true;
+  hideExercises();
   for (const [name, el] of Object.entries(screens)) {
     el.hidden = name !== tab;
     if (name === tab) el.scrollTop = 0;
   }
+  if (tab === "train") void refreshTrain();
   if (tab === "profile") void refreshAccount();
   if (tab === "history") {
     void refreshAccount().then(async () => {
@@ -37,6 +40,7 @@ export function resetTabs(): void {
   resetAccountUi();
   resetHistory();
   resetProgress();
+  resetTrain();
   showTab("train");
 }
 
