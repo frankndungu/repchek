@@ -1,6 +1,17 @@
 import { inject, track } from "@vercel/analytics";
 import { cleanAddressBar, stripSensitiveParams } from "./privacy";
 import {
+  applyDebugParam,
+  DiagnosticLog,
+  debugModeOn,
+  deliverFile,
+  packLandmarks,
+  packMetrics,
+  RawClip,
+  round,
+} from "./diagnostics";
+import type { FrameRow } from "./diagnostics";
+import {
   startCamera,
   explainCameraError,
   isUserFacing,
@@ -25,6 +36,8 @@ import { FrontReferenceTracker } from "./engine/reference";
 import {
   computeFrameMetrics,
   dominantSide,
+  FACING_CAMERA_RATIO,
+  facingRatio,
   frameConfidence,
   missingParts,
 } from "./engine/angles";
@@ -59,7 +72,7 @@ import {
   findExercise,
   profileFor,
 } from "./profiles";
-import type { ExerciseChoice, PhonePosition, Section } from "./profiles";
+import type { ExerciseChoice, PhonePosition } from "./profiles";
 import {
   deleteActiveWorkoutCheckpoint,
   getActiveWorkoutCheckpoint,
@@ -117,6 +130,7 @@ import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
 
 // Take credentials out of the address before anything can record it.
+applyDebugParam();
 cleanAddressBar();
 inject({
   beforeSend: (event) => ({ ...event, url: stripSensitiveParams(event.url) }),
@@ -164,10 +178,6 @@ const CHIP_OFF = "border-[#c9c4b9] bg-white text-ink font-medium";
 // Selected on the start screen until someone picks another. No equipment,
 // and the camera sees the whole body on the floor.
 const DEFAULT_EXERCISE_ID = "push-up";
-// Folded away on the start screen, see gymSection().
-const GYM_SECTION: Section = "At the gym";
-// The same chevron as More options in index.html.
-const CHEVRON_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>`;
 
 type FacingMode = CameraOptions["facingMode"];
 
@@ -313,6 +323,20 @@ const animationLoop = new AnimationLoop(
 const completionTimer = new CompletionTimer();
 let lastVideoTime = -1;
 let lowConfidenceSince: number | null = null;
+// A side-on exercise, but the person is facing the phone: the pill says
+// TURN SIDEWAYS instead of leaving them to guess from STEP INTO VIEW.
+const FACING_HINT_AFTER_MS = 700;
+const FACING_FORGET_AFTER_MS = 1500;
+let facingSince: number | null = null;
+let lastPoseAt = 0;
+let turnSideways = false;
+
+// Debug capture, only when the app was opened once with ?debug=1. See
+// diagnostics.ts.
+const debugMode = debugModeOn();
+const diag = new DiagnosticLog();
+let rawClip: RawClip | null = null;
+let rawClipResult: Promise<Blob | null> | null = null;
 let trackingHint = "";
 let mirrored = false;
 let currentRecord: SessionRecord | null = null;
@@ -338,10 +362,6 @@ function phonePosition(exercise: ExerciseChoice): PhonePosition {
 
 // One chip per exercise, grouped by where you train.
 function renderChips(): void {
-  // Every tap renders the chips again, which must not fold up the gym
-  // section someone just opened.
-  const gymWasOpen = chipsEl.querySelector("details")?.open ?? false;
-  const selected = findExercise(selectedExerciseId);
   chipsEl.replaceChildren();
   for (const section of SECTIONS) {
     const row = document.createElement("div");
@@ -358,12 +378,6 @@ function renderChips(): void {
       row.append(chip);
     }
 
-    if (section === GYM_SECTION) {
-      const open = gymWasOpen || selected.section === section;
-      chipsEl.append(gymSection(row, open));
-      continue;
-    }
-
     const heading = document.createElement("h3");
     heading.className =
       "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
@@ -375,28 +389,6 @@ function renderChips(): void {
     chipsEl.append(block);
   }
   renderExerciseCard();
-}
-
-// The gym lifts start folded away, with a warning: a bench or a machine
-// hides part of the body, so tracking there is the least reliable. Styled
-// like More options.
-function gymSection(row: HTMLElement, open: boolean): HTMLDetailsElement {
-  const details = document.createElement("details");
-  details.className = "group rounded-3xl border border-line bg-sand";
-  details.open = open;
-  details.innerHTML = `
-    <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-      <span class="flex min-w-0 flex-col gap-0.5">
-        <span class="text-[15px] font-semibold">At the gym: benches and machines</span>
-        <span class="text-[12px] leading-snug text-muted">Equipment hides your body. Expect false alarms.</span>
-      </span>
-      ${CHEVRON_ICON}
-    </summary>`;
-  const body = document.createElement("div");
-  body.className = "border-t border-line px-4 py-3";
-  body.append(row);
-  details.append(body);
-  return details;
 }
 
 // The card under the chips: the exercise, where the phone goes if there is
@@ -447,6 +439,49 @@ positionPicker.addEventListener("click", (event) => {
 });
 
 renderChips();
+
+const debugExportEl = q<HTMLElement>("#debug-export");
+const debugNumbersBtn = q<HTMLButtonElement>("#debug-numbers");
+const debugVideoBtn = q<HTMLButtonElement>("#debug-video");
+
+// The Debug data row in More options. Only there in debug mode.
+function renderDebugExport(): void {
+  debugExportEl.hidden = !debugMode;
+  if (!debugMode) return;
+  const note = q<HTMLElement>("#debug-export-note");
+  if (diag.hasData) {
+    note.textContent = `Last set: ${diag.meta.profile as string}, ${diag.rows.length} frames. Send both to Claude.`;
+  } else {
+    note.textContent = "Debug mode is on. Do a set, then send the numbers and the video.";
+  }
+  debugNumbersBtn.disabled = !diag.hasData;
+  debugVideoBtn.disabled = rawClipResult === null;
+}
+
+function debugFileName(kind: string, ext: string): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  return `repchek-${kind}-${String(diag.meta.profile ?? "set")}-${stamp}.${ext}`;
+}
+
+debugNumbersBtn.addEventListener("click", () => {
+  void deliverFile(
+    new Blob([diag.json()], { type: "application/json" }),
+    debugFileName("numbers", "json"),
+  );
+});
+
+debugVideoBtn.addEventListener("click", async () => {
+  const blob = rawClipResult ? await rawClipResult : null;
+  const note = q<HTMLElement>("#debug-export-note");
+  if (!blob) {
+    note.textContent = "No video was recorded for that set.";
+    return;
+  }
+  const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+  await deliverFile(blob, debugFileName("video", ext));
+});
+
+renderDebugExport();
 
 // Storage can throw (private mode, blocked site data), so saved choices are
 // a convenience and every setting has a default to fall back on.
@@ -960,6 +995,7 @@ function gateDebug(metrics: FrameMetrics): string {
 // The label in the counter pill ("Set 1/4 | Reps 0 | ...").
 function counterLabel(profile: ExerciseProfile, phase: RepPhase): string {
   if (!session || !gate) return "";
+  if (turnSideways && !gate.isArmed) return "TURN SIDEWAYS";
   if (trackingHint) return trackingHint;
   if (!gate.isArmed) {
     if (gate.status === "holding") return "HOLD STILL";
@@ -1012,6 +1048,11 @@ function stopCamera(): void {
   completionTimer.clear();
   running = false;
   animationLoop.stop();
+  if (rawClip) {
+    rawClipResult = rawClip.stop();
+    rawClip = null;
+  }
+  queueMicrotask(renderDebugExport);
   if (stream) {
     stopCameraStream(video, stream);
   }
@@ -1291,6 +1332,7 @@ function probeFrame(metrics: FrameMetrics, now: number): RepEvent | null {
 
 // Fresh counter and judge, so nothing from the setup leaks into rep 1.
 function armCounting(now: number): void {
+  if (debugMode) diag.mark("armed");
   if (!activeProfile) return;
   // Rep times on the summary count from here, the same moment the set
   // clip starts below.
@@ -1342,6 +1384,19 @@ async function startWorkout(
       ? { ...exercise, name: recovery.exerciseName }
       : exercise;
     activeProfile = profileFor(exercise, phonePosition(exercise));
+    if (debugMode) {
+      diag.begin({
+        app: "repchek",
+        profile: activeProfile.id,
+        exercise: exercise.id,
+        requestedCamera: facingMode,
+        userAgent: navigator.userAgent,
+        screen: `${screen.width}x${screen.height}`,
+        pixelRatio: window.devicePixelRatio,
+        startedAt: new Date().toISOString(),
+      });
+      rawClipResult = null;
+    }
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
@@ -1383,6 +1438,8 @@ async function startWorkout(
     showExercise(activeExercise.name);
     lowConfidenceSince = null;
     trackingHint = "";
+    facingSince = null;
+    turnSideways = false;
 
     status.textContent = "Requesting camera...";
     // facingMode is only "ideal" inside startCamera, so if the chosen camera
@@ -1396,8 +1453,15 @@ async function startWorkout(
           video,
           { facingMode },
           () => startupGuard.isCurrent(attempt),
-        ),
-      loadPoseEstimator,
+        ).then((cameraStream) => {
+          if (debugMode) diag.mark("cameraReady");
+          return cameraStream;
+        }),
+      () =>
+        loadPoseEstimator().then((model) => {
+          if (debugMode) diag.mark("modelReady");
+          return model;
+        }),
       keepScreenAwake,
         () => {
           status.textContent = "Loading pose model, first time takes a moment...";
@@ -1406,6 +1470,11 @@ async function startWorkout(
     if (!resources || !startupGuard.isCurrent(attempt)) return;
 
     mirrored = isUserFacing(resources.stream);
+    if (debugMode) {
+      diag.mark("startupDone");
+      diag.meta.cameraUsed = mirrored ? "front" : "back";
+      diag.meta.video = `${video.videoWidth}x${video.videoHeight}`;
+    }
     video.classList.toggle("mirrored", mirrored);
     canvas.classList.toggle("mirrored", mirrored);
 
@@ -1419,6 +1488,7 @@ async function startWorkout(
     endBtn.hidden = false;
     debugEl.hidden = false;
     stream = resources.stream;
+    rawClip = debugMode ? RawClip.start(stream) : null;
     wakeLock = resources.wakeLock;
     resources = null;
     recorder = startupRecorder;
@@ -1520,6 +1590,35 @@ shareBtn.addEventListener("click", async () => {
     shareBtn.disabled = false;
   }
 });
+
+// Tracks whether the person has been facing the phone for a side-on exercise.
+// It keeps its answer through frames where nobody is found, which is what
+// happens when bending over facing the phone, and forgets it once nobody has
+// been seen for a while or they are seen side-on.
+function updateFacing(
+  landmarks: Landmark[] | null,
+  aspect: number,
+  now: number,
+): void {
+  if (!activeProfile || activeProfile.cameraView !== "side") return;
+  if (!landmarks) {
+    if (now - lastPoseAt > FACING_FORGET_AFTER_MS) {
+      facingSince = null;
+      turnSideways = false;
+    }
+    return;
+  }
+  lastPoseAt = now;
+  const ratio = facingRatio(landmarks, aspect);
+  if (ratio === null) return;
+  if (ratio >= FACING_CAMERA_RATIO) {
+    facingSince ??= now;
+    turnSideways = now - facingSince >= FACING_HINT_AFTER_MS;
+  } else {
+    facingSince = null;
+    turnSideways = false;
+  }
+}
 
 // Pass the missing parts on a low confidence frame, or null on any other
 // frame. The hint only appears once tracking has been poor for
@@ -1693,15 +1792,32 @@ function loop(): void {
     const now = performance.now();
     const aspect = video.videoWidth / video.videoHeight;
     const poses = estimator.estimate(video, now);
+    const row: FrameRow | null = debugMode
+      ? {
+          t: Math.round(now - diag.startedAt),
+          n: poses.length,
+          // How long the pose model took on this frame.
+          ms: round(performance.now() - now, 1),
+        }
+      : null;
+    if (row) diag.mark("firstFrame");
     // Only the lifter's pose goes any further, skeleton included. Anyone
     // else in view is ignored.
     const landmarks = lifter.pick(poses, gate.isArmed, aspect, now);
+    updateFacing(landmarks, aspect, now);
+    if (row && landmarks) {
+      diag.mark("firstPose");
+      row.lm = packLandmarks(landmarks);
+      const facing = facingRatio(landmarks, aspect);
+      row.fr = facing === null ? null : round(facing, 2);
+    }
     if (lifter.hasCompany && !lifter.isTapLocked && !crowdTipShown) {
       crowdTipShown = true;
       showNotice("More than one person seen. Tap yourself to lock on.", 3000);
     }
 
     if (!landmarks) {
+      if (row) row.s = "nopose";
       updateTrackingHint(null, now);
       clearCanvas(ctx);
       showFeedback([]);
@@ -1728,7 +1844,13 @@ function loop(): void {
         required,
       );
 
+      if (row) {
+        row.c = round(confidence, 2);
+        row.sd = side;
+      }
+
       if (confidence < MIN_FRAME_CONFIDENCE) {
+        if (row) row.s = "lowconf";
         const missing = missingParts(
           landmarks,
           side,
@@ -1746,6 +1868,10 @@ function loop(): void {
       } else {
         updateTrackingHint(null, now);
         const metrics = computeFrameMetrics(landmarks, aspect, reference);
+        if (row) {
+          diag.mark("firstConfident");
+          row.m = packMetrics(metrics);
+        }
 
         // Step 1: are they in position yet? With a rolling start, a first
         // full rep arms the gate too, and becomes rep 1 of the set.
@@ -1774,8 +1900,10 @@ function loop(): void {
 
         if (!gate.isArmed) {
           // Not ready yet: no counting, no judging, no beeps.
+          if (row) row.s = "wait";
           uncountedFrame(landmarks, side, metrics, now);
         } else if (outOfPosition) {
+          if (row) row.s = "out";
           gate.update(metrics, now);
           uncountedFrame(
             landmarks,
@@ -1793,6 +1921,15 @@ function loop(): void {
           const repEvent = firstRep ?? counted;
           const phase = repCounter.currentPhase;
           const verdict = judge.evaluate(metrics, phase);
+          if (row) {
+            row.s = "armed";
+            row.p = phase;
+            row.r = repCounter.reps;
+            if (repEvent) row.e = repEvent.type;
+            if (verdict.failures.length > 0) {
+              row.f = verdict.failures.map((rule) => rule.id);
+            }
+          }
 
           for (const rule of verdict.failures) {
             currentRepFaults.add(rule.id);
@@ -1831,6 +1968,11 @@ function loop(): void {
           if (!verdict.ok) coachFault(verdict.failures[0]);
         }
       }
+    }
+    if (row) {
+      row.g = [gate.status, Math.round(gate.holdProgress * 100), gate.reason];
+      if (turnSideways) row.ts = 1;
+      diag.frame(row);
     }
   }
 

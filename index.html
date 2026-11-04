@@ -295,11 +295,32 @@
             ></div>
             <div
               id="side-view-hint"
-              class="text-[13px] leading-snug text-muted"
+              class="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5"
               hidden
             >
-              Film side-on: phone level with you, square to your side, not at
-              an angle.
+              <svg
+                viewBox="0 0 96 56"
+                class="h-12 w-20 shrink-0"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="6" y="14" width="10" height="28" rx="3" class="fill-forest" />
+                <line x1="20" y1="24" x2="54" y2="20" class="stroke-forest" stroke-width="1.5" stroke-dasharray="3 3" />
+                <line x1="20" y1="32" x2="54" y2="38" class="stroke-forest" stroke-width="1.5" stroke-dasharray="3 3" />
+                <circle cx="66" cy="11" r="5.5" class="fill-ink" />
+                <path d="M71 11l4 1.5-4 1.5" class="stroke-ink" stroke-width="1.5" />
+                <path d="M65 18l-2 16" class="stroke-ink" stroke-width="4" />
+                <path d="M63 34l-3 18M63 34l4 18" class="stroke-ink" stroke-width="3.5" />
+                <path d="M65 21l7 9" class="stroke-ink" stroke-width="3" />
+              </svg>
+              <div class="flex min-w-0 flex-col gap-0.5">
+                <span class="text-[14px] font-semibold">Stand sideways to the phone</span>
+                <span class="text-[12px] leading-snug text-muted"
+                  >Your side faces the camera. Front or back camera both work.</span
+                >
+              </div>
             </div>
           </div>
         </section>
@@ -668,6 +689,30 @@
                     class="min-h-11 min-w-11 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-3.5 py-2 text-[14px] font-medium text-ink"
                   >
                     Off
+                  </button>
+                </div>
+              </div>
+              <div id="debug-export" class="flex flex-col gap-2.5 py-3" hidden>
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-[15px] font-semibold">Debug data</span>
+                  <span id="debug-export-note" class="text-[12px] leading-snug text-muted"></span>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    id="debug-numbers"
+                    type="button"
+                    disabled
+                    class="min-h-11 flex-1 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-3 text-[14px] font-semibold disabled:opacity-40"
+                  >
+                    Send numbers
+                  </button>
+                  <button
+                    id="debug-video"
+                    type="button"
+                    disabled
+                    class="min-h-11 flex-1 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-3 text-[14px] font-semibold disabled:opacity-40"
+                  >
+                    Send video
                   </button>
                 </div>
               </div>

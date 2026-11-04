@@ -15,24 +15,26 @@ export const deadlift: ExerciseProfile = {
     "moving-back": "PULLING",
   },
   rules: [
-    {
-      id: "torso-angle",
-      metric: "torsoAngle",
-      min: 15,
-      message: "Chest up, hips are shooting up",
-      cue: "Chest up",
-    },
+    // The old "torso-angle" rule (torso at least 15 degrees from flat, "hips
+    // are shooting up") is gone. A flat back at the bottom of a hinge is
+    // correct, and in two recorded sets of good form the torso reads 0 to 5
+    // degrees there, so the rule flagged every rep. Catching hips that rise
+    // before the chest needs a different measure. Look at the debug numbers
+    // before adding one.
     {
       id: "neck-angle",
       metric: "neckAngle",
-      min: 145,
+      // Was 145. Only a clearly dropped head, not a head that hangs a little
+      // at the bottom. Provisional, until the debug numbers are in.
+      min: 130,
       message: "Eyes forward, keep your back straight",
       cue: "Eyes forward",
     },
     {
       id: "bar-path",
       metric: "barOffset",
-      max: 0.5,
+      // Was 0.5. Provisional, until the debug numbers are in.
+      max: 0.7,
       message: "Keep the bar close to your legs",
       cue: "Bar closer",
     },
