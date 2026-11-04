@@ -131,6 +131,40 @@ export function rangeFor(
   return { startsAt: start.toISOString(), endsAt: end.toISOString() };
 }
 
+// "YYYY-MM-DD", the way a date input writes it, in local time.
+export function dayString(date: Date): string {
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${m}-${d}`;
+}
+
+// The first and last day that can be picked as the last day: today, and 91
+// days on (the database allows 92 days in all).
+export function lastDayLimits(now: Date = new Date()): { min: string; max: string } {
+  const today = startOfDay(now);
+  return { min: dayString(today), max: dayString(addDays(today, 91)) };
+}
+
+// From midnight today to the end of a chosen last day. Null when the day is
+// missing, not a real date, before today or too far away.
+export function rangeUntil(
+  lastDay: string,
+  now: Date = new Date(),
+): { startsAt: string; endsAt: string } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(lastDay);
+  if (!match) return null;
+  const [y, m, d] = [Number(match[1]), Number(match[2]) - 1, Number(match[3])];
+  const last = new Date(y, m, d);
+  if (last.getFullYear() !== y || last.getMonth() !== m || last.getDate() !== d) return null;
+  const { min, max } = lastDayLimits(now);
+  const picked = dayString(last);
+  if (picked < min || picked > max) return null;
+  return {
+    startsAt: startOfDay(now).toISOString(),
+    endsAt: addDays(last, 1).toISOString(),
+  };
+}
+
 export interface Status {
   state: "upcoming" | "running" | "ended";
   text: string;

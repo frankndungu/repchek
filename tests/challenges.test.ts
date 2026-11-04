@@ -6,7 +6,9 @@ import {
   failureFrom,
   profileIdsFor,
   progressFor,
+  lastDayLimits,
   rangeFor,
+  rangeUntil,
   shareText,
   standingLine,
   statusFor,
@@ -82,6 +84,30 @@ describe("dates", () => {
   it("writes the last day, not the midnight after", () => {
     const { startsAt, endsAt } = rangeFor("week", NOW);
     expect(datesText(startsAt, endsAt)).toBe("11 Nov to 15 Nov");
+  });
+});
+
+describe("a picked last day", () => {
+  it("runs from midnight today to the end of that day", () => {
+    const range = rangeUntil("2026-11-18", NOW)!;
+    expect(new Date(range.startsAt)).toEqual(new Date(2026, 10, 11));
+    expect(new Date(range.endsAt)).toEqual(new Date(2026, 10, 19));
+    expect(datesText(range.startsAt, range.endsAt)).toBe("11 Nov to 18 Nov");
+  });
+
+  it("accepts today and the 91st day, and stays inside the database limit", () => {
+    expect(rangeUntil("2026-11-11", NOW)).not.toBeNull();
+    const { max } = lastDayLimits(NOW);
+    const far = rangeUntil(max, NOW)!;
+    expect(Date.parse(far.endsAt) - Date.parse(far.startsAt)).toBeLessThanOrEqual(92 * 86_400_000);
+  });
+
+  it("refuses a past day, a day too far away and bad text", () => {
+    expect(rangeUntil("2026-11-10", NOW)).toBeNull();
+    expect(rangeUntil("2027-03-01", NOW)).toBeNull();
+    expect(rangeUntil("", NOW)).toBeNull();
+    expect(rangeUntil("2026-02-30", NOW)).toBeNull();
+    expect(rangeUntil("next wednesday", NOW)).toBeNull();
   });
 });
 
