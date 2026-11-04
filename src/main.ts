@@ -67,8 +67,7 @@ import type {
   RepTrigger,
 } from "./engine/types";
 import {
-  EXERCISES,
-  SECTIONS,
+  exerciseIdForProfile,
   findExercise,
   profileFor,
 } from "./profiles";
@@ -97,7 +96,9 @@ import {
   showCounter,
   showNotice,
   showDebug,
-  showExercise,
+  showLive,
+  hideLive,
+  showProgress,
 } from "./ui/hud";
 import {
   unlockAudio,
@@ -124,7 +125,10 @@ import {
   showTab,
 } from "./ui/tabs";
 import { initTrain, refreshTrain } from "./ui/train";
-import { loadSessionRecord } from "./account";
+import { FORM_PREVIEWS } from "./ui/formPreviews";
+import { FORM_CUES } from "./formCues";
+import { lastTimeLine } from "./train";
+import { loadHistory, loadSessionRecord } from "./account";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
@@ -167,13 +171,6 @@ const FRACTIONAL_METRICS = new Set<keyof FrameMetrics>([
   "hipDrop",
 ]);
 
-const CHIP_BASE =
-  "min-h-11 rounded-full border-[1.5px] px-4 py-2.5 text-[15px]";
-// The coach voice chips sit inside More options, so they are a size down.
-const SMALL_CHIP_BASE =
-  "min-h-11 min-w-11 rounded-full border-[1.5px] px-3.5 py-2 text-[14px]";
-const CHIP_ON = "border-ink bg-ink text-white font-semibold";
-const CHIP_OFF = "border-[#c9c4b9] bg-white text-ink font-medium";
 
 // Selected on the start screen until someone picks another. No equipment,
 // and the camera sees the whole body on the floor.
@@ -227,7 +224,6 @@ recoveryPrompt.setAttribute("aria-live", "polite");
 trainScreen.insertBefore(recoveryPrompt, trainScreen.children[1] ?? null);
 const summaryScreen = q<HTMLElement>("#summary-screen");
 const howScreen = q<HTMLElement>("#how-screen");
-const howBtn = q<HTMLButtonElement>("#how-btn");
 const howBackBtn = q<HTMLButtonElement>("#how-back");
 const howDoneBtn = q<HTMLButtonElement>("#how-done");
 const startBtn = q<HTMLButtonElement>("#start-btn");
@@ -236,25 +232,21 @@ const endBtn = q<HTMLButtonElement>("#end-btn");
 const shareBtn = q<HTMLButtonElement>("#share-btn");
 const doneBtn = q<HTMLButtonElement>("#done-btn");
 const status = q<HTMLElement>("#status");
-const chipsEl = q<HTMLElement>("#exercise-chips");
 const cameraToggle = q<HTMLElement>("#camera-toggle");
-const recordSetting = q<HTMLElement>("#record-setting");
-const recordToggle = q<HTMLElement>("#record-toggle");
-const anglesToggle = q<HTMLElement>("#angles-toggle");
-const coachToggle = q<HTMLElement>("#coach-toggle");
+const coachSwitch = q<HTMLElement>("#coach-switch");
+const coachRow = q<HTMLElement>("#coach-row");
 const exerciseNameEl = q<HTMLElement>("#exercise-name");
-const exerciseDetailEl = q<HTMLElement>("#exercise-detail");
 const positionPicker = q<HTMLElement>("#position-picker");
-const exerciseHintEl = q<HTMLElement>("#exercise-hint");
-const sideViewHintEl = q<HTMLElement>("#side-view-hint");
+const formPreviewEl = q<HTMLElement>("#form-preview");
+const formCueEl = q<HTMLElement>("#form-cue");
+const formPhoneEl = q<HTMLElement>("#form-phone");
+const lastTimeEl = q<HTMLElement>("#last-time");
+const cameraHelpEl = q<HTMLElement>("#camera-help");
 const browserHint = q<HTMLElement>("#browser-hint");
 const setsInput = q<HTMLInputElement>("#sets-input");
 const repsInput = q<HTMLInputElement>("#reps-input");
 const weightInput = q<HTMLInputElement>("#weight-input");
 const weightLabel = q<HTMLElement>("#weight-label");
-const hudEl = q<HTMLElement>("#hud");
-const counterEl = q<HTMLElement>("#counter");
-const exerciseEl = q<HTMLElement>("#exercise");
 const debugEl = q<HTMLElement>("#debug");
 
 const ctx = canvas.getContext("2d")!;
@@ -361,62 +353,31 @@ function phonePosition(exercise: ExerciseChoice): PhonePosition {
   return exercise.positions.beside ? "beside" : "front";
 }
 
-// One chip per exercise, grouped by where you train.
-function renderChips(): void {
-  chipsEl.replaceChildren();
-  for (const section of SECTIONS) {
-    const row = document.createElement("div");
-    row.className = "flex flex-wrap gap-2";
-    for (const exercise of EXERCISES.filter((e) => e.section === section)) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.textContent = exercise.name;
-      chip.className = `${CHIP_BASE} ${exercise.id === selectedExerciseId ? CHIP_ON : CHIP_OFF}`;
-      chip.addEventListener("click", () => {
-        selectedExerciseId = exercise.id;
-        renderChips();
-      });
-      row.append(chip);
-    }
-
-    const heading = document.createElement("h3");
-    heading.className =
-      "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
-    heading.textContent = section;
-
-    const block = document.createElement("div");
-    block.className = "flex flex-col gap-2";
-    block.append(heading, row);
-    chipsEl.append(block);
-  }
-  renderExerciseCard();
-}
-
-// The card under the chips: the exercise, where the phone goes if there is
-// a choice, and the setup text for that position.
+// The setup screen for the chosen exercise: the form preview and its cue, the
+// target, where the phone goes if there is a choice, and the camera help.
 function renderExerciseCard(): void {
   const exercise = findExercise(selectedExerciseId);
   const position = phonePosition(exercise);
   const profile = profileFor(exercise, position);
 
   exerciseNameEl.textContent = exercise.name;
-  exerciseDetailEl.textContent = exercise.detail ?? "";
-  exerciseDetailEl.hidden = !exercise.detail;
+
+  const preview = FORM_PREVIEWS[exercise.id];
+  formPreviewEl.innerHTML = preview
+    ? `<svg viewBox="${preview.viewBox}" width="100%" style="display:block" role="img" aria-label="The ${exercise.name.toLowerCase()} shown as a skeleton">${preview.svg}</svg>`
+    : "";
+  const cue = FORM_CUES[`${exercise.id}:${position}`] ?? FORM_CUES[exercise.id];
+  formCueEl.textContent = cue?.form ?? profile.setupHint ?? "";
+  formPhoneEl.textContent = cue?.phone ?? "";
 
   // Only exercises with both positions ask where the phone is.
   const { beside, front } = exercise.positions;
   positionPicker.hidden = !(beside && front);
-  const cards = positionPicker.querySelectorAll<HTMLElement>("[data-position]");
-  for (const card of cards) {
-    const cardPosition = card.dataset.position as PhonePosition;
-    markCard(card, cardPosition === position);
-    const check = card.querySelector("[data-check]");
-    if (check) check.textContent = exercise.checks?.[cardPosition] ?? "";
+  for (const button of positionPicker.querySelectorAll<HTMLElement>(
+    "[data-position]",
+  )) {
+    markSegment(button, (button.dataset.position as PhonePosition) === position);
   }
-
-  exerciseHintEl.textContent =
-    profile.setupHint ?? `Prop the phone for a ${profile.cameraView} view`;
-  sideViewHintEl.hidden = profile.cameraView !== "side";
 
   if (profile.bodyweight) {
     weightLabel.textContent = "Extra kg";
@@ -425,6 +386,28 @@ function renderExerciseCard(): void {
     weightLabel.textContent = "Kg";
     weightInput.placeholder = "0";
   }
+}
+
+// The last numbers used for this exercise, or 3 x 12 with no weight, and a
+// "Last time" line if there is a last time.
+async function fillTarget(exerciseId: string): Promise<void> {
+  setsInput.value = "3";
+  repsInput.value = "12";
+  weightInput.value = "";
+  lastTimeEl.hidden = true;
+  renderTargetCards();
+  const items = await loadHistory();
+  if (!items || selectedExerciseId !== exerciseId) return;
+  const last = items
+    .filter((i) => (exerciseIdForProfile(i.exerciseId) ?? i.exerciseId) === exerciseId)
+    .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
+  if (!last) return;
+  if (last.targetSets) setsInput.value = String(last.targetSets);
+  if (last.targetReps) repsInput.value = String(last.targetReps);
+  if (last.weightKg) weightInput.value = String(last.weightKg);
+  lastTimeEl.textContent = lastTimeLine(last);
+  lastTimeEl.hidden = false;
+  renderTargetCards();
 }
 
 positionPicker.addEventListener("click", (event) => {
@@ -439,7 +422,7 @@ positionPicker.addEventListener("click", (event) => {
   renderExerciseCard();
 });
 
-renderChips();
+renderExerciseCard();
 
 const debugExportEl = q<HTMLElement>("#debug-export");
 const debugNumbersBtn = q<HTMLButtonElement>("#debug-numbers");
@@ -697,26 +680,12 @@ function loadFacingMode(): FacingMode {
 }
 
 // Chip groups with one choice, styled like the lift chips.
-function renderToggle(
-  group: HTMLElement,
-  selected: string,
-  base = CHIP_BASE,
-): void {
-  for (const option of group.querySelectorAll<HTMLElement>("[data-value]")) {
-    const on = option.dataset.value === selected;
-    option.className = `${base} ${on ? CHIP_ON : CHIP_OFF}`;
-    option.setAttribute("aria-pressed", String(on));
-  }
+// The two-way choices (phone position, camera): the chosen one is dark.
+function markSegment(button: HTMLElement, on: boolean): void {
+  button.setAttribute("aria-pressed", String(on));
 }
 
-// Choice cards (phone position, camera): the chosen one has a forest border.
-function markCard(card: HTMLElement, on: boolean): void {
-  card.classList.toggle("border-forest", on);
-  card.classList.toggle("border-line", !on);
-  card.setAttribute("aria-pressed", String(on));
-}
-
-// The on/off settings under More options.
+// An on/off switch.
 function renderSwitch(toggle: HTMLElement, on: boolean): void {
   toggle.setAttribute("aria-checked", String(on));
 }
@@ -730,8 +699,12 @@ function renderCameraToggle(): void {
   for (const card of cameraToggle.querySelectorAll<HTMLElement>(
     "[data-value]",
   )) {
-    markCard(card, card.dataset.value === facingMode);
+    markSegment(card, card.dataset.value === facingMode);
   }
+  cameraHelpEl.textContent =
+    facingMode === "user"
+      ? "Lets you see the feedback while you train."
+      : "Sharper. Best when you only listen.";
 }
 
 cameraToggle.addEventListener("click", (event) => {
@@ -743,25 +716,6 @@ cameraToggle.addEventListener("click", (event) => {
 });
 
 renderCameraToggle();
-
-// Browsers that cannot record a canvas never see the option.
-recordSetting.hidden = !SetRecorder.isSupported();
-
-recordToggle.addEventListener("click", () => {
-  recordSets = !recordSets;
-  writeSetting(RECORD_STORAGE_KEY, recordSets ? "on" : "off");
-  renderSwitch(recordToggle, recordSets);
-});
-
-renderSwitch(recordToggle, recordSets);
-
-anglesToggle.addEventListener("click", () => {
-  showAngles = !showAngles;
-  writeSetting(ANGLES_STORAGE_KEY, showAngles ? "on" : "off");
-  renderSwitch(anglesToggle, showAngles);
-});
-
-renderSwitch(anglesToggle, showAngles);
 
 // The minus and plus buttons on the sets, reps and weight cards. They step
 // the input by data-delta, stay inside its min and max, and grey out at
@@ -781,8 +735,8 @@ function inputLimits(input: HTMLInputElement): { min: number; max: number } {
 }
 
 const targetInputs = [setsInput, repsInput, weightInput];
-// The size of the numbers, text-[36px] in index.html.
-const TARGET_FONT_PX = 36;
+// The size of the numbers, text-[32px] in index.html.
+const TARGET_FONT_PX = 32;
 
 // A long number ("100" on a narrow phone, "102.5") gets a smaller font so it
 // fits between the buttons. Inter digits are about 0.65 em wide, the point 0.3.
@@ -837,21 +791,18 @@ function loadCoachMode(): CoachMode {
   return voice.isSupported() ? "voice" : "beep";
 }
 
-coachToggle.querySelector<HTMLElement>('[data-value="voice"]')!.hidden =
-  !voice.isSupported();
+// The Voice coach switch: on is the spoken cue, off is the beep. Where the
+// browser cannot speak there is nothing to switch, so the row is hidden.
+coachRow.hidden = !voice.isSupported();
+renderSwitch(coachSwitch, coachMode === "voice");
 
-coachToggle.addEventListener("click", (event) => {
-  const value = tappedValue(event);
-  if (value !== "voice" && value !== "beep" && value !== "off") return;
-  coachMode = value;
+coachSwitch.addEventListener("click", () => {
+  coachMode = coachMode === "voice" ? "beep" : "voice";
   writeSetting(COACH_STORAGE_KEY, coachMode);
-  renderToggle(coachToggle, coachMode, SMALL_CHIP_BASE);
+  renderSwitch(coachSwitch, coachMode === "voice");
 });
 
-renderToggle(coachToggle, coachMode, SMALL_CHIP_BASE);
-
-// How it works: opens from the header button, and once by itself on a
-// first visit.
+// How it works: opens once by itself on a first visit.
 for (const figure of howScreen.querySelectorAll<SVGElement>("[data-color]")) {
   figure.style.color = FIGURE_COLORS[figure.dataset.color ?? ""] ?? "";
 }
@@ -865,7 +816,6 @@ function closeHow(): void {
   howScreen.hidden = true;
 }
 
-howBtn.addEventListener("click", openHow);
 howBackBtn.addEventListener("click", closeHow);
 howDoneBtn.addEventListener("click", closeHow);
 
@@ -964,7 +914,7 @@ function firstWords(message: string): string {
 }
 
 let counterTaps: number[] = [];
-counterEl.addEventListener("click", () => {
+function countTap(): void {
   const now = Date.now();
   counterTaps = counterTaps.filter((t) => now - t < 800);
   counterTaps.push(now);
@@ -972,7 +922,12 @@ counterEl.addEventListener("click", () => {
     debugEl.hidden = !debugEl.hidden;
     counterTaps = [];
   }
-});
+}
+// Three quick taps on the rep count, the Stats panel or the status pill show
+// the debug line.
+for (const id of ["#counter", "#big-count", "#stats-panel"]) {
+  q<HTMLElement>(id).addEventListener("click", countTap);
+}
 
 function phaseLabel(profile: ExerciseProfile, phase: RepPhase): string {
   return profile.phaseLabels?.[phase] ?? phase.toUpperCase();
@@ -1041,12 +996,17 @@ function updateCounterDisplay(profile: ExerciseProfile, phase: RepPhase): void {
     );
     return;
   }
+  // While counting there is no pill: the rep count and the gauge say it. The
+  // pill is for what is stopping the count, or a rest.
+  const counting = !!gate?.isArmed && !session.isResting;
   showCounter(
     session.set,
     session.totalSets,
     session.reps,
-    counterLabel(profile, phase),
+    counting ? "" : counterLabel(profile, phase),
+    session.setElapsedMs(performance.now()),
   );
+  showProgress(counting && repCounter ? repCounter.progress : 0);
 }
 
 async function keepScreenAwake(): Promise<WakeLockSentinel | null> {
@@ -1083,9 +1043,7 @@ function stopCamera(): void {
   releaseScreen();
   clearCanvas(ctx);
   showFeedback([]);
-  hudEl.hidden = true;
-  counterEl.hidden = true;
-  exerciseEl.hidden = true;
+  hideLive();
   endBtn.hidden = true;
   debugEl.hidden = true;
   status.textContent = "";
@@ -1164,7 +1122,8 @@ function showBase(which: "train" | "setup" | "none"): void {
 // Train, All exercises and the tabs all end up here: set up this exercise.
 function openSetup(exerciseId: string): void {
   selectedExerciseId = exerciseId;
-  renderChips();
+  renderExerciseCard();
+  void fillTarget(exerciseId);
   status.textContent = recoveryNotice();
   showBase("setup");
   startScreen.scrollTop = 0;
@@ -1475,12 +1434,11 @@ async function startWorkout(
       repsInput.value = String(recovery.target.reps);
       weightInput.value =
         recovery.weightKg === null ? "" : String(recovery.weightKg);
-      renderChips();
+      renderExerciseCard();
     }
     completionRecord = null;
     completionPersistence = null;
     currentRepFaults.clear();
-    showExercise(activeExercise.name);
     lowConfidenceSince = null;
     trackingHint = "";
     facingSince = null;
@@ -1531,7 +1489,9 @@ async function startWorkout(
     showBase("none");
     summaryScreen.hidden = true;
     endBtn.hidden = false;
-    debugEl.hidden = false;
+    showLive();
+    // The debug line is for tuning. Only the debug mode shows it by default.
+    debugEl.hidden = !debugMode;
     stream = resources.stream;
     rawClip = debugMode ? RawClip.start(stream) : null;
     wakeLock = resources.wakeLock;

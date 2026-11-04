@@ -599,3 +599,29 @@ Built from docs/design/screens/05-train.html and 06-exercises.html.
 - The "Last:" line reads the planned sets and reps and the weight out of the
   saved record. If that part of the query is ever refused, History still
   loads without it.
+
+## The new workout screens
+
+Workout setup (docs/design/screens/07-workout-setup.html):
+back button and the exercise name, a dark form preview tile with a still
+skeleton and one sentence of good form plus a line on where the phone goes,
+the target in one sand tile (sets, reps, kg; BW for bodyweight) with "Last
+time: 3 x 12, 85% clean." and the last numbers used prefilled, Beside you or
+In front (push-up only), Back or Front camera with one help line, a Voice
+coach switch (on is voice, off is beep) and Start camera.
+Gone from setup: the exercise chips, numbered sections, How it works, More
+options, Record sets, Show angles, and the side view card. The "stand
+sideways" advice now sits in the line under the preview. The Debug data row
+still appears, but only in debug mode.
+
+The live screen: Stats and Finish on top, a red banner with a speaker icon for
+a form fault, the rep count bottom left, and a Stats panel (set, reps, time,
+pace) with a Rest to Peak gauge. Rest is the start position, peak is the
+top of the rep, as in the rep counter. Pace is reps a minute for the set
+(7 reps in 0:42 is 10/m). The status pill (HOLD STILL, TURN SIDEWAYS, REST)
+shows only when something is stopping the count. The debug line is hidden
+unless debug mode is on. Three quick taps on the rep count still show it.
+
+Form previews are still skeletons generated from the demo mockup's body
+proportions (`src/ui/formPreviews.ts`). The moving loops, the replay and
+saving rest, pace and keypoints are not built yet.

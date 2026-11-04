@@ -15,6 +15,7 @@ export class RepCounter {
   private count: number;
   private repStartedAt: number;
   private deepestProgress: number;
+  private latestProgress = 0;
 
   constructor(trigger: RepTrigger) {
     this.trigger = trigger;
@@ -32,10 +33,17 @@ export class RepCounter {
     return this.count;
   }
 
+  // Where the last frame was in the rep, from 0 at the start position (rest)
+  // to 1 at the turn (peak). For the gauge on the live screen.
+  get progress(): number {
+    return this.latestProgress;
+  }
+
   reset(): void {
     this.phase = "idle";
     this.count = 0;
     this.deepestProgress = 0;
+    this.latestProgress = 0;
   }
 
   update(metrics: FrameMetrics, nowMs: number): RepEvent | null {
@@ -52,6 +60,7 @@ export class RepCounter {
       ? value <= turn + margin
       : value >= turn - margin;
     const progress = Math.min(1, Math.abs(value - start) / range);
+    this.latestProgress = progress;
 
     switch (this.phase) {
       case "idle":

@@ -44,31 +44,89 @@
         class="pointer-events-none absolute inset-0 h-full w-full object-cover"
       ></canvas>
 
-      <div
-        id="hud"
-        class="pointer-events-none absolute top-6 right-4 left-4 rounded-2xl bg-bad px-4 py-3 text-center text-[17px] font-bold text-white"
+      <!-- The live screen. From the workout mockups: Stats and Finish on top,
+           the rep count below, a red banner for form faults, and a stats
+           panel the Stats button opens. Driven by ui/hud.ts. -->
+      <button
+        id="stats-btn"
+        type="button"
+        aria-pressed="false"
+        class="absolute top-6 left-4 min-h-11 rounded-full bg-black/70 px-5 text-[16px] font-bold text-white aria-pressed:bg-white aria-pressed:text-ink"
         hidden
-      ></div>
-      <div
-        id="counter"
-        class="absolute top-22 left-4 rounded-full bg-black/65 px-4 py-2.5 text-[17px] font-semibold tracking-wide text-white select-none"
-        hidden
-      ></div>
-      <div
-        id="exercise"
-        class="pointer-events-none absolute top-34 left-4 rounded-full bg-black/60 px-3.5 py-1.5 text-sm font-semibold text-white"
-        hidden
-      ></div>
+      >
+        Stats
+      </button>
       <button
         id="end-btn"
-        class="absolute top-22 right-4 min-h-11 rounded-full bg-white px-5 py-2.5 text-[16px] font-bold text-ink"
+        class="absolute top-6 right-4 min-h-11 rounded-full bg-white px-5 text-[16px] font-bold text-ink"
         hidden
       >
         Finish
       </button>
       <div
+        id="hud"
+        class="pointer-events-none absolute top-[76px] right-4 left-4 flex items-center gap-2.5 rounded-2xl bg-bad px-4 py-3 text-[17px] font-bold text-white"
+        hidden
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="shrink-0">
+          <path d="M3 10v4h4l5 4V6L7 10z" />
+          <path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span id="hud-text"></span>
+      </div>
+      <div
+        id="counter"
+        class="absolute top-[76px] left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-4 py-2 text-[15px] font-semibold tracking-wide whitespace-nowrap text-white uppercase select-none"
+        hidden
+      ></div>
+      <div id="big-count" class="absolute bottom-8 left-5 select-none" hidden>
+        <span
+          id="big-count-n"
+          class="block text-[64px] leading-none font-extrabold tracking-[-0.04em]"
+          >0</span
+        >
+        <span class="text-xs font-semibold tracking-[0.12em] text-white/70 uppercase">Reps</span>
+      </div>
+      <div
+        id="stats-panel"
+        class="absolute right-4 bottom-6 left-4 flex flex-col gap-3.5 rounded-3xl bg-black/80 p-4 select-none"
+        hidden
+      >
+        <div class="grid grid-cols-4 divide-x divide-white/15 text-center">
+          <div class="flex flex-col items-center gap-1.5 px-1">
+            <span id="stat-set" class="block text-[26px] leading-none font-extrabold tracking-[-0.03em]">1/1</span>
+            <span class="text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">Set</span>
+          </div>
+          <div class="flex flex-col items-center gap-1.5 px-1">
+            <span id="stat-reps" class="block text-[26px] leading-none font-extrabold tracking-[-0.03em]">0</span>
+            <span class="text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">Reps</span>
+          </div>
+          <div class="flex flex-col items-center gap-1.5 px-1">
+            <span id="stat-time" class="block text-[26px] leading-none font-extrabold tracking-[-0.03em]">0:00</span>
+            <span class="text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">Time</span>
+          </div>
+          <div class="flex flex-col items-center gap-1.5 px-1">
+            <span id="stat-pace" class="block text-[26px] leading-none font-extrabold tracking-[-0.03em]">-</span>
+            <span class="text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">Pace</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <div class="relative h-2 rounded-full bg-white/20">
+            <span
+              id="gauge-dot"
+              class="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+              style="left: 0%"
+            ></span>
+          </div>
+          <div class="flex justify-between text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">
+            <span>Rest</span>
+            <span>Peak</span>
+          </div>
+        </div>
+      </div>
+      <div
         id="debug"
-        class="pointer-events-none absolute right-4 bottom-6 left-4 rounded-lg bg-black/60 px-3 py-2 font-mono text-xs"
+        class="pointer-events-none absolute top-[132px] right-4 left-4 rounded-lg bg-black/60 px-3 py-2 font-mono text-xs"
         hidden
       ></div>
 
@@ -181,12 +239,13 @@
         </div>
       </section>
 
+      <!-- Workout setup. From docs/design/screens/07-workout-setup.html. -->
       <section
         id="start-screen"
-        class="absolute inset-0 flex flex-col gap-6 overflow-y-auto bg-white px-5 text-ink pt-12"
+        class="absolute inset-0 flex flex-col gap-[18px] overflow-y-auto bg-white px-5 pt-14 text-ink"
         hidden
       >
-        <header class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
           <button
             id="setup-back"
             type="button"
@@ -195,30 +254,11 @@
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
           </button>
-          <button
-              id="how-btn"
-              type="button"
-              class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-[#c9c4b9] bg-white pr-3.5 pl-2.5 text-[13px] font-semibold"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="text-forest"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="9.5"></circle>
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-2.9 2.6-2.9 4"></path>
-                <path d="M12 17.5h.01"></path>
-              </svg>
-              How it works
-            </button>
-        </header>
+          <h1
+            id="exercise-name"
+            class="min-w-0 text-[26px] leading-[1.05] font-extrabold tracking-[-0.04em]"
+          ></h1>
+        </div>
 
         <p
           id="browser-hint"
@@ -229,558 +269,77 @@
           the Twitter, Instagram or Facebook browser.
         </p>
 
-        <section class="flex flex-col gap-3">
-          <h2 class="flex items-center gap-2.5 text-[17px] font-semibold">
-            <span
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest text-[13px] font-semibold text-white"
-              aria-hidden="true"
-              >1</span
-            >
-            What are you training?
-          </h2>
-          <div id="exercise-chips" class="flex flex-col gap-3"></div>
-          <div
-            class="flex flex-col gap-1.5 rounded-3xl border border-line bg-sand px-4 py-3.5"
-          >
-            <div id="exercise-name" class="text-[15px] font-semibold"></div>
-            <div
-              id="exercise-detail"
-              class="text-[13px] leading-snug text-muted"
-              hidden
-            ></div>
-            <div id="position-picker" class="flex flex-col gap-2 pt-1" hidden>
-              <div class="text-[13px] font-semibold">Where is your phone?</div>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  data-position="beside"
-                  class="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-line bg-white px-2 py-2.5 text-center"
-                >
-                  <svg
-                    viewBox="0 0 120 72"
-                    class="h-auto w-full max-w-[120px]"
-                    aria-hidden="true"
-                  >
-                    <rect
-                      x="14"
-                      y="24"
-                      width="92"
-                      height="24"
-                      rx="4"
-                      class="fill-sand stroke-[#c9c4b9]"
-                      stroke-width="2"
-                    />
-                    <line
-                      x1="26"
-                      y1="36"
-                      x2="84"
-                      y2="36"
-                      class="stroke-ink"
-                      stroke-width="4"
-                      stroke-linecap="round"
-                    />
-                    <circle cx="92" cy="36" r="5" class="fill-ink" />
-                    <line
-                      x1="56"
-                      y1="60"
-                      x2="36"
-                      y2="38"
-                      class="stroke-forest"
-                      stroke-width="1.5"
-                      stroke-dasharray="3 3"
-                    />
-                    <line
-                      x1="64"
-                      y1="60"
-                      x2="84"
-                      y2="38"
-                      class="stroke-forest"
-                      stroke-width="1.5"
-                      stroke-dasharray="3 3"
-                    />
-                    <rect
-                      x="53"
-                      y="59"
-                      width="14"
-                      height="7"
-                      rx="1.5"
-                      class="fill-forest"
-                    />
-                  </svg>
-                  <span class="text-[14px] font-semibold">Beside you</span>
-                  <span
-                    data-check
-                    class="text-[12px] leading-snug text-muted"
-                  ></span>
-                </button>
-                <button
-                  type="button"
-                  data-position="front"
-                  class="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-line bg-white px-2 py-2.5 text-center"
-                >
-                  <svg
-                    viewBox="0 0 120 72"
-                    class="h-auto w-full max-w-[120px]"
-                    aria-hidden="true"
-                  >
-                    <rect
-                      x="6"
-                      y="24"
-                      width="92"
-                      height="24"
-                      rx="4"
-                      class="fill-sand stroke-[#c9c4b9]"
-                      stroke-width="2"
-                    />
-                    <line
-                      x1="18"
-                      y1="36"
-                      x2="76"
-                      y2="36"
-                      class="stroke-ink"
-                      stroke-width="4"
-                      stroke-linecap="round"
-                    />
-                    <circle cx="84" cy="36" r="5" class="fill-ink" />
-                    <line
-                      x1="106"
-                      y1="32"
-                      x2="72"
-                      y2="18"
-                      class="stroke-forest"
-                      stroke-width="1.5"
-                      stroke-dasharray="3 3"
-                    />
-                    <line
-                      x1="106"
-                      y1="40"
-                      x2="72"
-                      y2="54"
-                      class="stroke-forest"
-                      stroke-width="1.5"
-                      stroke-dasharray="3 3"
-                    />
-                    <rect
-                      x="105"
-                      y="29"
-                      width="7"
-                      height="14"
-                      rx="1.5"
-                      class="fill-forest"
-                    />
-                  </svg>
-                  <span class="text-[14px] font-semibold">In front of you</span>
-                  <span
-                    data-check
-                    class="text-[12px] leading-snug text-muted"
-                  ></span>
-                </button>
-              </div>
+        <div class="flex flex-col gap-2">
+          <div id="form-preview" class="overflow-hidden rounded-3xl bg-[#0B0B0B]"></div>
+          <div class="flex flex-col gap-0.5">
+            <span id="form-cue" class="text-[14px] leading-snug font-semibold"></span>
+            <span id="form-phone" class="text-[13px] leading-snug text-muted"></span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Your target</span>
+          <div class="grid grid-cols-3 overflow-hidden rounded-[22px] bg-sand">
+            <div class="flex min-w-0 flex-col items-center gap-0.5 px-1 py-3.5">
+              <input
+                id="sets-input"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="10"
+                value="3"
+                aria-label="Sets"
+                class="w-full min-w-0 bg-transparent text-center text-[32px] leading-[1.1] font-extrabold tracking-[-0.04em] outline-none placeholder:text-ink"
+              />
+              <label for="sets-input" class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Sets</label>
             </div>
-            <div
-              id="exercise-hint"
-              class="text-[13px] leading-snug text-muted"
-            ></div>
-            <div
-              id="side-view-hint"
-              class="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5"
-              hidden
-            >
-              <svg
-                viewBox="0 0 96 56"
-                class="h-12 w-20 shrink-0"
-                fill="none"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="6" y="14" width="10" height="28" rx="3" class="fill-forest" />
-                <line x1="20" y1="24" x2="54" y2="20" class="stroke-forest" stroke-width="1.5" stroke-dasharray="3 3" />
-                <line x1="20" y1="32" x2="54" y2="38" class="stroke-forest" stroke-width="1.5" stroke-dasharray="3 3" />
-                <circle cx="66" cy="11" r="5.5" class="fill-ink" />
-                <path d="M71 11l4 1.5-4 1.5" class="stroke-ink" stroke-width="1.5" />
-                <path d="M65 18l-2 16" class="stroke-ink" stroke-width="4" />
-                <path d="M63 34l-3 18M63 34l4 18" class="stroke-ink" stroke-width="3.5" />
-                <path d="M65 21l7 9" class="stroke-ink" stroke-width="3" />
-              </svg>
-              <div class="flex min-w-0 flex-col gap-0.5">
-                <span class="text-[14px] font-semibold">Stand sideways to the phone</span>
-                <span class="text-[12px] leading-snug text-muted"
-                  >Your side faces the camera. Front or back camera both work.</span
-                >
-              </div>
+            <div class="flex min-w-0 flex-col items-center gap-0.5 px-1 py-3.5 border-l border-line">
+              <input
+                id="reps-input"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="50"
+                value="12"
+                aria-label="Reps"
+                class="w-full min-w-0 bg-transparent text-center text-[32px] leading-[1.1] font-extrabold tracking-[-0.04em] outline-none placeholder:text-ink"
+              />
+              <label for="reps-input" class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Reps</label>
+            </div>
+            <div class="flex min-w-0 flex-col items-center gap-0.5 px-1 py-3.5 border-l border-line">
+              <input
+                id="weight-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.5"
+                placeholder="0"
+                class="w-full min-w-0 bg-transparent text-center text-[32px] leading-[1.1] font-extrabold tracking-[-0.04em] outline-none placeholder:text-ink"
+              />
+              <label id="weight-label" for="weight-input" class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Kg</label>
             </div>
           </div>
-        </section>
+          <span id="last-time" class="text-[13px] text-muted" hidden></span>
+        </div>
 
-        <section class="flex flex-col gap-3">
-          <h2 class="flex items-center gap-2.5 text-[17px] font-semibold">
-            <span
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest text-[13px] font-semibold text-white"
-              aria-hidden="true"
-              >2</span
-            >
-            Your target
-          </h2>
-          <div
-            class="grid grid-cols-3 divide-x divide-line overflow-hidden rounded-3xl border border-line bg-sand"
-          >
-            <div
-              class="flex min-w-0 flex-col items-center gap-1 px-1 pt-3 pb-1.5"
-            >
-              <label
-                for="sets-input"
-                class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
-                >Sets</label
-              >
-              <div class="flex w-full items-center">
-                <button
-                  type="button"
-                  data-stepper="sets-input"
-                  data-delta="-1"
-                  aria-label="Fewer sets"
-                  class="relative flex h-11 w-7 shrink-0 touch-manipulation items-center justify-center after:absolute after:inset-y-0 after:-inset-x-2 disabled:opacity-30"
-                >
-                  <span
-                    class="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-[#c9c4b9] bg-white"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12h14"></path>
-                    </svg>
-                  </span>
-                </button>
-                <input
-                  id="sets-input"
-                  type="number"
-                  inputmode="numeric"
-                  min="1"
-                  max="10"
-                  value="4"
-                  class="w-full min-w-0 bg-transparent text-center text-[36px] leading-none font-extrabold tracking-[-0.03em] outline-none"
-                />
-                <button
-                  type="button"
-                  data-stepper="sets-input"
-                  data-delta="1"
-                  aria-label="More sets"
-                  class="relative flex h-11 w-7 shrink-0 touch-manipulation items-center justify-center after:absolute after:inset-y-0 after:-inset-x-2 disabled:opacity-30"
-                >
-                  <span
-                    class="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-[#c9c4b9] bg-white"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12h14M12 5v14"></path>
-                    </svg>
-                  </span>
-                </button>
-              </div>
-            </div>
-            <div
-              class="flex min-w-0 flex-col items-center gap-1 px-1 pt-3 pb-1.5"
-            >
-              <label
-                for="reps-input"
-                class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
-                >Reps</label
-              >
-              <div class="flex w-full items-center">
-                <button
-                  type="button"
-                  data-stepper="reps-input"
-                  data-delta="-1"
-                  aria-label="Fewer reps"
-                  class="relative flex h-11 w-7 shrink-0 touch-manipulation items-center justify-center after:absolute after:inset-y-0 after:-inset-x-2 disabled:opacity-30"
-                >
-                  <span
-                    class="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-[#c9c4b9] bg-white"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12h14"></path>
-                    </svg>
-                  </span>
-                </button>
-                <input
-                  id="reps-input"
-                  type="number"
-                  inputmode="numeric"
-                  min="1"
-                  max="50"
-                  value="12"
-                  class="w-full min-w-0 bg-transparent text-center text-[36px] leading-none font-extrabold tracking-[-0.03em] outline-none"
-                />
-                <button
-                  type="button"
-                  data-stepper="reps-input"
-                  data-delta="1"
-                  aria-label="More reps"
-                  class="relative flex h-11 w-7 shrink-0 touch-manipulation items-center justify-center after:absolute after:inset-y-0 after:-inset-x-2 disabled:opacity-30"
-                >
-                  <span
-                    class="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-[#c9c4b9] bg-white"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12h14M12 5v14"></path>
-                    </svg>
-                  </span>
-                </button>
-              </div>
-            </div>
-            <div
-              class="flex min-w-0 flex-col items-center gap-1 px-1 pt-3 pb-1.5"
-            >
-              <label
-                for="weight-input"
-                id="weight-label"
-                class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
-                >Kg</label
-              >
-              <div class="flex w-full items-center">
-                <button
-                  type="button"
-                  data-stepper="weight-input"
-                  data-delta="-2.5"
-                  aria-label="Less weight"
-                  class="relative flex h-11 w-7 shrink-0 touch-manipulation items-center justify-center after:absolute after:inset-y-0 after:-inset-x-2 disabled:opacity-30"
-                >
-                  <span
-                    class="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-[#c9c4b9] bg-white"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12h14"></path>
-                    </svg>
-                  </span>
-                </button>
-                <input
-                  id="weight-input"
-                  type="number"
-                  inputmode="decimal"
-                  min="0"
-                  step="0.5"
-                  placeholder="0"
-                  class="w-full min-w-0 bg-transparent text-center text-[36px] leading-none font-extrabold tracking-[-0.03em] outline-none placeholder:text-[#c9c4b9]"
-                />
-                <button
-                  type="button"
-                  data-stepper="weight-input"
-                  data-delta="2.5"
-                  aria-label="More weight"
-                  class="relative flex h-11 w-7 shrink-0 touch-manipulation items-center justify-center after:absolute after:inset-y-0 after:-inset-x-2 disabled:opacity-30"
-                >
-                  <span
-                    class="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-[#c9c4b9] bg-white"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12h14M12 5v14"></path>
-                    </svg>
-                  </span>
-                </button>
-              </div>
-            </div>
+        <div id="position-picker" class="flex flex-col gap-2" hidden>
+          <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Phone position</span>
+          <div class="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-sand p-1" role="group" aria-label="Phone position">
+            <button type="button" data-position="beside" class="min-h-11 rounded-full text-[15px] font-semibold text-muted aria-[pressed=true]:bg-ink aria-[pressed=true]:text-white">Beside you</button>
+            <button type="button" data-position="front" class="min-h-11 rounded-full text-[15px] font-semibold text-muted aria-[pressed=true]:bg-ink aria-[pressed=true]:text-white">In front</button>
           </div>
-          <p class="text-[13px] leading-snug text-muted">
-            Pick any numbers you like. 4 x 12 is only a starting point, and you
-            can tap Finish whenever you are done.
-          </p>
-        </section>
+        </div>
 
-        <section class="flex flex-col gap-3">
-          <h2 class="flex items-center gap-2.5 text-[17px] font-semibold">
-            <span
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest text-[13px] font-semibold text-white"
-              aria-hidden="true"
-              >3</span
-            >
-            Your phone
-          </h2>
-          <div
-            id="camera-toggle"
-            role="group"
-            aria-label="Camera"
-            class="grid grid-cols-2 gap-2.5"
-          >
-            <button
-              type="button"
-              data-value="environment"
-              aria-pressed="true"
-              class="flex min-h-11 flex-col items-start gap-1 rounded-3xl border-2 border-forest bg-white px-3.5 py-3 text-left"
-            >
-              <span class="text-[15px] font-semibold">Back camera</span>
-              <span class="text-[12px] leading-snug text-muted"
-                >Sharper. Someone films you, or you just listen.</span
-              >
-            </button>
-            <button
-              type="button"
-              data-value="user"
-              aria-pressed="false"
-              class="flex min-h-11 flex-col items-start gap-1 rounded-3xl border-2 border-line bg-white px-3.5 py-3 text-left"
-            >
-              <span class="text-[15px] font-semibold">Front camera</span>
-              <span class="text-[12px] leading-snug text-muted"
-                >See the feedback yourself while you train.</span
-              >
-            </button>
+        <div class="flex flex-col gap-2">
+          <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Camera</span>
+          <div id="camera-toggle" class="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-sand p-1" role="group" aria-label="Camera">
+            <button type="button" data-value="environment" class="min-h-11 rounded-full text-[15px] font-semibold text-muted aria-[pressed=true]:bg-ink aria-[pressed=true]:text-white">Back</button>
+            <button type="button" data-value="user" class="min-h-11 rounded-full text-[15px] font-semibold text-muted aria-[pressed=true]:bg-ink aria-[pressed=true]:text-white">Front</button>
           </div>
+          <span id="camera-help" class="text-[13px] text-muted"></span>
+        </div>
 
-          <details class="group rounded-3xl border border-line bg-sand">
-            <summary
-              class="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-[15px] font-semibold [&::-webkit-details-marker]:hidden"
-            >
-              More options
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="text-muted transition-transform group-open:rotate-180"
-                aria-hidden="true"
-              >
-                <path d="M6 9l6 6 6-6"></path>
-              </svg>
-            </summary>
-            <div class="flex flex-col divide-y divide-line border-t border-line px-4">
-              <div id="record-setting">
-                <button
-                  id="record-toggle"
-                  type="button"
-                  role="switch"
-                  aria-checked="false"
-                  class="group/switch flex min-h-11 w-full items-center gap-3 py-3 text-left"
-                >
-                  <span class="flex min-w-0 grow flex-col gap-0.5">
-                    <span class="text-[15px] font-semibold">Record sets</span>
-                    <span class="text-[12px] leading-snug text-muted"
-                      >Save a clip of each set to rewatch or share</span
-                    >
-                  </span>
-                  <span
-                    class="relative h-7 w-12 shrink-0 rounded-full bg-[#c9c4b9] transition-colors group-aria-checked/switch:bg-forest"
-                  >
-                    <span
-                      class="absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white transition-transform group-aria-checked/switch:translate-x-5"
-                    ></span>
-                  </span>
-                </button>
-              </div>
-              <button
-                id="angles-toggle"
-                type="button"
-                role="switch"
-                aria-checked="false"
-                class="group/switch flex min-h-11 w-full items-center gap-3 py-3 text-left"
-              >
-                <span class="flex min-w-0 grow flex-col gap-0.5">
-                  <span class="text-[15px] font-semibold">Show angles</span>
-                  <span class="text-[12px] leading-snug text-muted"
-                    >Joint angle numbers on the skeleton</span
-                  >
-                </span>
-                <span
-                  class="relative h-7 w-12 shrink-0 rounded-full bg-[#c9c4b9] transition-colors group-aria-checked/switch:bg-forest"
-                >
-                  <span
-                    class="absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white transition-transform group-aria-checked/switch:translate-x-5"
-                  ></span>
-                </span>
-              </button>
-              <div class="flex flex-col gap-2.5 py-3">
-                <div class="flex flex-col gap-0.5">
-                  <span class="text-[15px] font-semibold">Coach voice</span>
-                  <span class="text-[12px] leading-snug text-muted"
-                    >What you hear when your form slips</span
-                  >
-                </div>
-                <div
-                  id="coach-toggle"
-                  role="group"
-                  aria-label="Coach voice"
-                  class="flex gap-2"
-                >
-                  <button
-                    type="button"
-                    data-value="voice"
-                    aria-pressed="true"
-                    class="min-h-11 min-w-11 rounded-full border-[1.5px] border-ink bg-ink px-3.5 py-2 text-[14px] font-semibold text-white"
-                  >
-                    Voice
-                  </button>
-                  <button
-                    type="button"
-                    data-value="beep"
-                    aria-pressed="false"
-                    class="min-h-11 min-w-11 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-3.5 py-2 text-[14px] font-medium text-ink"
-                  >
-                    Beep
-                  </button>
-                  <button
-                    type="button"
-                    data-value="off"
-                    aria-pressed="false"
-                    class="min-h-11 min-w-11 rounded-full border-[1.5px] border-[#c9c4b9] bg-white px-3.5 py-2 text-[14px] font-medium text-ink"
-                  >
-                    Off
-                  </button>
-                </div>
-              </div>
-              <div id="debug-export" class="flex flex-col gap-2.5 py-3" hidden>
+        <div id="debug-export" class="flex flex-col gap-2.5 py-3" hidden>
                 <div class="flex flex-col gap-0.5">
                   <span class="text-[15px] font-semibold">Debug data</span>
                   <span id="debug-export-note" class="text-[12px] leading-snug text-muted"></span>
@@ -804,24 +363,28 @@
                   </button>
                 </div>
               </div>
-            </div>
-          </details>
-        </section>
+
 
         <div class="grow"></div>
 
-        <!-- Pinned to the bottom, so Start camera is always one tap away
-             however far down the page someone has scrolled. -->
-        <div
-          class="sticky bottom-0 z-10 -mx-5 flex flex-col gap-2 border-t border-line bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
-        >
-          <p
-            id="status"
-            class="text-center text-sm text-muted empty:hidden"
-          ></p>
+        <div class="sticky bottom-0 z-10 -mx-5 flex flex-col gap-3 border-t border-line bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div id="coach-row" class="flex min-h-11 items-center justify-between">
+            <span class="text-[15px] font-semibold">Voice coach</span>
+            <button
+              id="coach-switch"
+              type="button"
+              role="switch"
+              aria-checked="true"
+              aria-label="Voice coach"
+              class="group/switch relative h-7 w-[46px] shrink-0 rounded-full bg-[#c9c4b9] transition-colors aria-checked:bg-forest"
+            >
+              <span class="absolute top-[3px] left-[3px] h-[22px] w-[22px] rounded-full bg-white transition-transform group-aria-checked/switch:translate-x-[18px]"></span>
+            </button>
+          </div>
+          <p id="status" class="text-center text-sm text-muted empty:hidden"></p>
           <button
             id="start-btn"
-            class="min-h-15 w-full rounded-full bg-ink text-[17px] font-semibold text-white"
+            class="min-h-14 w-full rounded-full bg-ink text-[17px] font-semibold text-white disabled:opacity-40"
           >
             Start camera
           </button>

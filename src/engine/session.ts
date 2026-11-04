@@ -100,6 +100,11 @@ export class SessionTracker {
     return this.completed;
   }
 
+  // How long the current set has run, in ms. 0 before the set has started.
+  setElapsedMs(nowMs: number): number {
+    return this.setStartedAt === null ? 0 : Math.max(0, nowMs - this.setStartedAt);
+  }
+
   // Call when the gate arms. Only the first call in a set counts, so
   // re-arming after losing the person mid-set does not move the start.
   startSet(nowMs: number): void {
