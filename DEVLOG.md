@@ -547,3 +547,30 @@ should be tried on a phone first.
 As with the old history limit, the Premium gate is in the app, not the
 database. The analytics read the user's own sessions, so this is a plan
 feature and not a secret. Premium loads the newest 500 sessions.
+
+## Launch fixes from recorded sets (4 November)
+
+Recorded sets showed what was wrong, so the launch set is five exercises:
+push-up, mountain climbers, deadlift, biceps curl, bent-over barbell row.
+
+- Mountain climbers from the front cannot be counted. The arms and chest hide
+  the knees, so the model gives knee positions that barely move. It is now
+  beside you only. The front profile file is kept but not offered.
+- A side-on exercise filmed facing the phone cannot be read (bent-over row:
+  the torso hides the hips and legs). A card on the setup says "Stand
+  sideways to the phone", and the pill says TURN SIDEWAYS when the shoulders
+  are wide apart for 0.7 s. Front and back camera both work side-on.
+- Deadlift: a flat back at the bottom of a hinge reads 0 to 5 degrees and the
+  "hips are shooting up" rule (under 15) flagged every rep. Removed. Neck
+  and bar rules loosened to 130 and 0.7. Provisional.
+- Bent-over row: counted nothing while armed. The rep needed the elbow back
+  above 148 degrees and no further than 92 at the top, and an arm that ends a
+  rep at 145 leaves the counter stuck mid rep with no count and no partial
+  notice. Now start 150 and turn 90, the first full rep arms counting, and
+  only head, shoulder, elbow, wrist and hip must be seen. Provisional.
+- The pose model is warmed up while it loads, because the first call took
+  seconds on a test machine.
+- Debug capture: open the app once with ?debug=1. Each set then records the
+  engine's numbers for every frame, startup timings and the raw camera video,
+  sent from the Debug data row in More options. ?debug=0 turns it off.
+  Thresholds marked provisional above should be tuned from these.
