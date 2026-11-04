@@ -678,3 +678,10 @@ link sign in (or sign up), join, and land in the Hall of Gains.
 - Not done on purpose: removing members, comments, private challenges, a
   per-challenge preview image, deleting a challenge. Reporting abusive
   challenge names is not built yet either.
+
+## Pick a last day for a challenge
+
+The New challenge form has a fourth length, "Pick a date". It shows a date
+input (today to 91 days away) and the challenge runs from midnight today to the
+end of that day. The database limit of 92 days still applies, so the form
+refuses anything further out. Tests cover the picked-day rules.

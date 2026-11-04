@@ -16,8 +16,10 @@ import {
   datesText,
   exerciseLabel,
   profileIdsFor,
+  lastDayLimits,
   progressFor,
   rangeFor,
+  rangeUntil,
   rememberCode,
   shareText,
   standingLine,
@@ -61,13 +63,15 @@ const descInput = q<HTMLTextAreaElement>("#cn-desc");
 const goalInput = q<HTMLInputElement>("#cn-goal");
 const exerciseBox = q<HTMLElement>("#cn-exercises");
 const lengthButtons = [...document.querySelectorAll<HTMLButtonElement>("#cn-length [data-length]")];
+const lastWrap = q<HTMLElement>("#cn-last-wrap");
+const lastInput = q<HTMLInputElement>("#cn-last");
 const datesEl = q<HTMLElement>("#cn-dates");
 const formError = q<HTMLElement>("#cn-error");
 const submitBtn = q<HTMLButtonElement>("#cn-submit");
 
 let current: Challenge | null = null;
 let sort: SortBy = "workouts";
-let length: Length = "week";
+let length: Length | "custom" = "week";
 // Bumped on every open, so a slow answer for an old one is ignored.
 let openToken = 0;
 
@@ -276,9 +280,19 @@ q<HTMLButtonElement>("#challenge-back").addEventListener("click", () => {
 
 // --- Making one ------------------------------------------------------------
 
+// The dates the form is set to, or null when "Pick a date" has no good day.
+function chosenRange(): { startsAt: string; endsAt: string } | null {
+  return length === "custom" ? rangeUntil(lastInput.value) : rangeFor(length);
+}
+
 function drawDates(): void {
-  const { startsAt, endsAt } = rangeFor(length);
-  datesEl.textContent = datesText(startsAt, endsAt);
+  show(lastWrap, length === "custom");
+  const range = chosenRange();
+  datesEl.textContent = range
+    ? datesText(range.startsAt, range.endsAt)
+    : length === "custom"
+      ? "Pick the last day."
+      : "";
 }
 
 function selected(): string[] {
@@ -303,16 +317,22 @@ for (const exercise of EXERCISES) {
 
 for (const button of lengthButtons) {
   button.addEventListener("click", () => {
-    length = button.dataset.length as Length;
+    length = button.dataset.length as Length | "custom";
     for (const b of lengthButtons) b.setAttribute("aria-checked", String(b === button));
     drawDates();
   });
 }
 
+lastInput.addEventListener("input", drawDates);
+
 function openForm(): void {
   formEl.reset();
   for (const b of exerciseBox.querySelectorAll("button")) b.setAttribute("aria-pressed", "false");
   length = "week";
+  const limits = lastDayLimits();
+  lastInput.min = limits.min;
+  lastInput.max = limits.max;
+  lastInput.value = "";
   for (const b of lengthButtons) b.setAttribute("aria-checked", String(b.dataset.length === "week"));
   drawDates();
   show(formError, false);
@@ -336,9 +356,15 @@ formEl.addEventListener("submit", async (event) => {
     say(formError, "bad_input");
     return;
   }
+  const range = chosenRange();
+  if (!range) {
+    formError.textContent = "Pick a last day from today to 91 days away.";
+    show(formError, true);
+    return;
+  }
+  const { startsAt, endsAt } = range;
   submitBtn.disabled = true;
   submitBtn.textContent = "Creating...";
-  const { startsAt, endsAt } = rangeFor(length);
   const result = await createChallenge({
     title,
     description: descInput.value.trim(),
