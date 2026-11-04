@@ -5,6 +5,14 @@ import { refreshAccount, resetAccountUi, waitForPremium } from "./profile";
 import { initHistory, refreshHistory, resetHistory } from "./history";
 import { initProgress, refreshProgress, resetProgress } from "./progress";
 import { hideExercises, refreshTrain, resetTrain } from "./train";
+import { hideStreak, initStreak, resetStreak } from "./streak";
+import {
+  hideChallengeScreens,
+  openChallenge,
+  pendingChallengeCode,
+  refreshChallenges,
+  resetChallenges,
+} from "./challenges";
 
 type Tab = "train" | "history" | "challenges" | "profile";
 
@@ -21,12 +29,15 @@ const milestones = q<HTMLElement>("#milestones-screen");
 export function showTab(tab: Tab): void {
   milestones.hidden = true;
   hideExercises();
+  hideStreak();
+  hideChallengeScreens();
   for (const [name, el] of Object.entries(screens)) {
     el.hidden = name !== tab;
     if (name === tab) el.scrollTop = 0;
   }
   if (tab === "train") void refreshTrain();
   if (tab === "profile") void refreshAccount();
+  if (tab === "challenges") void refreshChallenges();
   if (tab === "history") {
     void refreshAccount().then(async () => {
       await refreshHistory();
@@ -41,12 +52,15 @@ export function resetTabs(): void {
   resetHistory();
   resetProgress();
   resetTrain();
+  resetStreak();
+  resetChallenges();
   showTab("train");
 }
 
 export function initTabs(openReport: (id: string) => Promise<boolean>): void {
   initHistory(openReport);
   initProgress();
+  initStreak();
   document.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLElement>("[data-tab]");
     if (button) showTab(button.dataset.tab as Tab);
@@ -67,4 +81,13 @@ export function handleCheckoutReturn(): void {
   );
   showTab("profile");
   void waitForPremium();
+}
+
+// Someone opened a /c/<code> link. Once they are signed in, show it.
+export function openPendingChallenge(): boolean {
+  const code = pendingChallengeCode();
+  if (!code) return false;
+  showTab("challenges");
+  void openChallenge(code);
+  return true;
 }

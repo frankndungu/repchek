@@ -58,8 +58,10 @@ function chevron(): HTMLElement {
 
 // --- Drawing ---------------------------------------------------------------
 
-function drawDays(sessions: SessionSummary[]): void {
-  q<HTMLElement>("#train-days").replaceChildren(
+// Monday to Sunday of this week as circles: filled for a day trained, dashed
+// for today if not trained yet. Used on Train and on the Streak screen.
+export function drawWeek(container: HTMLElement, sessions: SessionSummary[]): void {
+  container.replaceChildren(
     ...weekDays(sessions).map((day) => {
       const cell = document.createElement("div");
       cell.className = `flex flex-col items-center gap-1.5${day.today ? " text-ink" : ""}`;
@@ -107,7 +109,8 @@ function drawCards(items: Awaited<ReturnType<typeof loadHistory>>): void {
 function draw(items: Awaited<ReturnType<typeof loadHistory>>): void {
   const profile = currentProfile();
   const sessions: SessionSummary[] = items ?? [];
-  const streak = streakFor(sessions);
+  const goal = profile?.weeklyGoal ?? WEEKLY_GOAL;
+  const streak = streakFor(sessions, new Date(), goal);
 
   q<HTMLElement>("#train-hi").textContent = profile?.name
     ? `Hi ${profile.name}`
@@ -115,11 +118,11 @@ function draw(items: Awaited<ReturnType<typeof loadHistory>>): void {
   q<HTMLElement>("#train-avatar").textContent = profile?.initials ?? "R";
   q<HTMLElement>("#train-sub").textContent = greetingLine(
     streak.thisWeek,
-    WEEKLY_GOAL,
+    goal,
   );
   q<HTMLElement>("#train-streak").textContent = streakTitle(streak.weeks);
-  q<HTMLElement>("#train-goal").textContent = `Goal ${WEEKLY_GOAL} days`;
-  drawDays(sessions);
+  q<HTMLElement>("#train-goal").textContent = `Goal ${goal} days`;
+  drawWeek(q<HTMLElement>("#train-days"), sessions);
   drawCards(items);
   q<HTMLElement>("#train-all").textContent = `All ${EXERCISES.length} exercises`;
 }

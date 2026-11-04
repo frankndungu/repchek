@@ -625,3 +625,56 @@ unless debug mode is on. Three quick taps on the rep count still show it.
 Form previews are still skeletons generated from the demo mockup's body
 proportions (`src/ui/formPreviews.ts`). The moving loops, the replay and
 saving rest, pace and keypoints are not built yet.
+
+## The streak, explained, with a goal and a heatmap
+
+The old tile said "No streak yet" at 2 of 3 days, which read as broken. The
+streak is weeks in a row that reached the weekly goal, so it starts the first
+time a week is complete. The screens now say that in words.
+
+- New Your streak screen, opened from the streak tile on Train and on
+  Profile. It has the headline ("Start your streak. Train 3 days in one week
+  to start it. You are on 2 of 3."), this week's days, a weekly goal the
+  person sets (1 to 7 days, saved on their profile as `weekly_goal`), the
+  totals (workouts, days trained, best streak in weeks) and a GitHub style
+  heatmap of the last 26 weeks. A cell is darker the more workouts that day.
+  Tapping a cell shows the day, the workouts and the clean reps.
+- The goal feeds Train, Profile and the milestones.
+- Profile: the front and side versions of an exercise are one row in
+  Personal bests, and "1 clean rep" is singular.
+- Migration `20261104000000_weekly_goal.sql`: a profile column and permission
+  to change only that column (and the name).
+
+## Challenges and the Hall of Gains
+
+Anyone signed in can make a challenge and share a link. People who open the
+link sign in (or sign up), join, and land in the Hall of Gains.
+
+- A challenge has a name, an optional note, the exercises that count (none
+  means any), an optional goal in clean reps, and dates. Lengths offered:
+  this week (today to the end of Sunday), 7 days, 30 days. It starts at
+  midnight today so a workout done earlier today counts.
+- The Hall of Gains ranks everyone in the challenge on workouts completed by
+  default, with a switch to rank on clean reps. Every workout counts
+  regardless of form ("just show up"). The goal bar uses clean reps. Only
+  members can see it, and only the display name is shown.
+- Link: `app.repchek.fit/c/<code>`. A visitor who is signed out is sent to
+  sign in; the code is kept in local storage (Google sign in returns to the
+  home page) and the challenge opens once they are in. `vercel.json` rewrites
+  `/c/:code` to the app. The social preview is the app's generic card.
+- Database (`20261104120000_challenges.sql`, plus a leaderboard fix applied as
+  `challenge_leaderboard_fix`): two tables with RLS on and no direct access.
+  Everything goes through functions that check who is asking:
+  `create_challenge`, `get_challenge`, `join_challenge`, `leave_challenge`,
+  `challenge_leaderboard`, `my_challenges`. Limits: 5 new challenges a day, 10
+  running per person, 92 days at most, exercises from a fixed list, start
+  within a day before to 60 days after today.
+- Tested in SQL as three users (rolled back): ranking by workouts and by
+  clean reps, the exercise filter (front push-up counts), sessions outside the
+  dates ignored, non-members refused, every limit, and no access when signed
+  out.
+- Tests: `tests/challenges.test.ts` (links, dates, status, progress, rows,
+  errors).
+- Not done on purpose: removing members, comments, private challenges, a
+  per-challenge preview image, deleting a challenge. Reporting abusive
+  challenge names is not built yet either.

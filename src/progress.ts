@@ -39,6 +39,7 @@ export function levelFor(xp: number): LevelInfo {
 }
 
 // A week counts when you trained on this many different days.
+// The goal until someone sets their own.
 export const WEEKLY_GOAL = 3;
 
 // Monday of the week the date is in, in the lifter's own time zone, as a
@@ -125,9 +126,10 @@ export interface StreakInfo {
 export function streakFor(
   sessions: SessionSummary[],
   now: Date = new Date(),
+  goal: number = WEEKLY_GOAL,
 ): StreakInfo {
   const perWeek = weeksMet(sessions);
-  const met = (week: number) => (perWeek.get(week) ?? 0) >= WEEKLY_GOAL;
+  const met = (week: number) => (perWeek.get(week) ?? 0) >= goal;
   const thisWeekKey = weekOf(now);
 
   // This week is still in progress, so it only adds to the run when it is
@@ -152,7 +154,7 @@ export function streakFor(
   return {
     weeks,
     thisWeek: perWeek.get(thisWeekKey) ?? 0,
-    goal: WEEKLY_GOAL,
+    goal,
     best,
   };
 }
@@ -209,10 +211,11 @@ function toGo(target: number, have: number, unit: string): string {
 export function milestonesFor(
   sessions: SessionSummary[],
   now: Date = new Date(),
+  goal: number = WEEKLY_GOAL,
 ): Milestone[] {
   const counted = countedSessions(sessions);
   const { cleanReps } = totalsFor(sessions);
-  const { best } = streakFor(sessions, now);
+  const { best } = streakFor(sessions, now, goal);
   const formRun = longestFormRun(sessions);
 
   const firstClean = counted.some(
@@ -301,4 +304,107 @@ export function personalBests(sessions: SessionSummary[]): PersonalBest[] {
       };
     })
     .sort((a, b) => b.sessions - a.sessions);
+}
+
+// --- Words for the streak ----------------------------------------------------
+
+// What the streak is and how to keep or start it, in plain words. The streak
+// is weeks in a row that reached the goal, so while a week is still short of
+// it the screen says how far off it is.
+export function streakCopy(info: StreakInfo): { title: string; sub: string } {
+  const left = Math.max(0, info.goal - info.thisWeek);
+  const days = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
+  if (info.weeks > 0) {
+    return {
+      title: `${info.weeks} week streak`,
+      sub:
+        left === 0
+          ? "Goal hit this week. Extra days still count."
+          : `${days(left)} more this week keeps it going.`,
+    };
+  }
+  return {
+    title: "Start your streak",
+    sub:
+      info.thisWeek === 0
+        ? `Train ${days(info.goal)} in one week to start it.`
+        : `Train ${days(info.goal)} in one week to start it. You are on ${info.thisWeek} of ${info.goal}.`,
+  };
+}
+
+// Days with at least one session, all time.
+export function daysTrained(sessions: SessionSummary[]): number {
+  const days = new Set<number>();
+  for (const s of countedSessions(sessions)) days.add(dayOf(new Date(s.startedAt)));
+  return days.size;
+}
+
+// --- The activity heatmap ------------------------------------------------------
+
+export interface HeatCell {
+  // "Tue 3 Nov".
+  label: string;
+  sessions: number;
+  cleanReps: number;
+  // 0 for no session, 1, 2, 3, and 4 for four or more.
+  level: 0 | 1 | 2 | 3 | 4;
+  today: boolean;
+  // After today, in the current week.
+  future: boolean;
+}
+
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function dayLabel(day: number): string {
+  const d = new Date(day * 86_400_000);
+  return `${WEEKDAY_NAMES[d.getUTCDay()]} ${d.getUTCDate()} ${MONTH_NAMES[d.getUTCMonth()]}`;
+}
+
+// The last `weeks` weeks, oldest first, each one Monday to Sunday: the grid
+// GitHub draws for contributions, here for workouts.
+export function heatmap(
+  sessions: SessionSummary[],
+  weeks = 26,
+  now: Date = new Date(),
+): HeatCell[][] {
+  const perDay = new Map<number, { sessions: number; cleanReps: number }>();
+  for (const s of countedSessions(sessions)) {
+    const day = dayOf(new Date(s.startedAt));
+    const entry = perDay.get(day) ?? { sessions: 0, cleanReps: 0 };
+    entry.sessions += 1;
+    entry.cleanReps += s.cleanReps;
+    perDay.set(day, entry);
+  }
+  const today = dayOf(now);
+  const firstMonday = weekOf(now) - (weeks - 1) * DAYS_IN_WEEK;
+  return Array.from({ length: weeks }, (_, w) =>
+    Array.from({ length: DAYS_IN_WEEK }, (_, d) => {
+      const day = firstMonday + w * DAYS_IN_WEEK + d;
+      const entry = perDay.get(day);
+      const count = entry?.sessions ?? 0;
+      return {
+        label: dayLabel(day),
+        sessions: count,
+        cleanReps: entry?.cleanReps ?? 0,
+        level: Math.min(4, count) as HeatCell["level"],
+        today: day === today,
+        future: day > today,
+      };
+    }),
+  );
+}
+
+// The month name above the first week of each month, and "" above the rest.
+export function heatmapMonths(grid: HeatCell[][]): string[] {
+  let previous = -1;
+  return grid.map((week) => {
+    const month = MONTH_NAMES.indexOf(week[0].label.split(" ")[2]);
+    const label = month !== previous ? MONTH_NAMES[month] : "";
+    previous = month;
+    return label;
+  });
 }

@@ -121,9 +121,11 @@ import { showComparison } from "./ui/history";
 import {
   handleCheckoutReturn,
   initTabs,
+  openPendingChallenge,
   resetTabs,
   showTab,
 } from "./ui/tabs";
+import { captureChallengeLink } from "./ui/challenges";
 import { initTrain, refreshTrain } from "./ui/train";
 import { FORM_PREVIEWS } from "./ui/formPreviews";
 import { FORM_CUES } from "./formCues";
@@ -876,6 +878,7 @@ q<HTMLButtonElement>("#camera-allow").addEventListener("click", () => {
 
 q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
 
+captureChallengeLink();
 initProfile();
 initTabs(openSavedReport);
 initTrain({
@@ -895,6 +898,7 @@ initAuth((value) => {
   void refreshTrain();
   void afterSignIn();
   handleCheckoutReturn();
+  openPendingChallenge();
 });
 
 // A form fault this frame: tell the lifter, the way they chose. With
