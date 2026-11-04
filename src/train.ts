@@ -74,3 +74,15 @@ export function greetingLine(daysDone: number, goal: number): string {
 export function streakTitle(weeks: number): string {
   return weeks > 0 ? `${weeks} week streak` : "Start your streak";
 }
+
+// "Last time: 3 x 12, 85% clean." for the setup screen.
+export function lastTimeLine(last: HistoryItem): string {
+  const pct = last.totalReps
+    ? Math.round((last.cleanReps / last.totalReps) * 100)
+    : 0;
+  const plan =
+    last.targetSets && last.targetReps
+      ? `${last.targetSets} x ${last.targetReps}`
+      : `${last.totalReps} reps`;
+  return `Last time: ${plan}, ${pct}% clean.`;
+}
