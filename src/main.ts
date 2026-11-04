@@ -59,7 +59,7 @@ import {
   findExercise,
   profileFor,
 } from "./profiles";
-import type { ExerciseChoice, PhonePosition, Section } from "./profiles";
+import type { ExerciseChoice, PhonePosition } from "./profiles";
 import {
   deleteActiveWorkoutCheckpoint,
   getActiveWorkoutCheckpoint,
@@ -164,10 +164,6 @@ const CHIP_OFF = "border-[#c9c4b9] bg-white text-ink font-medium";
 // Selected on the start screen until someone picks another. No equipment,
 // and the camera sees the whole body on the floor.
 const DEFAULT_EXERCISE_ID = "push-up";
-// Folded away on the start screen, see gymSection().
-const GYM_SECTION: Section = "At the gym";
-// The same chevron as More options in index.html.
-const CHEVRON_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>`;
 
 type FacingMode = CameraOptions["facingMode"];
 
@@ -338,10 +334,6 @@ function phonePosition(exercise: ExerciseChoice): PhonePosition {
 
 // One chip per exercise, grouped by where you train.
 function renderChips(): void {
-  // Every tap renders the chips again, which must not fold up the gym
-  // section someone just opened.
-  const gymWasOpen = chipsEl.querySelector("details")?.open ?? false;
-  const selected = findExercise(selectedExerciseId);
   chipsEl.replaceChildren();
   for (const section of SECTIONS) {
     const row = document.createElement("div");
@@ -358,12 +350,6 @@ function renderChips(): void {
       row.append(chip);
     }
 
-    if (section === GYM_SECTION) {
-      const open = gymWasOpen || selected.section === section;
-      chipsEl.append(gymSection(row, open));
-      continue;
-    }
-
     const heading = document.createElement("h3");
     heading.className =
       "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
@@ -375,28 +361,6 @@ function renderChips(): void {
     chipsEl.append(block);
   }
   renderExerciseCard();
-}
-
-// The gym lifts start folded away, with a warning: a bench or a machine
-// hides part of the body, so tracking there is the least reliable. Styled
-// like More options.
-function gymSection(row: HTMLElement, open: boolean): HTMLDetailsElement {
-  const details = document.createElement("details");
-  details.className = "group rounded-3xl border border-line bg-sand";
-  details.open = open;
-  details.innerHTML = `
-    <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-      <span class="flex min-w-0 flex-col gap-0.5">
-        <span class="text-[15px] font-semibold">At the gym: benches and machines</span>
-        <span class="text-[12px] leading-snug text-muted">Equipment hides your body. Expect false alarms.</span>
-      </span>
-      ${CHEVRON_ICON}
-    </summary>`;
-  const body = document.createElement("div");
-  body.className = "border-t border-line px-4 py-3";
-  body.append(row);
-  details.append(body);
-  return details;
 }
 
 // The card under the chips: the exercise, where the phone goes if there is

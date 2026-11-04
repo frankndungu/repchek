@@ -43,10 +43,9 @@ export function findProfile(id: string): ExerciseProfile {
 // separate profiles because the two views see, and so check, different
 // things. See docs/04-judge-and-profiles.md.
 
-// Sections are where you train. Home and free weights come first: the
-// camera sees a whole body on the floor or standing, and loses part of it
-// behind benches and machines.
-export type Section = "At home" | "Free weights" | "At the gym";
+// Sections are where you train. Home and free weights: the camera sees a
+// whole body on the floor or standing, with nothing in front of it.
+export type Section = "At home" | "Free weights";
 export type PhonePosition = "beside" | "front";
 
 export interface ExerciseChoice {
@@ -62,7 +61,7 @@ export interface ExerciseChoice {
   checks?: Record<PhonePosition, string>;
 }
 
-export const SECTIONS: Section[] = ["At home", "Free weights", "At the gym"];
+export const SECTIONS: Section[] = ["At home", "Free weights"];
 
 export const EXERCISES: ExerciseChoice[] = [
   {
@@ -79,14 +78,9 @@ export const EXERCISES: ExerciseChoice[] = [
     id: "mountain-climbers",
     name: "Mountain climbers",
     section: "At home",
-    positions: {
-      beside: "mountain-climbers",
-      front: "mountain-climbers-front",
-    },
-    checks: {
-      beside: "Checks your body stays straight",
-      front: "Checks your shoulders stay level",
-    },
+    // Beside you only. From the front your arms and chest hide your knees,
+    // so the model cannot follow them and nothing is counted.
+    positions: { beside: "mountain-climbers" },
   },
   {
     id: "deadlift",
@@ -106,45 +100,6 @@ export const EXERCISES: ExerciseChoice[] = [
     section: "Free weights",
     detail: "Dumbbell, EZ bar or cable",
     positions: { beside: "biceps-curl" },
-  },
-  {
-    id: "triceps-extension",
-    name: "Overhead triceps extension",
-    section: "Free weights",
-    positions: { beside: "triceps-extension" },
-  },
-  {
-    id: "bench-press",
-    name: "Bench press",
-    section: "At the gym",
-    detail: "Dumbbell or barbell",
-    positions: { beside: "bench-press" },
-  },
-  {
-    id: "incline-bench",
-    name: "Incline bench press",
-    section: "At the gym",
-    positions: { beside: "incline-bench" },
-  },
-  {
-    id: "chest-fly",
-    name: "Chest fly",
-    section: "At the gym",
-    detail: "Dumbbell",
-    positions: { beside: "chest-fly" },
-  },
-  {
-    id: "lat-pulldown",
-    name: "Lat pulldown",
-    section: "At the gym",
-    positions: { beside: "lat-pulldown" },
-  },
-  {
-    id: "triceps-pushdown",
-    name: "Triceps pushdown",
-    section: "At the gym",
-    detail: "Cable",
-    positions: { beside: "triceps-pushdown" },
   },
 ];
 
