@@ -25,6 +25,8 @@ import { FrontReferenceTracker } from "./engine/reference";
 import {
   computeFrameMetrics,
   dominantSide,
+  FACING_CAMERA_RATIO,
+  facingRatio,
   frameConfidence,
   missingParts,
 } from "./engine/angles";
@@ -309,6 +311,13 @@ const animationLoop = new AnimationLoop(
 const completionTimer = new CompletionTimer();
 let lastVideoTime = -1;
 let lowConfidenceSince: number | null = null;
+// A side-on exercise, but the person is facing the phone: the pill says
+// TURN SIDEWAYS instead of leaving them to guess from STEP INTO VIEW.
+const FACING_HINT_AFTER_MS = 700;
+const FACING_FORGET_AFTER_MS = 1500;
+let facingSince: number | null = null;
+let lastPoseAt = 0;
+let turnSideways = false;
 let trackingHint = "";
 let mirrored = false;
 let currentRecord: SessionRecord | null = null;
@@ -924,6 +933,7 @@ function gateDebug(metrics: FrameMetrics): string {
 // The label in the counter pill ("Set 1/4 | Reps 0 | ...").
 function counterLabel(profile: ExerciseProfile, phase: RepPhase): string {
   if (!session || !gate) return "";
+  if (turnSideways && !gate.isArmed) return "TURN SIDEWAYS";
   if (trackingHint) return trackingHint;
   if (!gate.isArmed) {
     if (gate.status === "holding") return "HOLD STILL";
@@ -1347,6 +1357,8 @@ async function startWorkout(
     showExercise(activeExercise.name);
     lowConfidenceSince = null;
     trackingHint = "";
+    facingSince = null;
+    turnSideways = false;
 
     status.textContent = "Requesting camera...";
     // facingMode is only "ideal" inside startCamera, so if the chosen camera
@@ -1484,6 +1496,35 @@ shareBtn.addEventListener("click", async () => {
     shareBtn.disabled = false;
   }
 });
+
+// Tracks whether the person has been facing the phone for a side-on exercise.
+// It keeps its answer through frames where nobody is found, which is what
+// happens when bending over facing the phone, and forgets it once nobody has
+// been seen for a while or they are seen side-on.
+function updateFacing(
+  landmarks: Landmark[] | null,
+  aspect: number,
+  now: number,
+): void {
+  if (!activeProfile || activeProfile.cameraView !== "side") return;
+  if (!landmarks) {
+    if (now - lastPoseAt > FACING_FORGET_AFTER_MS) {
+      facingSince = null;
+      turnSideways = false;
+    }
+    return;
+  }
+  lastPoseAt = now;
+  const ratio = facingRatio(landmarks, aspect);
+  if (ratio === null) return;
+  if (ratio >= FACING_CAMERA_RATIO) {
+    facingSince ??= now;
+    turnSideways = now - facingSince >= FACING_HINT_AFTER_MS;
+  } else {
+    facingSince = null;
+    turnSideways = false;
+  }
+}
 
 // Pass the missing parts on a low confidence frame, or null on any other
 // frame. The hint only appears once tracking has been poor for
@@ -1660,6 +1701,7 @@ function loop(): void {
     // Only the lifter's pose goes any further, skeleton included. Anyone
     // else in view is ignored.
     const landmarks = lifter.pick(poses, gate.isArmed, aspect, now);
+    updateFacing(landmarks, aspect, now);
     if (lifter.hasCompany && !lifter.isTapLocked && !crowdTipShown) {
       crowdTipShown = true;
       showNotice("More than one person seen. Tap yourself to lock on.", 3000);

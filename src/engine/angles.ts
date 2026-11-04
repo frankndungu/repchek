@@ -184,6 +184,33 @@ export function missingParts(
   ).map(({ part }) => part);
 }
 
+// How much a person faces the camera: the span between their shoulders on
+// screen, over the distance from their nose to the middle of their
+// shoulders. Side-on the shoulders sit on top of each other, so this is
+// near 0. Facing the camera they are wide apart, so it is 1 or more. Only
+// the nose and shoulders are used because they stay in view even when the
+// torso hides the hips and legs, as when bent over facing the phone. Null
+// when those three are not seen.
+export const FACING_CAMERA_RATIO = 0.6;
+
+export function facingRatio(
+  landmarks: Landmark[],
+  aspect: number,
+): number | null {
+  const lm = correctAspect(landmarks, aspect);
+  const nose = lm[LANDMARK.NOSE];
+  const ls = lm[LANDMARK.LEFT_SHOULDER];
+  const rs = lm[LANDMARK.RIGHT_SHOULDER];
+  if (Math.min(nose.visibility, ls.visibility, rs.visibility) < 0.5) {
+    return null;
+  }
+  const span = Math.hypot(ls.x - rs.x, ls.y - rs.y);
+  const midX = (ls.x + rs.x) / 2;
+  const midY = (ls.y + rs.y) / 2;
+  const reach = Math.hypot(nose.x - midX, nose.y - midY);
+  return reach > 0 ? span / reach : null;
+}
+
 export function computeJointAngles(lm: Point[]): JointAngles {
   return {
     leftKnee: angleAt(
