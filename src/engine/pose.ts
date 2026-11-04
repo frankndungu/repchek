@@ -13,11 +13,34 @@ export class PoseEstimator {
 
   static async create(): Promise<PoseEstimator> {
     const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
+    let estimator: PoseEstimator;
     try {
-      return new PoseEstimator(await PoseEstimator.build(fileset, "GPU"));
+      estimator = new PoseEstimator(await PoseEstimator.build(fileset, "GPU"));
     } catch {
       console.warn("GPU delegate unavailable, falling back to CPU.");
-      return new PoseEstimator(await PoseEstimator.build(fileset, "CPU"));
+      estimator = new PoseEstimator(await PoseEstimator.build(fileset, "CPU"));
+    }
+    estimator.warmUp();
+    return estimator;
+  }
+
+  // The first call sets the model up on the GPU, which can take seconds.
+  // Doing it here, on a blank picture, while the loading message is on
+  // screen means the first frame of the workout is not the slow one.
+  private warmUp(): void {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#808080";
+        ctx.fillRect(0, 0, 256, 256);
+      }
+      // Timestamp 0: real frames use performance.now(), which is later.
+      this.landmarker.detectForVideo(canvas, 0);
+    } catch (err) {
+      console.warn("Pose model warm-up failed", err);
     }
   }
 
