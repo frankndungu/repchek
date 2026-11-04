@@ -948,6 +948,138 @@
         </div>
       </section>
 
+      <!-- One challenge: details, your progress and the Hall of Gains. -->
+      <section
+        id="challenge-screen"
+        class="absolute inset-0 z-[15] flex flex-col gap-[18px] overflow-y-auto bg-white px-5 pt-14 pb-8 text-ink"
+        aria-labelledby="challenge-title"
+        hidden
+      >
+        <div class="flex items-center gap-3">
+          <button
+            id="challenge-back"
+            type="button"
+            aria-label="Back"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#c9c4b9] bg-white"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <h1 id="challenge-title" class="text-[24px] leading-[1.1] font-extrabold tracking-[-0.03em]"></h1>
+        </div>
+
+        <p id="challenge-state" class="text-[14px] leading-snug text-muted" hidden></p>
+
+        <div id="challenge-body" class="flex flex-col gap-[18px]" hidden>
+          <div class="flex flex-col gap-1.5 rounded-[22px] bg-sand p-4">
+            <span id="challenge-meta" class="text-[13px] font-semibold tracking-[0.04em] text-muted"></span>
+            <p id="challenge-desc" class="text-[14px] leading-snug" hidden></p>
+            <span id="challenge-by" class="text-[13px] text-muted"></span>
+          </div>
+
+          <div id="challenge-progress" class="flex flex-col gap-2 rounded-[22px] bg-forest p-4 text-white" hidden>
+            <span id="challenge-progress-text" class="text-[18px] font-extrabold tracking-[-0.02em]"></span>
+            <div class="h-2 overflow-hidden rounded-full bg-white/25">
+              <div id="challenge-progress-bar" class="h-full rounded-full bg-white" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <button
+            id="challenge-join"
+            type="button"
+            class="min-h-[52px] rounded-full bg-forest text-[16px] font-bold text-white disabled:opacity-60"
+            hidden
+          >
+            Join challenge
+          </button>
+          <p id="challenge-join-error" class="text-[13px] text-bad" role="alert" hidden></p>
+
+          <div id="challenge-board-wrap" class="flex flex-col gap-3" hidden>
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-[20px] font-extrabold tracking-[-0.03em]">Hall of Gains</h2>
+              <div id="challenge-sort" class="flex rounded-full bg-sand p-1 text-[12px] font-bold" role="group" aria-label="Rank by">
+                <button type="button" data-sort="workouts" aria-pressed="true" class="min-h-9 rounded-full px-3 aria-pressed:bg-ink aria-pressed:text-white">Workouts</button>
+                <button type="button" data-sort="clean" aria-pressed="false" class="min-h-9 rounded-full px-3 aria-pressed:bg-ink aria-pressed:text-white">Clean reps</button>
+              </div>
+            </div>
+            <ol id="challenge-board" class="flex flex-col gap-2"></ol>
+            <p id="challenge-board-error" class="text-[13px] text-bad" role="alert" hidden></p>
+          </div>
+
+          <div class="flex flex-col gap-3" id="challenge-actions" hidden>
+            <button
+              id="challenge-share"
+              type="button"
+              class="min-h-[52px] rounded-full border-[1.5px] border-ink text-[16px] font-bold"
+            >
+              Share the link
+            </button>
+            <button
+              id="challenge-leave"
+              type="button"
+              class="min-h-11 text-[14px] font-semibold text-muted underline"
+            >
+              Leave challenge
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Make a challenge. -->
+      <section
+        id="challenge-new-screen"
+        class="absolute inset-0 z-[16] flex flex-col gap-[18px] overflow-y-auto bg-white px-5 pt-14 pb-8 text-ink"
+        aria-labelledby="challenge-new-title"
+        hidden
+      >
+        <div class="flex items-center gap-3">
+          <button
+            id="challenge-new-back"
+            type="button"
+            aria-label="Back"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#c9c4b9] bg-white"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <h1 id="challenge-new-title" class="text-[26px] leading-[1.05] font-extrabold tracking-[-0.04em]">New challenge</h1>
+        </div>
+
+        <form id="challenge-form" class="flex flex-col gap-[18px]" novalidate>
+          <label class="flex flex-col gap-1.5 text-[14px] font-bold">
+            Name
+            <input id="cn-title" type="text" maxlength="80" autocomplete="off" placeholder="100 clean push-ups this week" class="min-h-12 rounded-2xl border-[1.5px] border-[#c9c4b9] px-4 text-[16px] font-normal" />
+          </label>
+
+          <label class="flex flex-col gap-1.5 text-[14px] font-bold">
+            About it (optional)
+            <textarea id="cn-desc" maxlength="280" rows="2" class="rounded-2xl border-[1.5px] border-[#c9c4b9] px-4 py-3 text-[16px] font-normal"></textarea>
+          </label>
+
+          <fieldset class="flex flex-col gap-2">
+            <legend class="mb-1 text-[14px] font-bold">What counts</legend>
+            <div id="cn-exercises" class="flex flex-wrap gap-2"></div>
+            <span class="text-[12px] text-muted">Pick none to count every exercise.</span>
+          </fieldset>
+
+          <fieldset class="flex flex-col gap-2">
+            <legend class="mb-1 text-[14px] font-bold">How long</legend>
+            <div id="cn-length" class="flex flex-wrap gap-2" role="radiogroup">
+              <button type="button" role="radio" data-length="week" aria-checked="true" class="min-h-11 rounded-full border-[1.5px] border-[#c9c4b9] px-4 text-[14px] font-semibold aria-checked:border-ink aria-checked:bg-ink aria-checked:text-white">This week</button>
+              <button type="button" role="radio" data-length="7" aria-checked="false" class="min-h-11 rounded-full border-[1.5px] border-[#c9c4b9] px-4 text-[14px] font-semibold aria-checked:border-ink aria-checked:bg-ink aria-checked:text-white">7 days</button>
+              <button type="button" role="radio" data-length="30" aria-checked="false" class="min-h-11 rounded-full border-[1.5px] border-[#c9c4b9] px-4 text-[14px] font-semibold aria-checked:border-ink aria-checked:bg-ink aria-checked:text-white">30 days</button>
+            </div>
+            <span id="cn-dates" class="text-[12px] text-muted"></span>
+          </fieldset>
+
+          <label class="flex flex-col gap-1.5 text-[14px] font-bold">
+            Goal in clean reps (optional)
+            <input id="cn-goal" type="number" inputmode="numeric" min="1" max="100000" placeholder="100" class="min-h-12 rounded-2xl border-[1.5px] border-[#c9c4b9] px-4 text-[16px] font-normal" />
+          </label>
+
+          <p id="cn-error" class="text-[13px] text-bad" role="alert" hidden></p>
+          <button id="cn-submit" type="submit" class="min-h-[52px] rounded-full bg-forest text-[16px] font-bold text-white disabled:opacity-60">Create challenge</button>
+        </form>
+      </section>
+
       <!-- Your streak: the goal, the week, the totals and an activity heatmap. -->
       <section
         id="streak-screen"
@@ -1610,13 +1742,27 @@
         aria-label="Challenges"
         hidden
       >
-        <h1 class="text-[32px] leading-none font-extrabold tracking-[-0.03em]">Challenges</h1>
-        <div class="flex flex-col gap-2 rounded-3xl border border-line bg-sand px-4 py-4">
-          <b class="text-[15px]">Coming soon</b>
+        <div class="flex items-center justify-between gap-3">
+          <h1 class="text-[32px] leading-none font-extrabold tracking-[-0.03em]">Challenges</h1>
+          <button
+            id="challenge-new"
+            type="button"
+            class="min-h-11 rounded-full bg-forest px-5 text-[14px] font-bold text-white"
+          >
+            New
+          </button>
+        </div>
+        <p class="text-[14px] leading-snug text-muted">
+          Train with friends. Everyone who joins lands in the Hall of Gains, ranked on workouts or clean reps.
+        </p>
+        <div id="challenge-list" class="flex flex-col gap-3"></div>
+        <div id="challenge-empty" class="flex flex-col gap-2 rounded-3xl border border-line bg-sand px-4 py-4" hidden>
+          <b class="text-[15px]">No challenges yet</b>
           <p class="text-[14px] leading-snug text-muted">
-            A group, a daily goal and a ranking on clean reps, not speed.
+            Start one and send the link to a friend. Or open a link someone sent you.
           </p>
         </div>
+        <p id="challenge-list-error" class="text-[13px] text-bad" role="alert" hidden></p>
         <div class="grow"></div>
         <div class="sticky bottom-0 -mx-5 border-t border-line bg-white px-5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <nav class="flex" aria-label="Main">
