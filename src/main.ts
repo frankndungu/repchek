@@ -1,6 +1,17 @@
 import { inject, track } from "@vercel/analytics";
 import { cleanAddressBar, stripSensitiveParams } from "./privacy";
 import {
+  applyDebugParam,
+  DiagnosticLog,
+  debugModeOn,
+  deliverFile,
+  packLandmarks,
+  packMetrics,
+  RawClip,
+  round,
+} from "./diagnostics";
+import type { FrameRow } from "./diagnostics";
+import {
   startCamera,
   explainCameraError,
   isUserFacing,
@@ -119,6 +130,7 @@ import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
 
 // Take credentials out of the address before anything can record it.
+applyDebugParam();
 cleanAddressBar();
 inject({
   beforeSend: (event) => ({ ...event, url: stripSensitiveParams(event.url) }),
@@ -318,6 +330,13 @@ const FACING_FORGET_AFTER_MS = 1500;
 let facingSince: number | null = null;
 let lastPoseAt = 0;
 let turnSideways = false;
+
+// Debug capture, only when the app was opened once with ?debug=1. See
+// diagnostics.ts.
+const debugMode = debugModeOn();
+const diag = new DiagnosticLog();
+let rawClip: RawClip | null = null;
+let rawClipResult: Promise<Blob | null> | null = null;
 let trackingHint = "";
 let mirrored = false;
 let currentRecord: SessionRecord | null = null;
@@ -420,6 +439,49 @@ positionPicker.addEventListener("click", (event) => {
 });
 
 renderChips();
+
+const debugExportEl = q<HTMLElement>("#debug-export");
+const debugNumbersBtn = q<HTMLButtonElement>("#debug-numbers");
+const debugVideoBtn = q<HTMLButtonElement>("#debug-video");
+
+// The Debug data row in More options. Only there in debug mode.
+function renderDebugExport(): void {
+  debugExportEl.hidden = !debugMode;
+  if (!debugMode) return;
+  const note = q<HTMLElement>("#debug-export-note");
+  if (diag.hasData) {
+    note.textContent = `Last set: ${diag.meta.profile as string}, ${diag.rows.length} frames. Send both to Claude.`;
+  } else {
+    note.textContent = "Debug mode is on. Do a set, then send the numbers and the video.";
+  }
+  debugNumbersBtn.disabled = !diag.hasData;
+  debugVideoBtn.disabled = rawClipResult === null;
+}
+
+function debugFileName(kind: string, ext: string): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  return `repchek-${kind}-${String(diag.meta.profile ?? "set")}-${stamp}.${ext}`;
+}
+
+debugNumbersBtn.addEventListener("click", () => {
+  void deliverFile(
+    new Blob([diag.json()], { type: "application/json" }),
+    debugFileName("numbers", "json"),
+  );
+});
+
+debugVideoBtn.addEventListener("click", async () => {
+  const blob = rawClipResult ? await rawClipResult : null;
+  const note = q<HTMLElement>("#debug-export-note");
+  if (!blob) {
+    note.textContent = "No video was recorded for that set.";
+    return;
+  }
+  const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+  await deliverFile(blob, debugFileName("video", ext));
+});
+
+renderDebugExport();
 
 // Storage can throw (private mode, blocked site data), so saved choices are
 // a convenience and every setting has a default to fall back on.
@@ -986,6 +1048,11 @@ function stopCamera(): void {
   completionTimer.clear();
   running = false;
   animationLoop.stop();
+  if (rawClip) {
+    rawClipResult = rawClip.stop();
+    rawClip = null;
+  }
+  queueMicrotask(renderDebugExport);
   if (stream) {
     stopCameraStream(video, stream);
   }
@@ -1265,6 +1332,7 @@ function probeFrame(metrics: FrameMetrics, now: number): RepEvent | null {
 
 // Fresh counter and judge, so nothing from the setup leaks into rep 1.
 function armCounting(now: number): void {
+  if (debugMode) diag.mark("armed");
   if (!activeProfile) return;
   // Rep times on the summary count from here, the same moment the set
   // clip starts below.
@@ -1316,6 +1384,19 @@ async function startWorkout(
       ? { ...exercise, name: recovery.exerciseName }
       : exercise;
     activeProfile = profileFor(exercise, phonePosition(exercise));
+    if (debugMode) {
+      diag.begin({
+        app: "repchek",
+        profile: activeProfile.id,
+        exercise: exercise.id,
+        requestedCamera: facingMode,
+        userAgent: navigator.userAgent,
+        screen: `${screen.width}x${screen.height}`,
+        pixelRatio: window.devicePixelRatio,
+        startedAt: new Date().toISOString(),
+      });
+      rawClipResult = null;
+    }
     judge = new Judge(activeProfile);
     repCounter = new RepCounter(activeProfile.rep);
     gate = new ReadinessGate(activeProfile);
@@ -1372,8 +1453,15 @@ async function startWorkout(
           video,
           { facingMode },
           () => startupGuard.isCurrent(attempt),
-        ),
-      loadPoseEstimator,
+        ).then((cameraStream) => {
+          if (debugMode) diag.mark("cameraReady");
+          return cameraStream;
+        }),
+      () =>
+        loadPoseEstimator().then((model) => {
+          if (debugMode) diag.mark("modelReady");
+          return model;
+        }),
       keepScreenAwake,
         () => {
           status.textContent = "Loading pose model, first time takes a moment...";
@@ -1382,6 +1470,11 @@ async function startWorkout(
     if (!resources || !startupGuard.isCurrent(attempt)) return;
 
     mirrored = isUserFacing(resources.stream);
+    if (debugMode) {
+      diag.mark("startupDone");
+      diag.meta.cameraUsed = mirrored ? "front" : "back";
+      diag.meta.video = `${video.videoWidth}x${video.videoHeight}`;
+    }
     video.classList.toggle("mirrored", mirrored);
     canvas.classList.toggle("mirrored", mirrored);
 
@@ -1395,6 +1488,7 @@ async function startWorkout(
     endBtn.hidden = false;
     debugEl.hidden = false;
     stream = resources.stream;
+    rawClip = debugMode ? RawClip.start(stream) : null;
     wakeLock = resources.wakeLock;
     resources = null;
     recorder = startupRecorder;
@@ -1698,16 +1792,32 @@ function loop(): void {
     const now = performance.now();
     const aspect = video.videoWidth / video.videoHeight;
     const poses = estimator.estimate(video, now);
+    const row: FrameRow | null = debugMode
+      ? {
+          t: Math.round(now - diag.startedAt),
+          n: poses.length,
+          // How long the pose model took on this frame.
+          ms: round(performance.now() - now, 1),
+        }
+      : null;
+    if (row) diag.mark("firstFrame");
     // Only the lifter's pose goes any further, skeleton included. Anyone
     // else in view is ignored.
     const landmarks = lifter.pick(poses, gate.isArmed, aspect, now);
     updateFacing(landmarks, aspect, now);
+    if (row && landmarks) {
+      diag.mark("firstPose");
+      row.lm = packLandmarks(landmarks);
+      const facing = facingRatio(landmarks, aspect);
+      row.fr = facing === null ? null : round(facing, 2);
+    }
     if (lifter.hasCompany && !lifter.isTapLocked && !crowdTipShown) {
       crowdTipShown = true;
       showNotice("More than one person seen. Tap yourself to lock on.", 3000);
     }
 
     if (!landmarks) {
+      if (row) row.s = "nopose";
       updateTrackingHint(null, now);
       clearCanvas(ctx);
       showFeedback([]);
@@ -1734,7 +1844,13 @@ function loop(): void {
         required,
       );
 
+      if (row) {
+        row.c = round(confidence, 2);
+        row.sd = side;
+      }
+
       if (confidence < MIN_FRAME_CONFIDENCE) {
+        if (row) row.s = "lowconf";
         const missing = missingParts(
           landmarks,
           side,
@@ -1752,6 +1868,10 @@ function loop(): void {
       } else {
         updateTrackingHint(null, now);
         const metrics = computeFrameMetrics(landmarks, aspect, reference);
+        if (row) {
+          diag.mark("firstConfident");
+          row.m = packMetrics(metrics);
+        }
 
         // Step 1: are they in position yet? With a rolling start, a first
         // full rep arms the gate too, and becomes rep 1 of the set.
@@ -1780,8 +1900,10 @@ function loop(): void {
 
         if (!gate.isArmed) {
           // Not ready yet: no counting, no judging, no beeps.
+          if (row) row.s = "wait";
           uncountedFrame(landmarks, side, metrics, now);
         } else if (outOfPosition) {
+          if (row) row.s = "out";
           gate.update(metrics, now);
           uncountedFrame(
             landmarks,
@@ -1799,6 +1921,15 @@ function loop(): void {
           const repEvent = firstRep ?? counted;
           const phase = repCounter.currentPhase;
           const verdict = judge.evaluate(metrics, phase);
+          if (row) {
+            row.s = "armed";
+            row.p = phase;
+            row.r = repCounter.reps;
+            if (repEvent) row.e = repEvent.type;
+            if (verdict.failures.length > 0) {
+              row.f = verdict.failures.map((rule) => rule.id);
+            }
+          }
 
           for (const rule of verdict.failures) {
             currentRepFaults.add(rule.id);
@@ -1837,6 +1968,11 @@ function loop(): void {
           if (!verdict.ok) coachFault(verdict.failures[0]);
         }
       }
+    }
+    if (row) {
+      row.g = [gate.status, Math.round(gate.holdProgress * 100), gate.reason];
+      if (turnSideways) row.ts = 1;
+      diag.frame(row);
     }
   }
 
