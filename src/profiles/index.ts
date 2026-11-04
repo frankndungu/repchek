@@ -123,3 +123,13 @@ export function profileFor(
     exercise.positions.front!;
   return findProfile(id);
 }
+
+// The exercise a saved session belongs to. A session stores the profile it
+// used, so "push-up-front" belongs to the Push-up exercise.
+export function exerciseIdForProfile(profileId: string): string | null {
+  const found = EXERCISES.find(
+    (e) =>
+      e.positions.beside === profileId || e.positions.front === profileId,
+  );
+  return found?.id ?? null;
+}

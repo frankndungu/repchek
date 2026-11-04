@@ -8,6 +8,10 @@ export interface HistoryItem {
   startedAt: string;
   totalReps: number;
   cleanReps: number;
+  // What was planned and the load, when the saved record has them.
+  targetSets?: number;
+  targetReps?: number;
+  weightKg?: number | null;
 }
 
 const DAY_MS = 86_400_000;

@@ -143,10 +143,6 @@ function planMessage(text: string): void {
   q<HTMLElement>("#plan-message").textContent = text;
 }
 
-function initials(name: string): string {
-  return name.trim().slice(0, 2).toUpperCase() || "R";
-}
-
 function drawProfile(): void {
   if (profile) {
     q<HTMLElement>("#profile-name").textContent = profile.name;
@@ -164,27 +160,16 @@ function drawProfile(): void {
       img.referrerPolicy = "no-referrer";
       img.className = "h-full w-full object-cover";
       img.addEventListener("error", () => {
-        avatar.textContent = initials(profile?.name ?? "");
+        avatar.textContent = profile?.initials ?? "R";
       });
       avatar.replaceChildren(img);
     } else {
-      avatar.textContent = initials(profile.name);
+      avatar.textContent = profile.initials;
     }
   }
 
-  const tile = q<HTMLElement>("#streak-tile");
-  if (sessions === null) {
-    tile.hidden = true;
-    return;
-  }
+  if (sessions === null) return;
 
-  tile.hidden = false;
-  drawStreak(
-    q("#streak-title"),
-    q("#streak-week"),
-    q("#streak-dots"),
-    sessions,
-  );
   drawStreak(
     q("#profile-streak-title"),
     q("#profile-streak-week"),
@@ -273,6 +258,10 @@ export async function refreshAccount(): Promise<void> {
   drawProfile();
 }
 
+export function currentProfile(): Profile | null {
+  return profile;
+}
+
 // The plan of the signed in user. Free until the profile has loaded.
 export function currentPlan(): "free" | "premium" {
   return profile?.plan ?? "free";
@@ -285,7 +274,6 @@ export function resetAccountUi(): void {
   profileScreen.hidden = true;
   milestonesScreen.hidden = true;
   deleteConfirm.hidden = true;
-  q<HTMLElement>("#streak-tile").hidden = true;
   showError("");
 }
 

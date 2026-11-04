@@ -72,25 +72,130 @@
         hidden
       ></div>
 
+      <!-- Train: the home screen. From docs/design/screens/05-train.html. -->
+      <section
+        id="train-screen"
+        class="absolute inset-0 flex flex-col gap-[18px] overflow-y-auto bg-white px-5 pt-14 text-ink"
+        aria-label="Train"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div
+            class="flex items-center gap-2 text-[22px] leading-none font-extrabold tracking-[-0.045em]"
+          >
+            <img
+              src="/repchek-logo.svg"
+              alt=""
+              width="28"
+              height="25"
+              class="h-[25px] w-7"
+            />
+            repchek
+          </div>
+          <button
+            id="train-avatar"
+            type="button"
+            aria-label="Profile"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-forest text-[14px] font-bold text-white"
+          >
+            R
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <h1
+            id="train-hi"
+            class="text-[32px] leading-[1.05] font-extrabold tracking-[-0.04em]"
+          >
+            Hi
+          </h1>
+          <p id="train-sub" class="text-[15px] leading-snug text-muted"></p>
+        </div>
+
+        <div class="flex flex-col gap-3 rounded-[22px] bg-sand p-4">
+          <div class="flex items-center justify-between gap-3">
+            <span id="train-streak" class="text-[16px] font-bold"></span>
+            <span
+              id="train-goal"
+              class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
+            ></span>
+          </div>
+          <div
+            id="train-days"
+            class="grid grid-cols-7 gap-1.5 text-center text-[11px] font-semibold text-muted"
+          ></div>
+        </div>
+
+        <h2 class="mt-1 text-[18px] font-bold tracking-[-0.02em]">Your workouts</h2>
+        <div id="train-cards" class="flex flex-col gap-2.5"></div>
+        <button
+          id="train-all"
+          type="button"
+          class="flex min-h-12 w-full items-center justify-center rounded-full border-[1.5px] border-[#c9c4b9] bg-white text-[15px] font-semibold"
+        ></button>
+
+        <div class="grow"></div>
+
+        <div class="sticky bottom-0 -mx-5 border-t border-line bg-white px-5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <nav class="flex" aria-label="Main">
+            <button
+              type="button"
+              data-tab="train" aria-current="page"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>
+              </svg>
+              Train
+            </button>
+            <button
+              type="button"
+              data-tab="history"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+              </svg>
+              History
+            </button>
+            <button
+              type="button"
+              data-tab="challenges"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>
+              </svg>
+              Challenges
+            </button>
+            <button
+              type="button"
+              data-tab="profile"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>
+              </svg>
+              Profile
+            </button>
+          </nav>
+        </div>
+      </section>
+
       <section
         id="start-screen"
         class="absolute inset-0 flex flex-col gap-6 overflow-y-auto bg-white px-5 text-ink pt-12"
+        hidden
       >
-        <header class="flex flex-col gap-2">
-          <div class="flex items-center justify-between gap-3">
-            <h1
-              class="flex items-center gap-2 text-[28px] leading-none font-extrabold tracking-[-0.045em]"
-            >
-              <img
-                src="/repchek-logo.svg"
-                alt=""
-                width="32"
-                height="28"
-                class="h-7 w-8"
-              />
-              repchek
-            </h1>
-            <button
+        <header class="flex items-center justify-between gap-3">
+          <button
+            id="setup-back"
+            type="button"
+            aria-label="Back"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#c9c4b9] bg-white"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <button
               id="how-btn"
               type="button"
               class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-[#c9c4b9] bg-white pr-3.5 pl-2.5 text-[13px] font-semibold"
@@ -113,24 +218,7 @@
               </svg>
               How it works
             </button>
-          </div>
         </header>
-
-        <!-- Filled from saved sessions by ui/profile.ts. Hidden until loaded. -->
-        <div
-          id="streak-tile"
-          class="flex flex-col gap-2 rounded-3xl border border-line bg-sand px-4 py-3.5"
-          hidden
-        >
-          <div class="flex items-center justify-between gap-3">
-            <b id="streak-title" class="text-[14px]"></b>
-            <span
-              id="streak-week"
-              class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
-            ></span>
-          </div>
-          <div id="streak-dots" class="flex gap-1.5" aria-hidden="true"></div>
-        </div>
 
         <p
           id="browser-hint"
@@ -737,92 +825,6 @@
           >
             Start camera
           </button>
-          <nav class="flex" aria-label="Main">
-            <button
-              type="button"
-              data-tab="train" aria-current="page"
-              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.9"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="group-aria-[current=page]:text-forest"
-                aria-hidden="true"
-              >
-                <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>
-              </svg>
-              Train
-            </button>
-            <button
-              type="button"
-              data-tab="history"
-              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.9"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="group-aria-[current=page]:text-forest"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
-              </svg>
-              History
-            </button>
-            <button
-              type="button"
-              data-tab="challenges"
-              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.9"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="group-aria-[current=page]:text-forest"
-                aria-hidden="true"
-              >
-                <path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>
-              </svg>
-              Challenges
-            </button>
-            <button
-              type="button"
-              data-tab="profile"
-              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.9"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="group-aria-[current=page]:text-forest"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>
-              </svg>
-              Profile
-            </button>
-          </nav>
         </div>
       </section>
 
@@ -1311,6 +1313,72 @@
           playsinline
         ></video>
       </div>
+
+      <!-- All exercises. From docs/design/screens/06-exercises.html. -->
+      <section
+        id="exercises-screen"
+        class="absolute inset-0 z-10 flex flex-col gap-[18px] overflow-y-auto bg-white px-5 pt-14 text-ink"
+        aria-label="All exercises"
+        hidden
+      >
+        <div class="flex items-center gap-3">
+          <button
+            id="exercises-back"
+            type="button"
+            aria-label="Back"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#c9c4b9] bg-white"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <h1 class="text-[26px] leading-[1.05] font-extrabold tracking-[-0.04em]">All exercises</h1>
+        </div>
+        <div id="exercises-list" class="flex flex-col gap-1.5"></div>
+        <div class="grow"></div>
+        <div class="sticky bottom-0 -mx-5 border-t border-line bg-white px-5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <nav class="flex" aria-label="Main">
+            <button
+              type="button"
+              data-tab="train" aria-current="page"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>
+              </svg>
+              Train
+            </button>
+            <button
+              type="button"
+              data-tab="history"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+              </svg>
+              History
+            </button>
+            <button
+              type="button"
+              data-tab="challenges"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>
+              </svg>
+              Challenges
+            </button>
+            <button
+              type="button"
+              data-tab="profile"
+              class="group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-ink"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="group-aria-[current=page]:text-forest" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>
+              </svg>
+              Profile
+            </button>
+          </nav>
+        </div>
+      </section>
 
       <!-- Profile tab. From docs/design/profile.html. Filled by ui/profile.ts. -->
       <section

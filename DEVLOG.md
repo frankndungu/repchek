@@ -574,3 +574,28 @@ push-up, mountain climbers, deadlift, biceps curl, bent-over barbell row.
   engine's numbers for every frame, startup timings and the raw camera video,
   sent from the Debug data row in More options. ?debug=0 turns it off.
   Thresholds marked provisional above should be tuned from these.
+
+## Train is the home screen
+
+Built from docs/design/screens/05-train.html and 06-exercises.html.
+
+- Train: logo and avatar (initials open Profile), "Hi <name>", a line for the
+  week ("Ready for day 2 of 3 this week?", or "Goal hit this week. Extra days
+  still count."), the streak tile with Monday to Sunday circles, and
+  "Your workouts": three cards with "Last: 3 x 12, 85% clean" (", 20 kg" for a
+  weighted set) or "New. Try it today". "All 5 exercises" opens the full list.
+  Nothing else: no How it works, no options.
+- The week now counts days trained, not sessions. Two sessions on one day are
+  one day. The goal is 3 days.
+- Cards show the most recently trained first, then the rest in the default
+  order (push-up, mountain climbers, biceps curl, deadlift, row) until
+  onboarding knows where someone trains. A front camera push-up counts as a
+  Push-up.
+- The old start screen is now Workout setup, opened from a card, with a Back
+  button. It still has the chips and all controls. It is replaced when the
+  workout screen is redone.
+- Finishing or discarding a workout returns to Train. A saved unfinished
+  workout shows its prompt on Train.
+- The "Last:" line reads the planned sets and reps and the weight out of the
+  saved record. If that part of the query is ever refused, History still
+  loads without it.

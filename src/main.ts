@@ -115,7 +115,6 @@ import {
   clearSummarySave,
   initProfile,
   onSessionFinished,
-  refreshAccount,
 } from "./ui/profile";
 import { showComparison } from "./ui/history";
 import {
@@ -124,6 +123,7 @@ import {
   resetTabs,
   showTab,
 } from "./ui/tabs";
+import { initTrain, refreshTrain } from "./ui/train";
 import { loadSessionRecord } from "./account";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
@@ -218,12 +218,13 @@ const q = <T extends Element>(selector: string) =>
 const video = q<HTMLVideoElement>("#camera");
 const canvas = q<HTMLCanvasElement>("#overlay");
 const startScreen = q<HTMLElement>("#start-screen");
+const trainScreen = q<HTMLElement>("#train-screen");
 const recoveryPrompt = document.createElement("section");
 recoveryPrompt.className =
   "flex flex-col gap-3 rounded-3xl border border-line bg-sand p-4";
 recoveryPrompt.hidden = true;
 recoveryPrompt.setAttribute("aria-live", "polite");
-startScreen.insertBefore(recoveryPrompt, startScreen.children[1] ?? null);
+trainScreen.insertBefore(recoveryPrompt, trainScreen.children[1] ?? null);
 const summaryScreen = q<HTMLElement>("#summary-screen");
 const howScreen = q<HTMLElement>("#how-screen");
 const howBtn = q<HTMLButtonElement>("#how-btn");
@@ -502,7 +503,24 @@ function writeSetting(key: string, value: string): void {
   }
 }
 
+const RECOVERY_NOTICE =
+  "You have an unfinished workout. Resume or discard it on Train first.";
+
+function recoveryNotice(): string {
+  return recoveryEntries.length > 0 ? RECOVERY_NOTICE : "";
+}
+
+// Start camera is off while a saved workout waits, and the prompt is on
+// Train, so Workout setup says why.
+function syncRecoveryNotice(): void {
+  if (running) return;
+  if (status.textContent === "" || status.textContent === RECOVERY_NOTICE) {
+    status.textContent = recoveryNotice();
+  }
+}
+
 function renderRecoveryPrompt(): void {
+  queueMicrotask(syncRecoveryNotice);
   recoveryPrompt.replaceChildren();
   if (recoveryLoadError) {
     const title = document.createElement("h2");
@@ -910,16 +928,21 @@ q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
 
 initProfile();
 initTabs(openSavedReport);
+initTrain({
+  openExercise: openSetup,
+  openProfile: () => showTab("profile"),
+});
 
 initAuth((value) => {
   signedIn = value;
   if (!value) {
     howScreen.hidden = true;
     cameraScreen.hidden = true;
+    showBase("train");
     resetTabs();
     return;
   }
-  void refreshAccount();
+  void refreshTrain();
   void afterSignIn();
   handleCheckoutReturn();
 });
@@ -1131,6 +1154,27 @@ function buildRecord(): SessionRecord | null {
   });
 }
 
+// Only one of these is on screen under everything else: Train, which is
+// home, or Workout setup for the exercise that was picked on Train.
+function showBase(which: "train" | "setup" | "none"): void {
+  trainScreen.hidden = which !== "train";
+  startScreen.hidden = which !== "setup";
+}
+
+// Train, All exercises and the tabs all end up here: set up this exercise.
+function openSetup(exerciseId: string): void {
+  selectedExerciseId = exerciseId;
+  renderChips();
+  status.textContent = recoveryNotice();
+  showBase("setup");
+  startScreen.scrollTop = 0;
+}
+
+q<HTMLButtonElement>("#setup-back").addEventListener("click", () => {
+  showBase("train");
+  void refreshTrain();
+});
+
 // True while a report opened from History is on screen.
 let reportFromHistory = false;
 
@@ -1152,7 +1196,7 @@ async function openSavedReport(id: string): Promise<boolean> {
     cleanReps: currentStats.cleanReps,
   });
   showTab("train");
-  startScreen.hidden = true;
+  showBase("none");
   summaryScreen.hidden = false;
   summaryScreen.scrollTop = 0;
   return true;
@@ -1249,7 +1293,8 @@ function finishSession(): void {
     showSummary(record);
     persistCompletedSession(record);
   } else {
-    startScreen.hidden = false;
+    showBase("train");
+    void refreshTrain();
     checkpointWrites = null;
   }
   finishing = false;
@@ -1483,7 +1528,7 @@ async function startWorkout(
     // Record from the first frame, in case the gate never arms.
     startupRecorder?.startStandby();
 
-    startScreen.hidden = true;
+    showBase("none");
     summaryScreen.hidden = true;
     endBtn.hidden = false;
     debugEl.hidden = false;
@@ -1525,7 +1570,8 @@ async function startWorkout(
     recorder = null;
     checkpointWrites = null;
     clearFailedStartup();
-    startScreen.hidden = false;
+    // The error is written under Start camera, so go back to setup.
+    showBase("setup");
     summaryScreen.hidden = true;
     status.textContent =
       err instanceof DOMException
@@ -1562,13 +1608,14 @@ doneBtn.addEventListener("click", () => {
   if (reportFromHistory) {
     reportFromHistory = false;
     summaryScreen.hidden = true;
-    startScreen.hidden = false;
+    showBase("train");
     showTab("history");
     return;
   }
   freeClips();
   summaryScreen.hidden = true;
-  startScreen.hidden = false;
+  showBase("train");
+  void refreshTrain();
   void (async () => {
     await completionPersistence;
     await refreshRecoveryPrompt();
