@@ -5,6 +5,7 @@ import { refreshAccount, resetAccountUi, waitForPremium } from "./profile";
 import { initHistory, refreshHistory, resetHistory } from "./history";
 import { initProgress, refreshProgress, resetProgress } from "./progress";
 import { hideExercises, refreshTrain, resetTrain } from "./train";
+import { hideStreak, initStreak, resetStreak } from "./streak";
 
 type Tab = "train" | "history" | "challenges" | "profile";
 
@@ -21,6 +22,7 @@ const milestones = q<HTMLElement>("#milestones-screen");
 export function showTab(tab: Tab): void {
   milestones.hidden = true;
   hideExercises();
+  hideStreak();
   for (const [name, el] of Object.entries(screens)) {
     el.hidden = name !== tab;
     if (name === tab) el.scrollTop = 0;
@@ -41,12 +43,14 @@ export function resetTabs(): void {
   resetHistory();
   resetProgress();
   resetTrain();
+  resetStreak();
   showTab("train");
 }
 
 export function initTabs(openReport: (id: string) => Promise<boolean>): void {
   initHistory(openReport);
   initProgress();
+  initStreak();
   document.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLElement>("[data-tab]");
     if (button) showTab(button.dataset.tab as Tab);

@@ -24,6 +24,8 @@ export interface Profile {
   cancelAtPeriodEnd: boolean;
   // Two letters for the avatar, from the full name.
   initials: string;
+  // Days a week to train to keep the streak. 3 until set.
+  weeklyGoal: number;
 }
 
 const PENDING_KEY = "repchek.pendingSessions";
@@ -140,11 +142,12 @@ export async function loadProfile(): Promise<Profile | null> {
   let hasSubscription = false;
   let premiumUntil: string | null = null;
   let cancelAtPeriodEnd = false;
+  let weeklyGoal = 3;
   try {
     const { data } = await client
       .from("profiles")
       .select(
-        "display_name, plan, premium_until, cancel_at_period_end, polar_subscription_id",
+        "display_name, plan, premium_until, cancel_at_period_end, polar_subscription_id, weekly_goal",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -153,6 +156,7 @@ export async function loadProfile(): Promise<Profile | null> {
     hasSubscription = Boolean(data?.polar_subscription_id);
     premiumUntil = (data?.premium_until as string | null) ?? null;
     cancelAtPeriodEnd = data?.cancel_at_period_end === true;
+    weeklyGoal = Number(data?.weekly_goal) || 3;
   } catch {
     // Offline: fall through with the defaults.
   }
@@ -167,6 +171,7 @@ export async function loadProfile(): Promise<Profile | null> {
     hasSubscription,
     premiumUntil,
     cancelAtPeriodEnd,
+    weeklyGoal,
     initials: initialsOf(
       (typeof meta.full_name === "string" && meta.full_name) ||
         (typeof meta.name === "string" && meta.name) ||
@@ -174,6 +179,23 @@ export async function loadProfile(): Promise<Profile | null> {
         email,
     ),
   };
+}
+
+export async function updateWeeklyGoal(
+  id: string,
+  goal: number,
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  try {
+    const { error } = await client
+      .from("profiles")
+      .update({ weekly_goal: goal })
+      .eq("id", id);
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 export async function updateName(id: string, name: string): Promise<boolean> {

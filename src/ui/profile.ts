@@ -19,10 +19,12 @@ import {
   levelFor,
   milestonesFor,
   personalBests,
+  streakCopy,
   streakFor,
   totalsFor,
   xpFor,
 } from "../progress";
+import { exerciseIdForProfile } from "../profiles";
 import type { Milestone, SessionSummary } from "../progress";
 import type { SessionStats } from "./summary";
 import { showComparison } from "./history";
@@ -71,12 +73,10 @@ function drawStreak(
   dots: HTMLElement,
   all: SessionSummary[],
 ): void {
-  const streak = streakFor(all);
-  title.textContent =
-    streak.weeks > 0
-      ? `${streak.weeks} week streak`
-      : "No streak yet";
-  week.textContent = `${Math.min(streak.thisWeek, streak.goal)} of ${streak.goal} this week`;
+  const goal = profile?.weeklyGoal ?? 3;
+  const streak = streakFor(all, new Date(), goal);
+  title.textContent = streakCopy(streak).title;
+  week.textContent = `${Math.min(streak.thisWeek, streak.goal)} of ${streak.goal} days`;
   fillDots(dots, Math.min(streak.thisWeek, streak.goal), streak.goal);
 }
 
@@ -188,7 +188,7 @@ function drawProfile(): void {
   q<HTMLElement>("#profile-clean").textContent =
     totals.cleanReps.toLocaleString("en-US");
 
-  const all = milestonesFor(sessions);
+  const all = milestonesFor(sessions, new Date(), profile?.weeklyGoal ?? 3);
   const earned = all.filter((m) => m.earned);
   const shown = earned.slice(0, MILESTONES_ON_PROFILE);
   if (shown.length === 0) {
@@ -207,7 +207,10 @@ function drawProfile(): void {
 
 function drawBests(all: SessionSummary[]): void {
   const box = q<HTMLElement>("#profile-bests");
-  const bests = personalBests(all);
+  // The front and the side version of an exercise are one exercise.
+  const bests = personalBests(
+    all.map((s) => ({ ...s, exerciseId: exerciseIdForProfile(s.exerciseId) ?? s.exerciseId })),
+  );
   if (bests.length === 0) {
     const note = document.createElement("p");
     note.className = "py-4 text-[13px] text-muted";
@@ -224,10 +227,11 @@ function drawBests(all: SessionSummary[]): void {
       name.textContent = best.exerciseName;
       const detail = document.createElement("span");
       detail.className = "shrink-0 text-right text-[12px] leading-snug text-muted";
+      const reps = `${best.mostCleanReps} clean rep${best.mostCleanReps === 1 ? "" : "s"}`;
       detail.textContent =
         best.bestCleanPct === null
-          ? `${best.mostCleanReps} clean reps`
-          : `${best.mostCleanReps} clean reps, best rate ${best.bestCleanPct}%`;
+          ? reps
+          : `${reps}, best rate ${best.bestCleanPct}%`;
       el.append(name, detail);
       return el;
     }),
@@ -260,6 +264,12 @@ export async function refreshAccount(): Promise<void> {
 
 export function currentProfile(): Profile | null {
   return profile;
+}
+
+// After the person changes their goal: use it everywhere without waiting for
+// the next load.
+export function setWeeklyGoalLocal(goal: number): void {
+  if (profile) profile = { ...profile, weeklyGoal: goal };
 }
 
 // The plan of the signed in user. Free until the profile has loaded.
