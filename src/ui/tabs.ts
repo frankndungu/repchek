@@ -8,10 +8,12 @@ import { hideExercises, refreshTrain, resetTrain } from "./train";
 import { hideStreak, initStreak, resetStreak } from "./streak";
 import {
   hideChallengeScreens,
+  initChallenges,
   openChallenge,
   pendingChallengeCode,
   refreshChallenges,
   resetChallenges,
+  takeReturnCode,
 } from "./challenges";
 
 type Tab = "train" | "history" | "challenges" | "profile";
@@ -57,10 +59,19 @@ export function resetTabs(): void {
   showTab("train");
 }
 
-export function initTabs(openReport: (id: string) => Promise<boolean>): void {
+export function initTabs(
+  openReport: (id: string) => Promise<boolean>,
+  startExercise: (id: string) => void,
+): void {
   initHistory(openReport);
   initProgress();
   initStreak();
+  initChallenges({
+    startExercise: (id) => {
+      showTab("train");
+      startExercise(id);
+    },
+  });
   document.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLElement>("[data-tab]");
     if (button) showTab(button.dataset.tab as Tab);
@@ -90,4 +101,14 @@ export function openPendingChallenge(): boolean {
   showTab("challenges");
   void openChallenge(code);
   return true;
+}
+
+// After a workout that was started from a challenge: once it is saved, open
+// that challenge again so the new numbers show. Does nothing otherwise.
+export async function returnToChallenge(saved: Promise<unknown> | null): Promise<void> {
+  const code = takeReturnCode();
+  if (!code) return;
+  await (saved ?? Promise.resolve()).catch(() => undefined);
+  showTab("challenges");
+  void openChallenge(code);
 }

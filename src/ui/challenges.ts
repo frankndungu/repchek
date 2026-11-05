@@ -15,6 +15,7 @@ import {
   codeFromPath,
   datesText,
   exerciseLabel,
+  exercisesFor,
   profileIdsFor,
   lastDayLimits,
   progressFor,
@@ -46,6 +47,8 @@ const byEl = q<HTMLElement>("#challenge-by");
 const progressBox = q<HTMLElement>("#challenge-progress");
 const progressText = q<HTMLElement>("#challenge-progress-text");
 const progressBar = q<HTMLElement>("#challenge-progress-bar");
+const doBox = q<HTMLElement>("#challenge-do");
+const doButtons = q<HTMLElement>("#challenge-do-buttons");
 const joinBtn = q<HTMLButtonElement>("#challenge-join");
 const joinError = q<HTMLElement>("#challenge-join-error");
 const boardWrap = q<HTMLElement>("#challenge-board-wrap");
@@ -70,6 +73,14 @@ const formError = q<HTMLElement>("#cn-error");
 const submitBtn = q<HTMLButtonElement>("#cn-submit");
 
 let current: Challenge | null = null;
+// The challenge a workout was started from, so finishing it comes back here.
+let returnCode: string | null = null;
+let startExercise: (exerciseId: string) => void = () => undefined;
+
+// Called once by tabs, so a challenge can start a workout.
+export function initChallenges(options: { startExercise: (id: string) => void }): void {
+  startExercise = options.startExercise;
+}
 let sort: SortBy = "workouts";
 let length: Length | "custom" = "week";
 // Bumped on every open, so a slow answer for an old one is ignored.
@@ -169,6 +180,27 @@ async function drawBoard(c: Challenge, token: number): Promise<void> {
   }
 }
 
+// Buttons that start a workout for the exercises this challenge counts.
+function drawDo(c: Challenge, running: boolean): void {
+  const options = exercisesFor(c.exerciseIds);
+  show(doBox, c.joined && running && options.length > 0);
+  doButtons.replaceChildren(
+    ...options.map((exercise) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className =
+        "min-h-[52px] rounded-full bg-forest text-[16px] font-bold text-white";
+      button.textContent = `Start ${exercise.name.toLowerCase()}`;
+      button.addEventListener("click", () => {
+        returnCode = c.code;
+        hideChallengeScreens();
+        startExercise(exercise.id);
+      });
+      return button;
+    }),
+  );
+}
+
 function drawChallenge(c: Challenge, token: number): void {
   current = c;
   const status = statusFor(c.startsAt, c.endsAt);
@@ -192,6 +224,7 @@ function drawChallenge(c: Challenge, token: number): void {
   show(actions, true);
   show(leaveBtn, c.joined);
   show(progressBox, false);
+  drawDo(c, status.state === "running");
   if (c.joined) void drawBoard(c, token);
 }
 
@@ -246,7 +279,9 @@ shareBtn.addEventListener("click", async () => {
   const text = shareText(current.title, url);
   try {
     if (navigator.share) {
-      await navigator.share({ title: current.title, text, url });
+      // The link is already in the text. Sending it as a url too makes
+      // some apps paste it twice.
+      await navigator.share({ title: current.title, text });
       return;
     }
   } catch (error) {
@@ -385,6 +420,18 @@ formEl.addEventListener("submit", async (event) => {
 });
 
 // --- Links -----------------------------------------------------------------
+
+// The challenge to go back to after a workout, once. Null when the workout
+// did not start from a challenge.
+export function takeReturnCode(): string | null {
+  const code = returnCode;
+  returnCode = null;
+  return code;
+}
+
+export function clearReturnCode(): void {
+  returnCode = null;
+}
 
 // Call once on load. A link like /c/ab12cd34 is remembered, because the
 // person may have to sign in first (Google sends them back to the home page).

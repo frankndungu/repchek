@@ -89,6 +89,20 @@ export function profileIdsFor(exerciseIds: string[]): string[] {
   return [...ids];
 }
 
+// The exercises (not profiles) a challenge counts. All of them when it counts
+// any exercise. Push-up from the side and the front is one exercise.
+export function exercisesFor(profileIds: string[]): { id: string; name: string }[] {
+  if (profileIds.length === 0) return EXERCISES.map((e) => ({ id: e.id, name: e.name }));
+  const found: { id: string; name: string }[] = [];
+  for (const profileId of profileIds) {
+    const exercise = EXERCISES.find((e) => e.id === exerciseIdForProfile(profileId));
+    if (exercise && !found.some((f) => f.id === exercise.id)) {
+      found.push({ id: exercise.id, name: exercise.name });
+    }
+  }
+  return found;
+}
+
 // "Push-up", "Push-up and Deadlift", "Any exercise".
 export function exerciseLabel(profileIds: string[]): string {
   const names: string[] = [];
