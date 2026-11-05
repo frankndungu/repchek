@@ -123,9 +123,10 @@ import {
   initTabs,
   openPendingChallenge,
   resetTabs,
+  returnToChallenge,
   showTab,
 } from "./ui/tabs";
-import { captureChallengeLink } from "./ui/challenges";
+import { captureChallengeLink, clearReturnCode } from "./ui/challenges";
 import { initTrain, refreshTrain } from "./ui/train";
 import { FORM_PREVIEWS } from "./ui/formPreviews";
 import { FORM_CUES } from "./formCues";
@@ -880,7 +881,7 @@ q<HTMLButtonElement>("#camera-later").addEventListener("click", endCameraStep);
 
 captureChallengeLink();
 initProfile();
-initTabs(openSavedReport);
+initTabs(openSavedReport, openSetup);
 initTrain({
   openExercise: openSetup,
   openProfile: () => showTab("profile"),
@@ -1134,6 +1135,7 @@ function openSetup(exerciseId: string): void {
 }
 
 q<HTMLButtonElement>("#setup-back").addEventListener("click", () => {
+  clearReturnCode();
   showBase("train");
   void refreshTrain();
 });
@@ -1580,6 +1582,9 @@ doneBtn.addEventListener("click", () => {
   summaryScreen.hidden = true;
   showBase("train");
   void refreshTrain();
+  // Started from a challenge: wait for the workout to be saved, then go back
+  // to that challenge so the Hall of Gains shows the new numbers.
+  void returnToChallenge(completionPersistence);
   void (async () => {
     await completionPersistence;
     await refreshRecoveryPrompt();

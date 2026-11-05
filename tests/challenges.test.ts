@@ -3,6 +3,7 @@ import {
   codeFromPath,
   datesText,
   exerciseLabel,
+  exercisesFor,
   failureFrom,
   profileIdsFor,
   progressFor,
@@ -55,6 +56,22 @@ describe("what counts", () => {
     expect(exerciseLabel([])).toBe("Any exercise");
     expect(exerciseLabel(["push-up", "push-up-front"])).toBe("Push-up");
     expect(exerciseLabel(["push-up", "deadlift"])).toBe("Push-up and Deadlift");
+  });
+});
+
+describe("exercises to start from a challenge", () => {
+  it("offers push-up once, for side and front", () => {
+    expect(exercisesFor(["push-up", "push-up-front"])).toEqual([{ id: "push-up", name: "Push-up" }]);
+  });
+
+  it("offers every exercise when the challenge counts any", () => {
+    expect(exercisesFor([]).map((e) => e.id)).toEqual([
+      "push-up",
+      "mountain-climbers",
+      "deadlift",
+      "barbell-row",
+      "biceps-curl",
+    ]);
   });
 });
 

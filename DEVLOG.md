@@ -685,3 +685,15 @@ The New challenge form has a fourth length, "Pick a date". It shows a date
 input (today to 91 days away) and the challenge runs from midnight today to the
 end of that day. The database limit of 92 days still applies, so the form
 refuses anything further out. Tests cover the picked-day rules.
+
+## Share once, and do the set from the challenge
+
+- Sharing a challenge sent the link twice, because the text already held the
+  link and it was also passed as a separate url, which some apps paste as well.
+  The share now sends the text only, with the link inside it once.
+- A joined, running challenge has Start buttons for the exercises it counts
+  (push-up once for side and front; every exercise when it counts any). A
+  button opens Workout setup for that exercise. Workouts already counted on
+  their own, since the Hall of Gains reads saved sessions by date and exercise.
+  Finishing a set started this way saves it and returns to the challenge, where
+  the Hall of Gains shows the new numbers. Backing out of setup clears that.
