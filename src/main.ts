@@ -95,6 +95,7 @@ import {
   showFeedback,
   setCountUnit,
   showCounter,
+  statsAreOn,
   showNotice,
   showDebug,
   showLive,
@@ -136,6 +137,7 @@ import { loadHistory, loadSessionRecord } from "./account";
 import { SetRecorder } from "./ui/recorder";
 import type { SetClip } from "./ui/recorder";
 import { renderClips, releaseClips } from "./ui/clips";
+import { formatClock, paceText } from "./stats";
 
 // Take credentials out of the address before anything can record it.
 applyDebugParam();
@@ -1243,6 +1245,14 @@ function recordFrame(
 ): void {
   if (!recorder?.isRecording || !session || !activeProfile) return;
   const closed = closedSet(sessionEvent);
+  // How long the set ran. Once it has closed, the session is already on the
+  // next set, so take it from the last rep of the closed one.
+  const lastRep = closed?.reps.at(-1);
+  const elapsedMs = closed
+    ? lastRep
+      ? lastRep.atMs + lastRep.durationMs
+      : 0
+    : session.setElapsedMs(performance.now());
   // Until the gate arms, show what the pill says (HOLD STILL, MOVE BACK,
   // ...) instead, so a clip shows why counting has not started.
   const message = gate?.isArmed
@@ -1257,10 +1267,15 @@ function recordFrame(
       totalSets: session.totalSets,
       reps: closed?.reps.length ?? session.reps,
       unit: activeExercise?.unit === "seconds" ? "secs" : "reps",
-      cleanReps: closed
-        ? closed.reps.filter((r) => r.faults.length === 0).length
-        : session.cleanReps,
-      elapsedMs: session.setElapsedMs(performance.now()),
+      stats: statsAreOn()
+        ? {
+            set: `${closed?.set ?? session.set}/${session.totalSets}`,
+            reps: String(closed?.reps.length ?? session.reps),
+            time: formatClock(elapsedMs),
+            pace: paceText(closed?.reps.length ?? session.reps, elapsedMs),
+            progress: gate?.isArmed && repCounter ? repCounter.progress : 0,
+          }
+        : null,
       feedback: message,
     },
     mirrored,

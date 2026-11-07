@@ -20,12 +20,22 @@ export interface FrameInfo {
   set: number;
   totalSets: number;
   reps: number;
-  // Reps in this set with no form fault, and how long the set has run.
-  cleanReps: number;
   // "reps", or "secs" for a hold.
   unit?: "reps" | "secs";
-  elapsedMs: number;
+  // The live Stats bar, as on screen: Set, Reps, Time, Pace and where the
+  // rep is. Null when the person has the stats off, and then no bar is drawn.
+  stats: StatsBar | null;
   feedback: string;
+}
+
+// What the Stats bar shows, already written out the way the screen shows it.
+export interface StatsBar {
+  set: string;
+  reps: string;
+  time: string;
+  pace: string;
+  // 0 at rest to 1 at the peak of the rep.
+  progress: number;
 }
 
 // One MediaRecorder run: either a set clip, or a standby recording that
@@ -78,14 +88,7 @@ const MIME_TYPES = [
 const FONT = '"Inter", system-ui, sans-serif';
 const STRIP_COLOR = "rgba(0, 0, 0, 0.6)";
 const TEXT_COLOR = "#fff";
-const CLEAN_COLOR = "#7fd1a8";
 const WATERMARK_COLOR = "rgba(255, 255, 255, 0.7)";
-
-// 1:05 for 65 seconds.
-function clock(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-}
 
 function pickMimeType(): string | undefined {
   return MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
@@ -179,8 +182,10 @@ export class SetRecorder {
     const fontSize = Math.max(14, Math.round(Math.min(width, height) * 0.042));
     const pad = Math.round(fontSize * 0.6);
     this.drawInfoStrip(info, fontSize, pad);
-    this.drawStatCard(info, fontSize, pad);
-    this.drawWatermark(fontSize, pad);
+    const barTop = info.stats
+      ? this.drawStatsBar(info, info.stats, fontSize, pad)
+      : this.canvas.height - pad;
+    this.drawWatermark(fontSize, pad, barTop);
   }
 
   // Record while waiting for the gate to arm. Does nothing if something is
@@ -380,8 +385,10 @@ export class SetRecorder {
     const ctx = this.ctx;
     const { width } = this.canvas;
     const lineHeight = Math.round(fontSize * 1.35);
+    // With the Stats bar on, set and reps are in the bar, so the strip only
+    // names the exercise.
     const progress = `Set ${info.set}/${info.totalSets}   ${info.unit === "secs" ? "Secs" : "Reps"} ${info.reps}`;
-    const lines = [`${info.exercise}   ${progress}`];
+    const lines = [info.stats ? info.exercise : `${info.exercise}   ${progress}`];
     if (info.feedback) lines.push(info.feedback);
 
     ctx.fillStyle = STRIP_COLOR;
@@ -397,58 +404,96 @@ export class SetRecorder {
     });
   }
 
-  // The numbers someone wants on a shared clip: reps, clean reps and time.
-  // A card in the bottom left, so the top strip stays for the form cue.
-  private drawStatCard(info: FrameInfo, textSize: number, padding: number): void {
+  // The live Stats bar, drawn the way it looks on screen: Set, Reps, Time and
+  // Pace in four columns, and the Rest to Peak line under them. Returns the
+  // top of the bar, so the watermark can sit above it.
+  private drawStatsBar(
+    info: FrameInfo,
+    stats: StatsBar,
+    fontSize: number,
+    pad: number,
+  ): number {
     const ctx = this.ctx;
-    // Bigger than the top strip, so it reads on a phone screen.
-    const fontSize = Math.round(textSize * 1.3);
-    const pad = Math.round(padding * 1.3);
-    const { height } = this.canvas;
-    const big = Math.round(fontSize * 2.6);
-    const small = Math.round(fontSize * 0.8);
-    const cardW = Math.round(fontSize * 8.2);
-    const cardH = big + small * 2 + pad * 3;
+    const { width, height } = this.canvas;
+    const value = Math.round(fontSize * 1.9);
+    const label = Math.round(fontSize * 0.62);
+    const inner = Math.round(pad * 1.1);
     const x = pad;
-    const y = height - pad * 2 - cardH;
+    const w = width - pad * 2;
+    const columnsH = value + label + Math.round(inner * 0.9);
+    const gaugeH = Math.round(label * 2.6);
+    const h = inner * 2 + columnsH + Math.round(inner * 0.8) + gaugeH;
+    const y = height - Math.round(pad * 1.5) - h;
 
-    ctx.fillStyle = STRIP_COLOR;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.beginPath();
     if (typeof ctx.roundRect === "function") {
-      ctx.roundRect(x, y, cardW, cardH, Math.round(fontSize * 0.7));
+      ctx.roundRect(x, y, w, h, Math.round(fontSize * 1.1));
     } else {
-      ctx.rect(x, y, cardW, cardH);
+      ctx.rect(x, y, w, h);
     }
     ctx.fill();
 
+    const unit = info.unit === "secs" ? "SECS" : "REPS";
+    const columns: Array<[string, string]> = [
+      [stats.set, "SET"],
+      [stats.reps, unit],
+      [stats.time, "TIME"],
+      [stats.pace, "PACE"],
+    ];
+    const colW = (w - inner * 2) / columns.length;
+    columns.forEach(([text, name], i) => {
+      const cx = x + inner + colW * (i + 0.5);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = `800 ${value}px ${FONT}`;
+      ctx.fillText(text, cx, y + inner + value * 0.85);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.font = `600 ${label}px ${FONT}`;
+      ctx.fillText(name, cx, y + inner + value + label * 1.1);
+      if (i > 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.fillRect(x + inner + colW * i, y + inner, 1.5, columnsH - inner * 0.4);
+      }
+    });
+
+    // Rest to Peak, with a dot where the rep is.
+    const trackX = x + inner;
+    const trackW = w - inner * 2;
+    const trackH = Math.max(4, Math.round(pad * 0.4));
+    const trackY = y + inner * 1.8 + columnsH;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(trackX, trackY, trackW, trackH, trackH / 2);
+    } else {
+      ctx.rect(trackX, trackY, trackW, trackH);
+    }
+    ctx.fill();
+    const dotX = trackX + trackW * Math.min(1, Math.max(0, stats.progress));
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.beginPath();
+    ctx.arc(dotX, trackY + trackH / 2, trackH * 1.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.font = `600 ${label}px ${FONT}`;
     ctx.textBaseline = "alphabetic";
     ctx.textAlign = "left";
-    ctx.fillStyle = TEXT_COLOR;
-    ctx.font = `800 ${big}px ${FONT}`;
-    const reps = String(info.reps);
-    ctx.fillText(reps, x + pad, y + pad + big * 0.82);
-    const repsWidth = ctx.measureText(reps).width;
-    ctx.font = `600 ${small}px ${FONT}`;
-    ctx.fillStyle = WATERMARK_COLOR;
-    ctx.fillText(info.unit ?? "reps", x + pad * 1.4 + repsWidth, y + pad + big * 0.82);
-
-    const line2 = y + pad * 1.6 + big + small * 0.8;
-    ctx.fillStyle = CLEAN_COLOR;
-    ctx.font = `700 ${small}px ${FONT}`;
-    ctx.fillText(`${info.cleanReps} clean`, x + pad, line2);
-    ctx.fillStyle = TEXT_COLOR;
+    ctx.fillText("REST", trackX, trackY + trackH + label * 1.5);
     ctx.textAlign = "right";
-    ctx.fillText(clock(info.elapsedMs), x + cardW - pad, line2);
+    ctx.fillText("PEAK", trackX + trackW, trackY + trackH + label * 1.5);
+    return y;
   }
 
   // Small site name in the bottom right corner.
-  private drawWatermark(fontSize: number, pad: number): void {
+  private drawWatermark(fontSize: number, pad: number, bottom: number): void {
     const ctx = this.ctx;
-    const { width, height } = this.canvas;
+    const { width } = this.canvas;
     ctx.font = `500 ${Math.round(fontSize * 0.7)}px ${FONT}`;
     ctx.fillStyle = WATERMARK_COLOR;
     ctx.textAlign = "right";
     ctx.textBaseline = "bottom";
-    ctx.fillText(SITE, width - pad, height - pad);
+    ctx.fillText(SITE, width - pad, bottom - Math.round(pad * 0.3));
   }
 }

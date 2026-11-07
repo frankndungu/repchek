@@ -745,3 +745,16 @@ Three new exercises, all with the phone beside you (side view).
   count it (migration `20261108130000_challenge_dumbbell_row.sql`, applied).
 - The last commit left the crunch, plank and pull-up rows on All exercises
   with an empty picture box. Each of the four now has an icon.
+
+## Stats on by default, and in the recording
+
+- The live Stats bar (Set, Reps, Time, Pace and the Rest to Peak line) is on
+  by default. The Stats button turns it off and the choice is remembered
+  (`repchek.stats`). Off shows the big rep count instead, as before.
+- The recorded clip now draws the same bar, the way it looks on screen, when
+  Stats are on. This replaces the smaller stat card from the replay change.
+  With Stats on, the top strip names the exercise and the form cue only,
+  since set and reps are in the bar. With Stats off, there is no bar and the
+  strip shows set and reps as before. A hold shows SECS instead of REPS.
+- The set's time and pace in a clip come from the same numbers as the screen.
+  When a set has just closed they come from its last rep.
