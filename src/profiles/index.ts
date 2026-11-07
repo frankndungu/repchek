@@ -15,6 +15,7 @@ import { mountainClimbersFront } from "./mountain-climbers-front";
 import { crunch } from "./crunch";
 import { plank } from "./plank";
 import { pullUp } from "./pull-up";
+import { dumbbellRow } from "./dumbbell-row";
 
 export const PROFILES: ExerciseProfile[] = [
   deadlift,
@@ -33,6 +34,7 @@ export const PROFILES: ExerciseProfile[] = [
   crunch,
   plank,
   pullUp,
+  dumbbellRow,
 ];
 
 export function findProfile(id: string): ExerciseProfile {
@@ -115,6 +117,13 @@ export const EXERCISES: ExerciseChoice[] = [
     name: "Bent-over barbell row",
     section: "Free weights",
     positions: { beside: "barbell-row" },
+  },
+  {
+    id: "dumbbell-row",
+    name: "Dumbbell row",
+    section: "Free weights",
+    detail: "One arm, hand on a bench",
+    positions: { beside: "dumbbell-row" },
   },
   {
     id: "biceps-curl",

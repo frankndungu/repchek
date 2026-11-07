@@ -4,6 +4,7 @@ import { ReadinessGate } from "../src/engine/readiness";
 import { counterFor } from "../src/engine/repCounter";
 import type { ExerciseProfile, FrameMetrics } from "../src/engine/types";
 import { crunch } from "../src/profiles/crunch";
+import { dumbbellRow } from "../src/profiles/dumbbell-row";
 import { EXERCISES, findProfile, profileFor } from "../src/profiles";
 import { plank } from "../src/profiles/plank";
 import { pullUp } from "../src/profiles/pull-up";
@@ -25,7 +26,7 @@ function run(profile: ExerciseProfile, metric: keyof FrameMetrics, values: numbe
 
 describe("the three new exercises are in the app", () => {
   it("can be picked and have a profile", () => {
-    for (const id of ["crunch", "plank", "pull-up"]) {
+    for (const id of ["crunch", "plank", "pull-up", "dumbbell-row"]) {
       const exercise = EXERCISES.find((e) => e.id === id)!;
       expect(exercise).toBeDefined();
       expect(profileFor(exercise, "beside").id).toBe(id);
@@ -118,5 +119,24 @@ describe("pull-ups count a full hang and a pull to the top", () => {
     let verdict = judge.evaluate(frame({ torsoAngle: 50 }), "moving-out");
     for (let i = 0; i < 6; i++) verdict = judge.evaluate(frame({ torsoAngle: 50 }), "moving-out");
     expect(verdict.failures.map((r) => r.id)).toEqual(["swing"]);
+  });
+});
+
+describe("dumbbell row counts the working arm like the barbell row", () => {
+  const bent = { torsoAngle: 35 };
+
+  it("counts a pull from a hanging arm to 85 degrees", () => {
+    expect(run(dumbbellRow, "elbowAngle", [168, 150, 120, 85, 110, 140, 160], bent)).toEqual(["rep"]);
+  });
+
+  it("calls a short pull a partial rep", () => {
+    expect(run(dumbbellRow, "elbowAngle", [168, 150, 125, 118, 140, 160], bent)).toEqual(["partial"]);
+  });
+
+  it("flags standing up with the dumbbell", () => {
+    const judge = new Judge(dumbbellRow);
+    let verdict = judge.evaluate(frame({ torsoAngle: 80, neckAngle: 170 }), "moving-out");
+    for (let i = 0; i < 6; i++) verdict = judge.evaluate(frame({ torsoAngle: 80, neckAngle: 170 }), "moving-out");
+    expect(verdict.failures.map((r) => r.id)).toEqual(["torso-too-upright"]);
   });
 });

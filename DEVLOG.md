@@ -735,3 +735,13 @@ Three new exercises, all with the phone beside you (side view).
   `20261108120000_challenge_new_exercises.sql`, applied). In a challenge, clean
   reps for a plank means clean seconds.
 - Tests: `tests/newExercises.test.ts`.
+
+## Dumbbell rows, and icons for the new exercises
+
+- **Dumbbell row** (Free weights, one arm, hand on a bench). Same measure as
+  the barbell row (the elbow angle) on the arm nearest the phone, so the setup
+  tells you to stand with the working arm facing the phone. Form rules: stay
+  bent over, eyes forward. Provisional, like the other new ones. Challenges can
+  count it (migration `20261108130000_challenge_dumbbell_row.sql`, applied).
+- The last commit left the crunch, plank and pull-up rows on All exercises
+  with an empty picture box. Each of the four now has an icon.
