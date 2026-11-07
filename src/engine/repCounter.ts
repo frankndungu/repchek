@@ -1,10 +1,20 @@
-import type { FrameMetrics, RepPhase, RepTrigger } from "./types";
+import type {
+  ExerciseProfile,
+  FrameMetrics,
+  ReadyCheck,
+  RepPhase,
+  RepTrigger,
+} from "./types";
+import { passesCheck } from "./readiness";
 
 export interface RepEvent {
   type: "rep" | "partial";
   count: number;
   durationMs: number;
 }
+
+// A hold counts one for every second spent in position.
+const HOLD_TICK_MS = 1000;
 
 const ZONE_MARGIN = 0.15;
 const PARTIAL_MIN_PROGRESS = 0.4;
@@ -16,9 +26,14 @@ export class RepCounter {
   private repStartedAt: number;
   private deepestProgress: number;
   private latestProgress = 0;
+  // For a hold: the posture checks that mean "in position", and when the
+  // next second is due. Null when this is a counter of reps.
+  private readonly holdChecks: ReadyCheck[] | null;
+  private nextTickAt: number | null = null;
 
-  constructor(trigger: RepTrigger) {
+  constructor(trigger: RepTrigger, holdChecks?: ReadyCheck[]) {
     this.trigger = trigger;
+    this.holdChecks = holdChecks ?? null;
     this.phase = "idle";
     this.count = 0;
     this.repStartedAt = 0;
@@ -44,9 +59,11 @@ export class RepCounter {
     this.count = 0;
     this.deepestProgress = 0;
     this.latestProgress = 0;
+    this.nextTickAt = null;
   }
 
   update(metrics: FrameMetrics, nowMs: number): RepEvent | null {
+    if (this.holdChecks) return this.updateHold(metrics, nowMs);
     const value = metrics[this.trigger.metric];
     const { start, turn } = this.trigger;
     const range = Math.abs(start - turn);
@@ -114,4 +131,37 @@ export class RepCounter {
         return null;
     }
   }
+
+  // A hold: out of position, nothing counts and the clock starts over. In
+  // position, each full second counts as one.
+  private updateHold(metrics: FrameMetrics, nowMs: number): RepEvent | null {
+    const inPosition = (this.holdChecks ?? []).every((check) =>
+      passesCheck(check, metrics),
+    );
+    if (!inPosition) {
+      this.phase = "idle";
+      this.nextTickAt = null;
+      this.latestProgress = 0;
+      return null;
+    }
+    this.latestProgress = 1;
+    if (this.nextTickAt === null) {
+      this.phase = "turn";
+      this.nextTickAt = nowMs + HOLD_TICK_MS;
+      return null;
+    }
+    if (nowMs < this.nextTickAt) return null;
+    this.nextTickAt += HOLD_TICK_MS;
+    this.count += 1;
+    return { type: "rep", count: this.count, durationMs: HOLD_TICK_MS };
+  }
+}
+
+// The counter for a profile: seconds held for a hold, reps for the rest.
+// `trigger` is for a learned start; it defaults to the profile's own.
+export function counterFor(
+  profile: ExerciseProfile,
+  trigger: RepTrigger = profile.rep,
+): RepCounter {
+  return new RepCounter(trigger, profile.hold ? (profile.ready ?? []) : undefined);
 }

@@ -12,6 +12,9 @@ import { pushUp } from "./push-up";
 import { pushUpFront } from "./push-up-front";
 import { mountainClimbers } from "./mountain-climbers";
 import { mountainClimbersFront } from "./mountain-climbers-front";
+import { crunch } from "./crunch";
+import { plank } from "./plank";
+import { pullUp } from "./pull-up";
 
 export const PROFILES: ExerciseProfile[] = [
   deadlift,
@@ -27,6 +30,9 @@ export const PROFILES: ExerciseProfile[] = [
   pushUpFront,
   mountainClimbers,
   mountainClimbersFront,
+  crunch,
+  plank,
+  pullUp,
 ];
 
 export function findProfile(id: string): ExerciseProfile {
@@ -59,6 +65,8 @@ export interface ExerciseChoice {
   // What each position checks, shown on the position cards. Only needed
   // when an exercise has both positions.
   checks?: Record<PhonePosition, string>;
+  // What the numbers count. A hold such as the plank counts seconds.
+  unit?: "reps" | "seconds";
 }
 
 export const SECTIONS: Section[] = ["At home", "Free weights"];
@@ -83,6 +91,20 @@ export const EXERCISES: ExerciseChoice[] = [
     positions: { beside: "mountain-climbers" },
   },
   {
+    id: "crunch",
+    name: "Crunches",
+    section: "At home",
+    positions: { beside: "crunch" },
+  },
+  {
+    id: "plank",
+    name: "Plank",
+    section: "At home",
+    detail: "Counts seconds held",
+    positions: { beside: "plank" },
+    unit: "seconds",
+  },
+  {
     id: "deadlift",
     name: "Deadlift",
     section: "Free weights",
@@ -100,6 +122,13 @@ export const EXERCISES: ExerciseChoice[] = [
     section: "Free weights",
     detail: "Dumbbell, EZ bar or cable",
     positions: { beside: "biceps-curl" },
+  },
+  {
+    id: "pull-up",
+    name: "Pull-up",
+    section: "Free weights",
+    detail: "Pull-up bar",
+    positions: { beside: "pull-up" },
   },
 ];
 

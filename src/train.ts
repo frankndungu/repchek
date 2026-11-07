@@ -11,6 +11,9 @@ export const TRAIN_ORDER = [
   "biceps-curl",
   "deadlift",
   "barbell-row",
+  "crunch",
+  "plank",
+  "pull-up",
 ];
 
 export interface WorkoutCard {

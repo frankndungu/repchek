@@ -22,6 +22,8 @@ export interface FrameInfo {
   reps: number;
   // Reps in this set with no form fault, and how long the set has run.
   cleanReps: number;
+  // "reps", or "secs" for a hold.
+  unit?: "reps" | "secs";
   elapsedMs: number;
   feedback: string;
 }
@@ -378,7 +380,7 @@ export class SetRecorder {
     const ctx = this.ctx;
     const { width } = this.canvas;
     const lineHeight = Math.round(fontSize * 1.35);
-    const progress = `Set ${info.set}/${info.totalSets}   Reps ${info.reps}`;
+    const progress = `Set ${info.set}/${info.totalSets}   ${info.unit === "secs" ? "Secs" : "Reps"} ${info.reps}`;
     const lines = [`${info.exercise}   ${progress}`];
     if (info.feedback) lines.push(info.feedback);
 
@@ -428,7 +430,7 @@ export class SetRecorder {
     const repsWidth = ctx.measureText(reps).width;
     ctx.font = `600 ${small}px ${FONT}`;
     ctx.fillStyle = WATERMARK_COLOR;
-    ctx.fillText("reps", x + pad * 1.4 + repsWidth, y + pad + big * 0.82);
+    ctx.fillText(info.unit ?? "reps", x + pad * 1.4 + repsWidth, y + pad + big * 0.82);
 
     const line2 = y + pad * 1.6 + big + small * 0.8;
     ctx.fillStyle = CLEAN_COLOR;

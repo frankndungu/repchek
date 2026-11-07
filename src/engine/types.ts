@@ -119,6 +119,10 @@ export interface ExerciseProfile {
   // the full arms to start and only the shoulders after that.
   requiredWhileCounting?: Joint[];
   rep: RepTrigger;
+  // A hold, like a plank. There are no reps: one is counted for every
+  // second spent in the position the `ready` checks describe. The rep
+  // trigger only says what the start of the hold looks like, for arming.
+  hold?: boolean;
   // Optional posture checks that must pass before counting starts.
   // Leave it out and the gate still waits for: visible, at the start
   // of the rep, and holding still for a second.
