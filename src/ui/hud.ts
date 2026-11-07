@@ -23,7 +23,21 @@ let lastStatus = "";
 let lastDebug = "";
 let noticeUntil = 0;
 let live = false;
-let statsOpen = false;
+// Stats are on unless the person turned them off. Remembered.
+const STATS_KEY = "repchek.stats";
+function readStatsOn(): boolean {
+  try {
+    return localStorage.getItem(STATS_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+let statsOpen = readStatsOn();
+
+// True when the Stats bar is on. The recording shows it too when it is.
+export function statsAreOn(): boolean {
+  return statsOpen;
+}
 
 function drawPanelState(): void {
   const showing = live;
@@ -35,6 +49,11 @@ function drawPanelState(): void {
 
 statsBtn.addEventListener("click", () => {
   statsOpen = !statsOpen;
+  try {
+    localStorage.setItem(STATS_KEY, statsOpen ? "on" : "off");
+  } catch {
+    // Private mode: it just will not be remembered.
+  }
   drawPanelState();
 });
 
