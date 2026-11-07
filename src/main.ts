@@ -285,7 +285,8 @@ let selectedExerciseId = DEFAULT_EXERCISE_ID;
 let activeExercise: ExerciseChoice | null = null;
 let activeProfile: ExerciseProfile | null = null;
 let facingMode: FacingMode = loadFacingMode();
-let recordSets = readSetting(RECORD_STORAGE_KEY) === "on";
+// Sets are recorded unless the person turned it off on Workout setup.
+let recordSets = readSetting(RECORD_STORAGE_KEY) !== "off";
 // Angle numbers at the joints, on screen and in clips. Off by default:
 // they help when tuning a profile but clutter the view for everyone else.
 let showAngles = readSetting(ANGLES_STORAGE_KEY) === "on";
@@ -805,6 +806,17 @@ coachSwitch.addEventListener("click", () => {
   renderSwitch(coachSwitch, coachMode === "voice");
 });
 
+// The Record my set switch. Hidden where the browser cannot record.
+const recordRow = q<HTMLElement>("#record-row");
+const recordSwitch = q<HTMLElement>("#record-switch");
+recordRow.hidden = !SetRecorder.isSupported();
+renderSwitch(recordSwitch, recordSets);
+recordSwitch.addEventListener("click", () => {
+  recordSets = !recordSets;
+  writeSetting(RECORD_STORAGE_KEY, recordSets ? "on" : "off");
+  renderSwitch(recordSwitch, recordSets);
+});
+
 // How it works: opens once by itself on a first visit.
 for (const figure of howScreen.querySelectorAll<SVGElement>("[data-color]")) {
   figure.style.color = FIGURE_COLORS[figure.dataset.color ?? ""] ?? "";
@@ -1227,6 +1239,10 @@ function recordFrame(
       set: closed?.set ?? session.set,
       totalSets: session.totalSets,
       reps: closed?.reps.length ?? session.reps,
+      cleanReps: closed
+        ? closed.reps.filter((r) => r.faults.length === 0).length
+        : session.cleanReps,
+      elapsedMs: session.setElapsedMs(performance.now()),
       feedback: message,
     },
     mirrored,

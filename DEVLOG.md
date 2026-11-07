@@ -697,3 +697,19 @@ refuses anything further out. Tests cover the picked-day rules.
   their own, since the Hall of Gains reads saved sessions by date and exercise.
   Finishing a set started this way saves it and returns to the challenge, where
   the Hall of Gains shows the new numbers. Backing out of setup clears that.
+
+## Session replay: record, watch back with the numbers, share
+
+The pieces were mostly there (a clip per set, a player, a Share button). Two
+things were wrong: the Record sets switch disappeared in the setup rebuild, so
+nothing recorded, and the clip showed little.
+
+- Workout setup has a Record my set switch again, on by default, remembered.
+  Hidden where the browser cannot record.
+- Each recorded frame now carries a stat card (bottom left): the rep count,
+  clean reps, and the set's time, besides the top strip with exercise, set
+  and the form cue. Backed by `cleanReps` and `partials` on the session.
+- The clips list on the summary has Watch (the whole clip) beside Share.
+  Sharing sends the file with "Counted with repchek.fit".
+- Clips still live only in memory until Done. Keeping them for later in
+  History needs storage on the phone and is not built.

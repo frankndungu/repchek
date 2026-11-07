@@ -42,7 +42,8 @@ async function shareClip(exerciseId: string, clip: SetClip): Promise<void> {
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({
       files: [file],
-      title: `Repchek ${clipLabel(clip).toLowerCase()}`,
+      title: `repchek ${clipLabel(clip).toLowerCase()}`,
+      text: "Counted with repchek.fit",
     });
     return;
   }
@@ -90,7 +91,14 @@ export function renderClips(clips: SetClip[], exerciseId: string): void {
       }
     });
 
-    row.append(label, length, button);
+    const watch = document.createElement("button");
+    watch.type = "button";
+    watch.className =
+      "min-h-11 rounded-full bg-forest px-4 text-[15px] font-semibold text-white";
+    watch.textContent = "Watch";
+    watch.addEventListener("click", () => openClip(clip, 0));
+
+    row.append(label, length, watch, button);
 
     if (clip.kind === "attempt") {
       const item = document.createElement("div");
@@ -112,7 +120,8 @@ export function renderClips(clips: SetClip[], exerciseId: string): void {
 function openClip(clip: SetClip, atMs: number): void {
   closeClip();
   playerUrl = URL.createObjectURL(clip.blob);
-  playerTitle.textContent = `${clipLabel(clip)} at ${formatClock(atMs)}`;
+  playerTitle.textContent =
+    atMs === 0 ? clipLabel(clip) : `${clipLabel(clip)} at ${formatClock(atMs)}`;
   // Jump once the video knows its length; a jump before that is ignored.
   playerVideo.addEventListener(
     "loadedmetadata",
