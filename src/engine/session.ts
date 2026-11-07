@@ -84,6 +84,16 @@ export class SessionTracker {
     return this.repRecords.length;
   }
 
+  // Reps in the current set that had no form fault.
+  get cleanReps(): number {
+    return this.repRecords.filter((r) => r.faults.length === 0).length;
+  }
+
+  // Half reps in the current set that were not counted.
+  get partials(): number {
+    return this.partialsInSet;
+  }
+
   get isResting(): boolean {
     return (
       !this.finished &&

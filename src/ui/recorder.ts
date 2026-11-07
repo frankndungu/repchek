@@ -20,6 +20,9 @@ export interface FrameInfo {
   set: number;
   totalSets: number;
   reps: number;
+  // Reps in this set with no form fault, and how long the set has run.
+  cleanReps: number;
+  elapsedMs: number;
   feedback: string;
 }
 
@@ -73,7 +76,14 @@ const MIME_TYPES = [
 const FONT = '"Inter", system-ui, sans-serif';
 const STRIP_COLOR = "rgba(0, 0, 0, 0.6)";
 const TEXT_COLOR = "#fff";
+const CLEAN_COLOR = "#7fd1a8";
 const WATERMARK_COLOR = "rgba(255, 255, 255, 0.7)";
+
+// 1:05 for 65 seconds.
+function clock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
 
 function pickMimeType(): string | undefined {
   return MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
@@ -167,6 +177,7 @@ export class SetRecorder {
     const fontSize = Math.max(14, Math.round(Math.min(width, height) * 0.042));
     const pad = Math.round(fontSize * 0.6);
     this.drawInfoStrip(info, fontSize, pad);
+    this.drawStatCard(info, fontSize, pad);
     this.drawWatermark(fontSize, pad);
   }
 
@@ -382,6 +393,50 @@ export class SetRecorder {
       const y = pad + lineHeight * (i + 0.5);
       ctx.fillText(truncate(ctx, line, width - pad * 2), pad, y);
     });
+  }
+
+  // The numbers someone wants on a shared clip: reps, clean reps and time.
+  // A card in the bottom left, so the top strip stays for the form cue.
+  private drawStatCard(info: FrameInfo, textSize: number, padding: number): void {
+    const ctx = this.ctx;
+    // Bigger than the top strip, so it reads on a phone screen.
+    const fontSize = Math.round(textSize * 1.3);
+    const pad = Math.round(padding * 1.3);
+    const { height } = this.canvas;
+    const big = Math.round(fontSize * 2.6);
+    const small = Math.round(fontSize * 0.8);
+    const cardW = Math.round(fontSize * 8.2);
+    const cardH = big + small * 2 + pad * 3;
+    const x = pad;
+    const y = height - pad * 2 - cardH;
+
+    ctx.fillStyle = STRIP_COLOR;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, cardW, cardH, Math.round(fontSize * 0.7));
+    } else {
+      ctx.rect(x, y, cardW, cardH);
+    }
+    ctx.fill();
+
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.font = `800 ${big}px ${FONT}`;
+    const reps = String(info.reps);
+    ctx.fillText(reps, x + pad, y + pad + big * 0.82);
+    const repsWidth = ctx.measureText(reps).width;
+    ctx.font = `600 ${small}px ${FONT}`;
+    ctx.fillStyle = WATERMARK_COLOR;
+    ctx.fillText("reps", x + pad * 1.4 + repsWidth, y + pad + big * 0.82);
+
+    const line2 = y + pad * 1.6 + big + small * 0.8;
+    ctx.fillStyle = CLEAN_COLOR;
+    ctx.font = `700 ${small}px ${FONT}`;
+    ctx.fillText(`${info.cleanReps} clean`, x + pad, line2);
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.textAlign = "right";
+    ctx.fillText(clock(info.elapsedMs), x + cardW - pad, line2);
   }
 
   // Small site name in the bottom right corner.

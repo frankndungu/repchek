@@ -151,3 +151,26 @@ describe("SessionTracker checkpoints", () => {
     expect(() => tracker.exportCheckpoint(identity)).toThrow(/finished/);
   });
 });
+
+describe("SessionTracker live counts for the recording", () => {
+  it("counts clean reps and half reps in the current set", () => {
+    const tracker = new SessionTracker({ sets: 3, reps: 10 });
+    tracker.startSet(0);
+    tracker.onRepEvent(rep(), [], 1000);
+    tracker.onRepEvent(rep(), ["hips-sag"], 2000);
+    tracker.onRepEvent(rep(), [], 3000);
+    tracker.onRepEvent({ type: "partial", count: 1, durationMs: 400 }, [], 3500);
+    expect(tracker.reps).toBe(3);
+    expect(tracker.cleanReps).toBe(2);
+    expect(tracker.partials).toBe(1);
+  });
+
+  it("starts the next set from zero", () => {
+    const tracker = new SessionTracker({ sets: 2, reps: 2 });
+    tracker.startSet(0);
+    tracker.onRepEvent(rep(), [], 1000);
+    tracker.onRepEvent(rep(), [], 2000);
+    expect(tracker.cleanReps).toBe(0);
+    expect(tracker.partials).toBe(0);
+  });
+});
