@@ -30,6 +30,10 @@ const ICONS: Record<string, string> = {
   "biceps-curl": `<svg ${STROKE}><path d="M8 11v0M5 7v8M9 5v12M25 5v12M29 7v8M9 11h16"/></svg>`,
   deadlift: `<svg ${STROKE}><path d="M3 19h28"/><path d="M10 19l4-9 12-1"/><path d="M21 9v8"/><path d="M17 17h8"/><circle cx="8" cy="7" r="2.6"/></svg>`,
   "barbell-row": `<svg ${STROKE}><path d="M3 19h28"/><path d="M10 19l4-9 12-1"/><path d="M21 9v8"/><path d="M17 17h8"/><circle cx="8" cy="7" r="2.6"/></svg>`,
+  "dumbbell-row": `<svg ${STROKE}><path d="M3 19h28"/><path d="M10 19l4-9 12-1"/><path d="M21 9v8"/><path d="M18 17h6M18 15v4M24 15v4"/><circle cx="8" cy="7" r="2.6"/></svg>`,
+  crunch: `<svg ${STROKE}><path d="M3 19h28"/><path d="M8 12l6 7 8-9 5 9"/><circle cx="5" cy="10" r="2.4"/></svg>`,
+  plank: `<svg ${STROKE}><path d="M3 19h28"/><path d="M5 17l21-6"/><path d="M26 11v8h5"/><circle cx="29" cy="7" r="2.4"/></svg>`,
+  "pull-up": `<svg ${STROKE}><path d="M5 3h24"/><path d="M12 3l5 6 5-6"/><path d="M17 9v7"/><path d="M17 16l-3 5M17 16l3 5"/></svg>`,
 };
 
 const CHEVRON =

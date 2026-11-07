@@ -70,6 +70,7 @@ describe("exercises to start from a challenge", () => {
       "biceps-curl",
       "crunch",
       "deadlift",
+      "dumbbell-row",
       "mountain-climbers",
       "plank",
       "pull-up",

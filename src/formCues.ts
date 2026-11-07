@@ -37,6 +37,10 @@ export const FORM_CUES: Record<string, FormCue> = {
     form: "Hang with straight arms. Pull until your chin is over the bar.",
     phone: "Phone on the floor, side on, you and the bar in frame.",
   },
+  "dumbbell-row": {
+    form: "Back flat, eyes forward. Pull the dumbbell to your hip.",
+    phone: "Stand sideways, working arm nearest the phone, whole body in frame.",
+  },
   deadlift: {
     form: "Back flat, bar close to your legs. Stand tall at the top.",
     phone: "Stand sideways to the phone, whole body in frame.",

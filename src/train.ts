@@ -11,6 +11,7 @@ export const TRAIN_ORDER = [
   "biceps-curl",
   "deadlift",
   "barbell-row",
+  "dumbbell-row",
   "crunch",
   "plank",
   "pull-up",
