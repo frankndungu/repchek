@@ -25,6 +25,18 @@ export const FORM_CUES: Record<string, FormCue> = {
     form: "Back flat, eyes forward. Pull the bar to your belly.",
     phone: "Stand sideways to the phone, whole body in frame.",
   },
+  crunch: {
+    form: "Lift your shoulder blades. Chin off your chest, no pulling on your neck.",
+    phone: "Phone on the floor, side on. Knees bent.",
+  },
+  plank: {
+    form: "Body in one straight line. Hips level, no sagging.",
+    phone: "Phone on the floor, side on.",
+  },
+  "pull-up": {
+    form: "Hang with straight arms. Pull until your chin is over the bar.",
+    phone: "Phone on the floor, side on, you and the bar in frame.",
+  },
   deadlift: {
     form: "Back flat, bar close to your legs. Stand tall at the top.",
     phone: "Stand sideways to the phone, whole body in frame.",

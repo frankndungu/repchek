@@ -85,7 +85,7 @@
           class="block text-[64px] leading-none font-extrabold tracking-[-0.04em]"
           >0</span
         >
-        <span class="text-xs font-semibold tracking-[0.12em] text-white/70 uppercase">Reps</span>
+        <span data-unit class="text-xs font-semibold tracking-[0.12em] text-white/70 uppercase">Reps</span>
       </div>
       <div
         id="stats-panel"
@@ -99,7 +99,7 @@
           </div>
           <div class="flex flex-col items-center gap-1.5 px-1">
             <span id="stat-reps" class="block text-[26px] leading-none font-extrabold tracking-[-0.03em]">0</span>
-            <span class="text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">Reps</span>
+            <span data-unit class="text-[10px] font-semibold tracking-[0.12em] text-white/60 uppercase">Reps</span>
           </div>
           <div class="flex flex-col items-center gap-1.5 px-1">
             <span id="stat-time" class="block text-[26px] leading-none font-extrabold tracking-[-0.03em]">0:00</span>
@@ -304,12 +304,12 @@
                 type="number"
                 inputmode="numeric"
                 min="1"
-                max="50"
+                max="300"
                 value="12"
                 aria-label="Reps"
                 class="w-full min-w-0 bg-transparent text-center text-[32px] leading-[1.1] font-extrabold tracking-[-0.04em] outline-none placeholder:text-ink"
               />
-              <label for="reps-input" class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Reps</label>
+              <label id="reps-label" for="reps-input" class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Reps</label>
             </div>
             <div class="flex min-w-0 flex-col items-center gap-0.5 px-1 py-3.5 border-l border-line">
               <input
@@ -722,7 +722,7 @@
               id="stat-reps"
               class="text-[32px] leading-none font-extrabold tracking-[-0.03em]"
             ></span>
-            <span class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
+            <span data-unit class="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase"
               >Reps</span
             >
           </div>

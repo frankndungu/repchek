@@ -713,3 +713,25 @@ nothing recorded, and the clip showed little.
   Sharing sends the file with "Counted with repchek.fit".
 - Clips still live only in memory until Done. Keeping them for later in
   History needs storage on the phone and is not built.
+
+## Crunches, plank and pull-ups
+
+Three new exercises, all with the phone beside you (side view).
+
+- **Crunches** (At home): counts the shoulders lifting off the floor. The rep
+  metric is the torso angle, about 0 flat and about 25 at the top. Needs bent
+  knees to arm. One lenient form rule, no pulling on the neck.
+- **Plank** (At home): a hold. It counts one for every second in position
+  (torso near flat), so "reps" are seconds. The target is sets of seconds
+  (default 3 x 30), the setup label says Seconds, the live screen and recorded
+  clip say Secs. A second is clean when the body stays in one line (hip angle
+  at least 150). `hold` on the profile and `counterFor()` in the rep counter.
+- **Pull-up** (Free weights, pull-up bar): counts the elbow going from straight
+  to bent. Needs a hang to arm. One rule: no swinging.
+- All three are provisional. The numbers are reasoned from the body and tested
+  on made-up frames, not on recorded sets. Record one of each with `?debug=1`
+  and tune them, as was done for the row and the deadlift.
+- Form preview pictures for the three. Challenges can count them (migration
+  `20261108120000_challenge_new_exercises.sql`, applied). In a challenge, clean
+  reps for a plank means clean seconds.
+- Tests: `tests/newExercises.test.ts`.

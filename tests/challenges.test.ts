@@ -65,12 +65,15 @@ describe("exercises to start from a challenge", () => {
   });
 
   it("offers every exercise when the challenge counts any", () => {
-    expect(exercisesFor([]).map((e) => e.id)).toEqual([
-      "push-up",
-      "mountain-climbers",
-      "deadlift",
+    expect(exercisesFor([]).map((e) => e.id).sort()).toEqual([
       "barbell-row",
       "biceps-curl",
+      "crunch",
+      "deadlift",
+      "mountain-climbers",
+      "plank",
+      "pull-up",
+      "push-up",
     ]);
   });
 });

@@ -66,6 +66,13 @@ export function showFeedback(messages: string[]): void {
   }
 }
 
+// What the rep count is called: Reps, or Secs for a hold like the plank.
+export function setCountUnit(seconds: boolean): void {
+  for (const el of document.querySelectorAll<HTMLElement>("[data-unit]")) {
+    el.textContent = seconds ? "Secs" : "Reps";
+  }
+}
+
 // Called every frame. label is a status such as HOLD STILL or REST: it shows
 // in the pill, and an empty label hides the pill. The numbers go to the rep
 // count and the Stats panel.

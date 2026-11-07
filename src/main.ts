@@ -43,7 +43,7 @@ import {
 } from "./engine/angles";
 import type { BodyPart, Side } from "./engine/angles";
 import { Judge } from "./engine/judge";
-import { RepCounter } from "./engine/repCounter";
+import { RepCounter, counterFor } from "./engine/repCounter";
 import type { RepEvent } from "./engine/repCounter";
 import {
   ReadinessGate,
@@ -93,6 +93,7 @@ import {
 } from "./ui/overlay";
 import {
   showFeedback,
+  setCountUnit,
   showCounter,
   showNotice,
   showDebug,
@@ -394,9 +395,17 @@ function renderExerciseCard(): void {
 
 // The last numbers used for this exercise, or 3 x 12 with no weight, and a
 // "Last time" line if there is a last time.
+// What the middle number counts: reps, or seconds for a hold like the plank.
+function holdSelected(exerciseId: string): boolean {
+  return findExercise(exerciseId).unit === "seconds";
+}
+
 async function fillTarget(exerciseId: string): Promise<void> {
+  const seconds = holdSelected(exerciseId);
+  q<HTMLElement>("#reps-label").textContent = seconds ? "Seconds" : "Reps";
+  repsInput.setAttribute("aria-label", seconds ? "Seconds" : "Reps");
   setsInput.value = "3";
-  repsInput.value = "12";
+  repsInput.value = seconds ? "30" : "12";
   weightInput.value = "";
   lastTimeEl.hidden = true;
   renderTargetCards();
@@ -1160,6 +1169,7 @@ async function openSavedReport(id: string): Promise<boolean> {
   const record = await loadSessionRecord(id);
   if (!record) return false;
   reportFromHistory = true;
+  setCountUnit(countsSeconds(record.exerciseId));
   currentRecord = record;
   currentStats = computeStats(record);
   renderSummary(record, currentStats);
@@ -1179,8 +1189,15 @@ async function openSavedReport(id: string): Promise<boolean> {
   return true;
 }
 
+// True when this profile counts seconds held, not reps.
+function countsSeconds(profileId: string): boolean {
+  const id = exerciseIdForProfile(profileId);
+  return id !== null && findExercise(id).unit === "seconds";
+}
+
 function showSummary(record: SessionRecord): void {
   reportFromHistory = false;
+  setCountUnit(countsSeconds(record.exerciseId));
   currentRecord = record;
   currentStats = computeStats(record);
   renderSummary(record, currentStats);
@@ -1239,6 +1256,7 @@ function recordFrame(
       set: closed?.set ?? session.set,
       totalSets: session.totalSets,
       reps: closed?.reps.length ?? session.reps,
+      unit: activeExercise?.unit === "seconds" ? "secs" : "reps",
       cleanReps: closed
         ? closed.reps.filter((r) => r.faults.length === 0).length
         : session.cleanReps,
@@ -1364,7 +1382,7 @@ function armCounting(now: number): void {
   // clip starts below.
   session?.startSet(now);
   learnedTrigger = learnTrigger(activeProfile.rep);
-  repCounter = new RepCounter(learnedTrigger ?? activeProfile.rep);
+  repCounter = counterFor(activeProfile, learnedTrigger ?? activeProfile.rep);
   judge = new Judge(activeProfile);
   currentRepFaults.clear();
   resetProbe();
@@ -1410,6 +1428,7 @@ async function startWorkout(
       ? { ...exercise, name: recovery.exerciseName }
       : exercise;
     activeProfile = profileFor(exercise, phonePosition(exercise));
+    setCountUnit(exercise.unit === "seconds");
     if (debugMode) {
       diag.begin({
         app: "repchek",
@@ -1424,7 +1443,7 @@ async function startWorkout(
       rawClipResult = null;
     }
     judge = new Judge(activeProfile);
-    repCounter = new RepCounter(activeProfile.rep);
+    repCounter = counterFor(activeProfile);
     gate = new ReadinessGate(activeProfile);
     learnedTrigger = null;
     probe = activeProfile.rollingStart
