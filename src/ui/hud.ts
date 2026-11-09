@@ -86,7 +86,9 @@ export function showFeedback(messages: string[]): void {
 }
 
 // What the rep count is called: Reps, or Secs for a hold like the plank.
+let holdMode = false;
 export function setCountUnit(seconds: boolean): void {
+  holdMode = seconds;
   for (const el of document.querySelectorAll<HTMLElement>("[data-unit]")) {
     el.textContent = seconds ? "Secs" : "Reps";
   }
@@ -106,7 +108,7 @@ export function showCounter(
   q<HTMLElement>("#stat-set").textContent = `${set}/${totalSets}`;
   q<HTMLElement>("#stat-reps").textContent = String(reps);
   q<HTMLElement>("#stat-time").textContent = formatClock(elapsedMs);
-  q<HTMLElement>("#stat-pace").textContent = paceText(reps, elapsedMs);
+  q<HTMLElement>("#stat-pace").textContent = paceText(reps, elapsedMs, holdMode);
 
   if (performance.now() < noticeUntil) return;
   if (label === lastStatus && !counter.classList.contains("notice")) return;

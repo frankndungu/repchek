@@ -758,3 +758,9 @@ Three new exercises, all with the phone beside you (side view).
   strip shows set and reps as before. A hold shows SECS instead of REPS.
 - The set's time and pace in a clip come from the same numbers as the screen.
   When a set has just closed they come from its last rep.
+
+## No pace for a plank
+
+A plank counts seconds, so the Stats bar showed a "pace" near 60 a minute,
+which means nothing. Pace is now "-" for a hold, on the live bar and in the
+recording. Reps are unchanged.

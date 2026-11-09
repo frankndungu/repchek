@@ -1272,7 +1272,11 @@ function recordFrame(
             set: `${closed?.set ?? session.set}/${session.totalSets}`,
             reps: String(closed?.reps.length ?? session.reps),
             time: formatClock(elapsedMs),
-            pace: paceText(closed?.reps.length ?? session.reps, elapsedMs),
+            pace: paceText(
+              closed?.reps.length ?? session.reps,
+              elapsedMs,
+              activeExercise?.unit === "seconds",
+            ),
             progress: gate?.isArmed && repCounter ? repCounter.progress : 0,
           }
         : null,
