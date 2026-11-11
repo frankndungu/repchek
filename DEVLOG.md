@@ -764,3 +764,10 @@ Three new exercises, all with the phone beside you (side view).
 A plank counts seconds, so the Stats bar showed a "pace" near 60 a minute,
 which means nothing. Pace is now "-" for a hold, on the live bar and in the
 recording. Reps are unchanged.
+
+## Body lines on or off
+
+Workout setup has a Body lines switch, on by default and remembered
+(`repchek.bodyLines`). Off hides the skeleton, the spine guide and the angle
+labels, on the live screen and in the recording. Counting and form checks
+run the same either way, and faults still show in the banner and the voice.

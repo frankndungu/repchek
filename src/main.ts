@@ -187,6 +187,7 @@ type FacingMode = CameraOptions["facingMode"];
 const CAMERA_STORAGE_KEY = "repchek.camera";
 
 const RECORD_STORAGE_KEY = "repchek.record";
+const BODY_LINES_STORAGE_KEY = "repchek.bodyLines";
 const ANGLES_STORAGE_KEY = "repchek.angles";
 // Followed by the exercise id: where the phone was last time for it.
 const POSITION_STORAGE_KEY = "repchek.position.";
@@ -290,6 +291,10 @@ let activeProfile: ExerciseProfile | null = null;
 let facingMode: FacingMode = loadFacingMode();
 // Sets are recorded unless the person turned it off on Workout setup.
 let recordSets = readSetting(RECORD_STORAGE_KEY) !== "off";
+// The lines and dots drawn over the body, on screen and in the recording.
+// On unless the person turned them off. Counting and form checks run either
+// way, and faults still show in the banner and the voice.
+let showBodyLines = readSetting(BODY_LINES_STORAGE_KEY) !== "off";
 // Angle numbers at the joints, on screen and in clips. Off by default:
 // they help when tuning a profile but clutter the view for everyone else.
 let showAngles = readSetting(ANGLES_STORAGE_KEY) === "on";
@@ -826,6 +831,15 @@ recordSwitch.addEventListener("click", () => {
   recordSets = !recordSets;
   writeSetting(RECORD_STORAGE_KEY, recordSets ? "on" : "off");
   renderSwitch(recordSwitch, recordSets);
+});
+
+// The Body lines switch.
+const bodyLinesSwitch = q<HTMLElement>("#body-lines-switch");
+renderSwitch(bodyLinesSwitch, showBodyLines);
+bodyLinesSwitch.addEventListener("click", () => {
+  showBodyLines = !showBodyLines;
+  writeSetting(BODY_LINES_STORAGE_KEY, showBodyLines ? "on" : "off");
+  renderSwitch(bodyLinesSwitch, showBodyLines);
 });
 
 // How it works: opens once by itself on a first visit.
@@ -1825,11 +1839,13 @@ function uncountedFrame(
 ): void {
   if (!session || !activeProfile || !repCounter) return;
   handleSessionEvent(session.tick(now));
-  drawSkeleton(ctx, landmarks, WAITING_COLOR);
-  if (activeProfile.cameraView === "side") {
-    drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+  if (showBodyLines) {
+    drawSkeleton(ctx, landmarks, WAITING_COLOR);
+    if (activeProfile.cameraView === "side") {
+      drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+    }
+    if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
   }
-  if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
   showFeedback([]);
   recordFrame("");
   updateCounterDisplay(activeProfile, repCounter.currentPhase);
@@ -1928,7 +1944,7 @@ function loop(): void {
           required,
         );
         updateTrackingHint(missing, now);
-        drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
+        if (showBodyLines) drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
         showFeedback([]);
         recordFrame("");
         handleLostFrame(now);
@@ -2019,11 +2035,13 @@ function loop(): void {
             sessionEvent = session.tick(now);
           }
 
-          drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
-          if (activeProfile.cameraView === "side") {
-            drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+          if (showBodyLines) {
+            drawSkeleton(ctx, landmarks, verdict.ok ? GOOD_COLOR : BAD_COLOR);
+            if (activeProfile.cameraView === "side") {
+              drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
+            }
+            if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
           }
-          if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
           const feedback = verdict.failures.map((rule) => rule.message);
           showFeedback(feedback);
           recordFrame(feedback.join("  |  "), sessionEvent);
