@@ -6,6 +6,7 @@ import { initHistory, refreshHistory, resetHistory } from "./history";
 import { initProgress, refreshProgress, resetProgress } from "./progress";
 import { hideExercises, refreshTrain, resetTrain } from "./train";
 import { hideStreak, initStreak, resetStreak } from "./streak";
+import { hideStretch } from "./stretch";
 import {
   hideChallengeScreens,
   initChallenges,
@@ -32,6 +33,7 @@ export function showTab(tab: Tab): void {
   milestones.hidden = true;
   hideExercises();
   hideStreak();
+  hideStretch();
   hideChallengeScreens();
   for (const [name, el] of Object.entries(screens)) {
     el.hidden = name !== tab;

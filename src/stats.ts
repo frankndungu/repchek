@@ -10,7 +10,9 @@ export function formatClock(ms: number): string {
 // until there is enough to say anything: two reps and a few seconds.
 const MIN_PACE_MS = 8000;
 
-export function paceText(reps: number, elapsedMs: number): string {
-  if (reps < 2 || elapsedMs < MIN_PACE_MS) return "-";
+// A hold such as the plank has no pace: its "reps" are seconds, so a rate
+// would just read about 60 a minute. It stays "-".
+export function paceText(reps: number, elapsedMs: number, hold = false): string {
+  if (hold || reps < 2 || elapsedMs < MIN_PACE_MS) return "-";
   return `${Math.round(reps / (elapsedMs / 60000))}/m`;
 }

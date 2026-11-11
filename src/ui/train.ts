@@ -4,6 +4,8 @@
 
 import { loadHistory } from "../account";
 import { EXERCISES, SECTIONS, exerciseIdForProfile } from "../profiles";
+import { ROUTINES, lengthText, totalSeconds } from "../stretches";
+import { openRoutine } from "./stretch";
 import { streakFor, weekDays, WEEKLY_GOAL } from "../progress";
 import type { SessionSummary } from "../progress";
 import {
@@ -34,6 +36,7 @@ const ICONS: Record<string, string> = {
   crunch: `<svg ${STROKE}><path d="M3 19h28"/><path d="M8 12l6 7 8-9 5 9"/><circle cx="5" cy="10" r="2.4"/></svg>`,
   plank: `<svg ${STROKE}><path d="M3 19h28"/><path d="M5 17l21-6"/><path d="M26 11v8h5"/><circle cx="29" cy="7" r="2.4"/></svg>`,
   "pull-up": `<svg ${STROKE}><path d="M5 3h24"/><path d="M12 3l5 6 5-6"/><path d="M17 9v7"/><path d="M17 16l-3 5M17 16l3 5"/></svg>`,
+  stretch: `<svg ${STROKE}><path d="M3 19h28"/><path d="M14 19l2-9-8 6"/><path d="M16 10l9-3"/><circle cx="7" cy="17" r="2.2"/></svg>`,
 };
 
 const CHEVRON =
@@ -172,6 +175,35 @@ function buildExercises(): void {
     });
     list.append(label, rows);
   }
+
+  // Guided stretches: a routine to follow along with, no camera.
+  const label = document.createElement("span");
+  label.className =
+    "mt-1.5 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
+  label.textContent = "Stretches";
+  const rows = document.createElement("div");
+  rows.className = "flex flex-col";
+  ROUTINES.forEach((routine, i) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `flex w-full items-center gap-3 border-t border-line py-[13px] text-left${i === ROUTINES.length - 1 ? " border-b" : ""}`;
+    const text = document.createElement("span");
+    text.className = "flex flex-1 flex-col";
+    const name = document.createElement("span");
+    name.className = "text-[16px] font-semibold";
+    name.textContent = routine.name;
+    const sub = document.createElement("span");
+    sub.className = "text-[13px] text-muted";
+    sub.textContent = `${lengthText(totalSeconds(routine))}. Follow along, no camera`;
+    text.append(name, sub);
+    row.append(icon("stretch"), text, chevron());
+    row.addEventListener("click", () => {
+      hideExercises();
+      openRoutine(routine.id);
+    });
+    rows.append(row);
+  });
+  list.append(label, rows);
 }
 
 export function hideExercises(): void {

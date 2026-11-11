@@ -60,3 +60,13 @@ describe("the set timer", () => {
     expect(session.setElapsedMs(52_000)).toBe(42_000);
   });
 });
+
+describe("pace for a hold", () => {
+  it("is never shown for a plank, however long it runs", () => {
+    expect(paceText(59, 59_000, true)).toBe("-");
+  });
+
+  it("still shows for reps", () => {
+    expect(paceText(10, 30_000)).toBe("20/m");
+  });
+});

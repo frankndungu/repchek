@@ -758,3 +758,34 @@ Three new exercises, all with the phone beside you (side view).
   strip shows set and reps as before. A hold shows SECS instead of REPS.
 - The set's time and pace in a clip come from the same numbers as the screen.
   When a set has just closed they come from its last rep.
+
+## No pace for a plank
+
+A plank counts seconds, so the Stats bar showed a "pace" near 60 a minute,
+which means nothing. Pace is now "-" for a hold, on the live bar and in the
+recording. Reps are unchanged.
+
+## Body lines on or off
+
+Workout setup has a Body lines switch, on by default and remembered
+(`repchek.bodyLines`). Off hides the skeleton, the spine guide and the angle
+labels, on the live screen and in the recording. Counting and form checks
+run the same either way, and faults still show in the banner and the voice.
+
+## Guided stretches
+
+A follow-along routine, no camera. All exercises has a Stretches section with
+"Full body stretch": about 8 minutes, 10 stretches (overhead reach, chest
+opener, standing quad stretch, forward fold, low lunge, downward dog, cobra,
+child's pose, seated hamstring stretch, knee hug). Three are done on each side.
+
+- Before you start: the list with each hold time. Then, for each stretch, 5
+  seconds to get ready and a countdown for the hold, with a still figure, one
+  line on how to do it, a progress bar and what is next. Pause and Skip.
+- The voice says each stretch's name (and the side). Beeps at the start of a
+  hold and on its last 3 seconds, a bell at the end. The screen stays awake.
+- Data and logic in `src/stretches.ts`, figures in `src/ui/stretchPictures.ts`
+  (generated, same style as the form previews), screen in `src/ui/stretch.ts`.
+  Tests: `tests/stretches.test.ts`.
+- Not saved to History or the streak yet. A stretch has no reps, so it would
+  need its own kind of saved session.
