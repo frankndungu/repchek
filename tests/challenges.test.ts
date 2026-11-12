@@ -49,7 +49,7 @@ describe("what counts", () => {
   it("stores one id for a one-view exercise, and none for nothing", () => {
     expect(profileIdsFor(["deadlift"])).toEqual(["deadlift"]);
     expect(profileIdsFor([])).toEqual([]);
-    expect(profileIdsFor(["squat"])).toEqual([]);
+    expect(profileIdsFor(["burpee"])).toEqual([]);
   });
 
   it("names the exercises", () => {
@@ -71,10 +71,13 @@ describe("exercises to start from a challenge", () => {
       "crunch",
       "deadlift",
       "dumbbell-row",
+      "glute-bridge",
       "mountain-climbers",
       "plank",
       "pull-up",
       "push-up",
+      "squat",
+      "wall-sit",
     ]);
   });
 });

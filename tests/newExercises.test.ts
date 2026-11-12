@@ -5,6 +5,9 @@ import { counterFor } from "../src/engine/repCounter";
 import type { ExerciseProfile, FrameMetrics } from "../src/engine/types";
 import { crunch } from "../src/profiles/crunch";
 import { dumbbellRow } from "../src/profiles/dumbbell-row";
+import { gluteBridge } from "../src/profiles/glute-bridge";
+import { squat } from "../src/profiles/squat";
+import { wallSit } from "../src/profiles/wall-sit";
 import { EXERCISES, findProfile, profileFor } from "../src/profiles";
 import { plank } from "../src/profiles/plank";
 import { pullUp } from "../src/profiles/pull-up";
@@ -26,7 +29,7 @@ function run(profile: ExerciseProfile, metric: keyof FrameMetrics, values: numbe
 
 describe("the three new exercises are in the app", () => {
   it("can be picked and have a profile", () => {
-    for (const id of ["crunch", "plank", "pull-up", "dumbbell-row"]) {
+    for (const id of ["crunch", "plank", "pull-up", "dumbbell-row", "squat", "glute-bridge", "wall-sit"]) {
       const exercise = EXERCISES.find((e) => e.id === id)!;
       expect(exercise).toBeDefined();
       expect(profileFor(exercise, "beside").id).toBe(id);
@@ -34,8 +37,8 @@ describe("the three new exercises are in the app", () => {
     }
   });
 
-  it("only the plank counts seconds", () => {
-    expect(EXERCISES.filter((e) => e.unit === "seconds").map((e) => e.id)).toEqual(["plank"]);
+  it("only the plank and the wall sit count seconds", () => {
+    expect(EXERCISES.filter((e) => e.unit === "seconds").map((e) => e.id).sort()).toEqual(["plank", "wall-sit"]);
   });
 });
 
@@ -138,5 +141,63 @@ describe("dumbbell row counts the working arm like the barbell row", () => {
     let verdict = judge.evaluate(frame({ torsoAngle: 80, neckAngle: 170 }), "moving-out");
     for (let i = 0; i < 6; i++) verdict = judge.evaluate(frame({ torsoAngle: 80, neckAngle: 170 }), "moving-out");
     expect(verdict.failures.map((r) => r.id)).toEqual(["torso-too-upright"]);
+  });
+});
+
+describe("squats count the knee bending to the bottom and back", () => {
+  const upright = { torsoAngle: 70 };
+
+  it("counts a squat to 90 degrees", () => {
+    expect(run(squat, "kneeAngle", [175, 150, 120, 92, 120, 150, 172], upright)).toEqual(["rep"]);
+  });
+
+  it("calls a quarter squat a partial rep", () => {
+    expect(run(squat, "kneeAngle", [175, 150, 130, 125, 150, 172], upright)).toEqual(["partial"]);
+  });
+
+  it("flags folding over", () => {
+    const judge = new Judge(squat);
+    let verdict = judge.evaluate(frame({ torsoAngle: 20 }), "turn");
+    for (let i = 0; i < 6; i++) verdict = judge.evaluate(frame({ torsoAngle: 20 }), "turn");
+    expect(verdict.failures.map((r) => r.id)).toEqual(["chest-up"]);
+  });
+});
+
+describe("glute bridges count the hips lifting into a line", () => {
+  it("counts a lift from 132 to 175 degrees and back", () => {
+    expect(run(gluteBridge, "hipAngle", [132, 145, 160, 175, 160, 145, 132], { kneeAngle: 80, torsoAngle: 0 })).toEqual(["rep"]);
+  });
+
+  it("does not arm with straight legs", () => {
+    const gate = new ReadinessGate(gluteBridge);
+    let armed = false;
+    for (let t = 0; t <= 2000; t += 100) armed = gate.update(frame({ hipAngle: 132, kneeAngle: 175, torsoAngle: 0 }), t) || armed;
+    expect(armed).toBe(false);
+  });
+});
+
+describe("wall sit counts seconds sitting", () => {
+  const sitting = { kneeAngle: 92, torsoAngle: 85 };
+
+  it("gives one for each full second", () => {
+    expect(run(wallSit, "kneeAngle", Array(25).fill(92), { torsoAngle: 85 })).toEqual(["rep", "rep"]);
+  });
+
+  it("stops counting when you stand up", () => {
+    expect(run(wallSit, "kneeAngle", [...Array(8).fill(92), ...Array(5).fill(170), ...Array(8).fill(92)], { torsoAngle: 85 })).toEqual([]);
+  });
+
+  it("arms when you hold the sit still", () => {
+    const gate = new ReadinessGate(wallSit);
+    let armed = false;
+    for (let t = 0; t <= 1200 && !armed; t += 100) armed = gate.update(frame(sitting), t);
+    expect(armed).toBe(true);
+  });
+
+  it("calls a sit that is too high a fault", () => {
+    const judge = new Judge(wallSit);
+    let verdict = judge.evaluate(frame({ kneeAngle: 118, torsoAngle: 85 }), "turn");
+    for (let i = 0; i < 6; i++) verdict = judge.evaluate(frame({ kneeAngle: 118, torsoAngle: 85 }), "turn");
+    expect(verdict.failures.map((r) => r.id)).toEqual(["thighs-level"]);
   });
 });
