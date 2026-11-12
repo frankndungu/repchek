@@ -13,6 +13,7 @@ const hudText = q<HTMLElement>("#hud-text");
 const counter = q<HTMLElement>("#counter");
 const debug = q<HTMLElement>("#debug");
 const statsBtn = q<HTMLButtonElement>("#stats-btn");
+const linesBtn = q<HTMLButtonElement>("#lines-btn");
 const bigCount = q<HTMLElement>("#big-count");
 const bigCountN = q<HTMLElement>("#big-count-n");
 const panel = q<HTMLElement>("#stats-panel");
@@ -44,6 +45,7 @@ function drawPanelState(): void {
   bigCount.hidden = !showing || statsOpen;
   panel.hidden = !showing || !statsOpen;
   statsBtn.hidden = !showing;
+  linesBtn.hidden = !showing;
   statsBtn.setAttribute("aria-pressed", String(statsOpen));
 }
 

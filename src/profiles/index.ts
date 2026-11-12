@@ -16,6 +16,9 @@ import { crunch } from "./crunch";
 import { plank } from "./plank";
 import { pullUp } from "./pull-up";
 import { dumbbellRow } from "./dumbbell-row";
+import { squat } from "./squat";
+import { gluteBridge } from "./glute-bridge";
+import { wallSit } from "./wall-sit";
 
 export const PROFILES: ExerciseProfile[] = [
   deadlift,
@@ -35,6 +38,9 @@ export const PROFILES: ExerciseProfile[] = [
   plank,
   pullUp,
   dumbbellRow,
+  squat,
+  gluteBridge,
+  wallSit,
 ];
 
 export function findProfile(id: string): ExerciseProfile {
@@ -91,6 +97,27 @@ export const EXERCISES: ExerciseChoice[] = [
     // Beside you only. From the front your arms and chest hide your knees,
     // so the model cannot follow them and nothing is counted.
     positions: { beside: "mountain-climbers" },
+  },
+  {
+    id: "squat",
+    name: "Squat",
+    section: "At home",
+    detail: "Bodyweight, goblet or barbell",
+    positions: { beside: "squat" },
+  },
+  {
+    id: "glute-bridge",
+    name: "Glute bridge",
+    section: "At home",
+    positions: { beside: "glute-bridge" },
+  },
+  {
+    id: "wall-sit",
+    name: "Wall sit",
+    section: "At home",
+    detail: "Counts seconds held",
+    positions: { beside: "wall-sit" },
+    unit: "seconds",
   },
   {
     id: "crunch",

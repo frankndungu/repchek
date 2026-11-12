@@ -789,3 +789,29 @@ child's pose, seated hamstring stretch, knee hug). Three are done on each side.
   Tests: `tests/stretches.test.ts`.
 - Not saved to History or the streak yet. A stretch has no reps, so it would
   need its own kind of saved session.
+
+## Lines button on the live screen
+
+A Lines button sits next to Stats while you train. White means the body lines
+are showing, dark means they are hidden. It is the same choice as the Body
+lines switch on Workout setup, and the two always agree. Fixed with it: the
+skeleton drawing was the only thing clearing the overlay, so with lines off
+the last skeleton stayed frozen on screen and in the recording. The overlay
+is now cleared on every frame either way.
+
+## Squat, glute bridge and wall sit
+
+Three more, all side view, all under At home. Provisional like the other new
+ones: reasoned from the body and tested on made-up frames, not on recorded
+sets.
+
+- **Squat**: counts the knee from standing (about 175) to the bottom (about
+  90). Bodyweight by default; a goblet or barbell squat adds its kilos on
+  setup. One lenient rule: chest up.
+- **Glute bridge**: counts the hips lifting until shoulders, hips and knees are
+  in a line (hip angle about 135 down, near 180 up). Needs bent knees to arm.
+- **Wall sit**: a hold, like the plank. Every second sitting counts; a second
+  is clean when the thighs are close to level (knee angle 110 or less).
+- Form pictures (the wall sit has a wall), icons, form tips. Challenges can
+  count all three (migration `20261112120000_challenge_squat_bridge_wall_sit.sql`,
+  applied).
