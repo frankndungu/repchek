@@ -836,11 +836,18 @@ recordSwitch.addEventListener("click", () => {
 // The Body lines switch.
 const bodyLinesSwitch = q<HTMLElement>("#body-lines-switch");
 renderSwitch(bodyLinesSwitch, showBodyLines);
-bodyLinesSwitch.addEventListener("click", () => {
-  showBodyLines = !showBodyLines;
-  writeSetting(BODY_LINES_STORAGE_KEY, showBodyLines ? "on" : "off");
-  renderSwitch(bodyLinesSwitch, showBodyLines);
-});
+// The same choice as the Lines button on the live screen, so the two always
+// agree. Changing it mid workout takes effect on the next frame.
+const linesBtn = q<HTMLButtonElement>("#lines-btn");
+function setBodyLines(on: boolean): void {
+  showBodyLines = on;
+  writeSetting(BODY_LINES_STORAGE_KEY, on ? "on" : "off");
+  renderSwitch(bodyLinesSwitch, on);
+  linesBtn.setAttribute("aria-pressed", String(on));
+}
+setBodyLines(showBodyLines);
+bodyLinesSwitch.addEventListener("click", () => setBodyLines(!showBodyLines));
+linesBtn.addEventListener("click", () => setBodyLines(!showBodyLines));
 
 // How it works: opens once by itself on a first visit.
 for (const figure of howScreen.querySelectorAll<SVGElement>("[data-color]")) {
@@ -1845,6 +1852,9 @@ function uncountedFrame(
       drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
     }
     if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
+  } else {
+    // Drawing is what clears the last frame, so clear it here instead.
+    clearCanvas(ctx);
   }
   showFeedback([]);
   recordFrame("");
@@ -1945,6 +1955,7 @@ function loop(): void {
         );
         updateTrackingHint(missing, now);
         if (showBodyLines) drawSkeleton(ctx, landmarks, LOW_CONFIDENCE_COLOR);
+        else clearCanvas(ctx);
         showFeedback([]);
         recordFrame("");
         handleLostFrame(now);
@@ -2041,6 +2052,8 @@ function loop(): void {
               drawSpineGuide(ctx, landmarks, side, GUIDE_COLOR);
             }
             if (showAngles) drawAngleLabels(ctx, landmarks, metrics, mirrored);
+          } else {
+            clearCanvas(ctx);
           }
           const feedback = verdict.failures.map((rule) => rule.message);
           showFeedback(feedback);

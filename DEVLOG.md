@@ -789,3 +789,12 @@ child's pose, seated hamstring stretch, knee hug). Three are done on each side.
   Tests: `tests/stretches.test.ts`.
 - Not saved to History or the streak yet. A stretch has no reps, so it would
   need its own kind of saved session.
+
+## Lines button on the live screen
+
+A Lines button sits next to Stats while you train. White means the body lines
+are showing, dark means they are hidden. It is the same choice as the Body
+lines switch on Workout setup, and the two always agree. Fixed with it: the
+skeleton drawing was the only thing clearing the overlay, so with lines off
+the last skeleton stayed frozen on screen and in the recording. The overlay
+is now cleared on every frame either way.
