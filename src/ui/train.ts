@@ -36,6 +36,7 @@ const ICONS: Record<string, string> = {
   crunch: `<svg ${STROKE}><path d="M3 19h28"/><path d="M8 12l6 7 8-9 5 9"/><circle cx="5" cy="10" r="2.4"/></svg>`,
   plank: `<svg ${STROKE}><path d="M3 19h28"/><path d="M5 17l21-6"/><path d="M26 11v8h5"/><circle cx="29" cy="7" r="2.4"/></svg>`,
   "pull-up": `<svg ${STROKE}><path d="M5 3h24"/><path d="M12 3l5 6 5-6"/><path d="M17 9v7"/><path d="M17 16l-3 5M17 16l3 5"/></svg>`,
+  "tyson-push-up": `<svg ${STROKE}><path d="M3 19h28"/><path d="M5 18l6-5 6-6 10 3v9"/><circle cx="29" cy="8" r="2.4"/></svg>`,
   squat: `<svg ${STROKE}><path d="M3 19h28"/><path d="M15 19l5-6-8-1 4-9"/><path d="M16 6l7 3"/><circle cx="17" cy="3" r="2.2"/></svg>`,
   "glute-bridge": `<svg ${STROKE}><path d="M3 19h28"/><path d="M6 18l10-6 7 1 1 6"/><circle cx="5" cy="16" r="2.2"/></svg>`,
   "wall-sit": `<svg ${STROKE}><path d="M6 2v17"/><path d="M3 19h28"/><path d="M8 5v9h9v5"/><circle cx="8" cy="3" r="2.2"/></svg>`,

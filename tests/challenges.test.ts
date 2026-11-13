@@ -77,6 +77,7 @@ describe("exercises to start from a challenge", () => {
       "pull-up",
       "push-up",
       "squat",
+      "tyson-push-up",
       "wall-sit",
     ]);
   });
