@@ -12,6 +12,7 @@ export const TRAIN_ORDER = [
   "deadlift",
   "barbell-row",
   "dumbbell-row",
+  "tyson-push-up",
   "squat",
   "glute-bridge",
   "wall-sit",

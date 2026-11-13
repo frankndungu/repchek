@@ -8,6 +8,7 @@ import { dumbbellRow } from "../src/profiles/dumbbell-row";
 import { gluteBridge } from "../src/profiles/glute-bridge";
 import { squat } from "../src/profiles/squat";
 import { wallSit } from "../src/profiles/wall-sit";
+import { tysonPushUp } from "../src/profiles/tyson-push-up";
 import { EXERCISES, findProfile, profileFor } from "../src/profiles";
 import { plank } from "../src/profiles/plank";
 import { pullUp } from "../src/profiles/pull-up";
@@ -29,7 +30,7 @@ function run(profile: ExerciseProfile, metric: keyof FrameMetrics, values: numbe
 
 describe("the three new exercises are in the app", () => {
   it("can be picked and have a profile", () => {
-    for (const id of ["crunch", "plank", "pull-up", "dumbbell-row", "squat", "glute-bridge", "wall-sit"]) {
+    for (const id of ["crunch", "plank", "pull-up", "dumbbell-row", "squat", "glute-bridge", "wall-sit", "tyson-push-up"]) {
       const exercise = EXERCISES.find((e) => e.id === id)!;
       expect(exercise).toBeDefined();
       expect(profileFor(exercise, "beside").id).toBe(id);
@@ -199,5 +200,35 @@ describe("wall sit counts seconds sitting", () => {
     let verdict = judge.evaluate(frame({ kneeAngle: 118, torsoAngle: 85 }), "turn");
     for (let i = 0; i < 6; i++) verdict = judge.evaluate(frame({ kneeAngle: 118, torsoAngle: 85 }), "turn");
     expect(verdict.failures.map((r) => r.id)).toEqual(["thighs-level"]);
+  });
+});
+
+describe("Mike Tyson push-ups count hips high, dive down, push back", () => {
+  const onFloor = { torsoAngle: -20 };
+
+  it("counts a dive from hips high to a long low body and back", () => {
+    expect(run(tysonPushUp, "hipAngle", [92, 110, 130, 158, 165, 140, 115, 95], onFloor)).toEqual(["rep"]);
+  });
+
+  it("calls a dive that stops short a partial rep", () => {
+    expect(run(tysonPushUp, "hipAngle", [92, 110, 125, 128, 110, 94], onFloor)).toEqual(["partial"]);
+  });
+
+  it("does not arm standing up", () => {
+    const gate = new ReadinessGate(tysonPushUp);
+    let armed = false;
+    for (let t = 0; t <= 2000; t += 100) armed = gate.update(frame({ hipAngle: 95, torsoAngle: 80 }), t) || armed;
+    expect(armed).toBe(false);
+  });
+
+  it("wants the elbows bent at the bottom, and only there", () => {
+    const judge = new Judge(tysonPushUp);
+    let bottom = judge.evaluate(frame({ elbowAngle: 170 }), "turn");
+    for (let i = 0; i < 6; i++) bottom = judge.evaluate(frame({ elbowAngle: 170 }), "turn");
+    expect(bottom.failures.map((r) => r.id)).toEqual(["dip-low"]);
+    const top = new Judge(tysonPushUp);
+    let up = top.evaluate(frame({ elbowAngle: 170 }), "ready");
+    for (let i = 0; i < 6; i++) up = top.evaluate(frame({ elbowAngle: 170 }), "ready");
+    expect(up.ok).toBe(true);
   });
 });

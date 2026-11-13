@@ -815,3 +815,13 @@ sets.
 - Form pictures (the wall sit has a wall), icons, form tips. Challenges can
   count all three (migration `20261112120000_challenge_squat_bridge_wall_sit.sql`,
   applied).
+
+## Mike Tyson push-ups
+
+Hips high with knees bent, dive forward and down into the bottom of a
+push-up, push back to hips high. Side view, At home. Counted on the hip angle
+(shoulder, hip, knee): about 90 with the hips high, 150 or more long and low.
+One rule, only at the bottom: the elbows should bend as the chest dips. From
+one video, so provisional until recorded sets with `?debug=1` are in.
+Challenges can count it (migration `20261113120000_challenge_tyson_push_up.sql`,
+applied).

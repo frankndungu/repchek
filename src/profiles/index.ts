@@ -19,6 +19,7 @@ import { dumbbellRow } from "./dumbbell-row";
 import { squat } from "./squat";
 import { gluteBridge } from "./glute-bridge";
 import { wallSit } from "./wall-sit";
+import { tysonPushUp } from "./tyson-push-up";
 
 export const PROFILES: ExerciseProfile[] = [
   deadlift,
@@ -41,6 +42,7 @@ export const PROFILES: ExerciseProfile[] = [
   squat,
   gluteBridge,
   wallSit,
+  tysonPushUp,
 ];
 
 export function findProfile(id: string): ExerciseProfile {
@@ -89,6 +91,13 @@ export const EXERCISES: ExerciseChoice[] = [
       beside: "Checks your body stays straight",
       front: "Checks your elbows stay tucked",
     },
+  },
+  {
+    id: "tyson-push-up",
+    name: "Mike Tyson push-up",
+    section: "At home",
+    detail: "Hips high, dive down, push back",
+    positions: { beside: "tyson-push-up" },
   },
   {
     id: "mountain-climbers",

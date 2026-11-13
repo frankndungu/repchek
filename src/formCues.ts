@@ -25,6 +25,10 @@ export const FORM_CUES: Record<string, FormCue> = {
     form: "Back flat, eyes forward. Pull the bar to your belly.",
     phone: "Stand sideways to the phone, whole body in frame.",
   },
+  "tyson-push-up": {
+    form: "Start with your hips high. Dive your chest down and forward, then push back.",
+    phone: "Phone on the floor, side on.",
+  },
   squat: {
     form: "Chest up, knees over your toes. Sit down until your thighs are level.",
     phone: "Stand sideways to the phone, whole body in frame.",
