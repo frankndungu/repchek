@@ -1,4 +1,4 @@
-# repchek
+# Repchek
 
 **Your phone camera counts your reps, checks your form and shows your progress.**
 
