@@ -30,10 +30,10 @@ the exercise list below; no engine or UI code changes.
 What the user picks is an exercise; what the app measures is a profile.
 Most exercises have one profile. A few, like push-ups and mountain
 climbers, have two: one for the phone beside you (side view) and one for
-the phone in front of you (front view). The start screen shows one chip per
-exercise, grouped by muscle (Chest, Back, Arms, Core), and for an exercise
-with two profiles asks "Where is your phone?". The choice is remembered per
-exercise.
+the phone in front of you (front view). All exercises lists one row per
+exercise, grouped by where you train (At home, Free weights), and Workout
+setup asks where the phone is ("Beside you" or "In front") for an exercise
+with two profiles. The choice is remembered per exercise.
 
 The two profiles stay separate because the two views see different
 things. From the side you can see whether the body stays in a straight line
@@ -100,9 +100,9 @@ the profile files and are tuned by hand.
 
 The verdict drives two channels. The skeleton color and banner message are
 for review between reps. For mid-rep, when you cannot look at the phone,
-the coach speaks a short cue (below). The start screen's "Coach voice"
-setting chooses Voice, Beep (the old 880 Hz square wave from
-`src/ui/audio.ts`) or Off. Audio is unlocked inside the Start Camera tap
+the coach speaks a short cue (below). The Voice coach switch on Workout
+setup chooses the spoken cue (on) or a beep (off, the 880 Hz square wave
+from `src/ui/audio.ts`). Audio is unlocked inside the Start Camera tap
 because browsers require a user gesture before playing sound.
 
 ## Coach cues

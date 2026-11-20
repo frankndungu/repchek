@@ -121,7 +121,7 @@ a target of sets and reps. A set closes in one of two ways:
 - the rep target is reached
 - 20 seconds pass without a completed rep, after at least one rep
 
-The second is rest detection: no button, Morgan notices you stopped. When a
+The second is rest detection: no button, repchek notices you stopped. When a
 set closes the rep count resets, the label shows REST until the next rep,
 and after the last set the session is done.
 

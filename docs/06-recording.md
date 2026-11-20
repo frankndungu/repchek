@@ -1,11 +1,11 @@
 # Recording sets
 
-With "Record sets" on, every set becomes its own short video: the camera,
-the skeleton and the key HUD numbers, burned into one picture. If nothing
-is ever counted, the session keeps an "Attempt" clip instead. Clips show
-up on the summary screen with a Share button. The code is in
-`src/ui/recorder.ts` (making the clips) and `src/ui/clips.ts` (listing and
-sharing them).
+With "Record my set" on (the default, switched on Workout setup), every set
+becomes its own short video: the camera, the skeleton and the live stats,
+burned into one picture. If nothing is ever counted, the session keeps an
+"Attempt" clip instead. Clips show up on the summary screen with Watch and
+Share buttons. The code is in `src/ui/recorder.ts` (making the clips) and
+`src/ui/clips.ts` (listing, playing and sharing them).
 
 ## Composing the frame
 
@@ -14,16 +14,20 @@ canvas. So `SetRecorder` owns a second, invisible canvas and paints every
 processed camera frame onto it, in this order:
 
 1. the camera frame
-2. the overlay canvas with the skeleton, spine guide and angle labels
-3. a dark strip across the top with the exercise, "Set X/Y", "Reps N" and
-   a second line: the current feedback message once counting, or until the
-   gate arms, the same text as the pill ("HOLD STILL", "MOVE BACK, I CAN'T
-   SEE YOUR HANDS" and so on), so a clip shows why counting has not started
-4. "repchek.fit" small in the bottom right corner
+2. the overlay canvas with the skeleton, spine guide and angle labels. With
+   Body lines off, the overlay is cleared every frame and nothing is drawn.
+3. a dark strip across the top with the exercise and a second line: the
+   current feedback message once counting, or until the gate arms, the same
+   text as the pill ("HOLD STILL", "MOVE BACK, I CAN'T SEE YOUR HANDS" and so
+   on), so a clip shows why counting has not started. With Stats off, the
+   strip also shows "Set X/Y" and "Reps N".
+4. with Stats on, the same bar as the live screen across the bottom: Set,
+   Reps (Secs for a hold), Time and Pace, and the Rest to Peak line
+5. "repchek.fit" small in the bottom right corner, above the bar
 
 With the front camera the screen is mirrored with CSS, so steps 1 and 2 are
 flipped the same way on the recording canvas. Otherwise the clip would be a
-mirror image of what you saw. Steps 3 and 4 are drawn after the flip is
+mirror image of what you saw. Steps 3 to 5 are drawn after the flip is
 undone, so the text always reads normally.
 
 The canvas matches the camera's shape, capped at 1280 px on the long side,
@@ -115,10 +119,10 @@ first yes:
 - `video/webm`
 
 The shared file ends in `.mp4` or `.webm` to match. Browsers with no
-`MediaRecorder` or no `captureStream` never see the Record sets option,
+`MediaRecorder` or no `captureStream` never see the Record my set switch,
 and the app works exactly as before.
 
-## Nothing leaves the phone
+## Where the video goes
 
 The clips are held in memory as blobs, never uploaded and never saved to
 storage. Share hands the file to the phone's own share sheet, or downloads

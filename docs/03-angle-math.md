@@ -1,6 +1,6 @@
 # Angle math
 
-How Morgan turns landmark coordinates into joint angles. This is stage 2 of
+How repchek turns landmark coordinates into joint angles. This is stage 2 of
 the pipeline (`src/engine/angles.ts`) and the foundation every form rule
 stands on.
 
