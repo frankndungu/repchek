@@ -1,4 +1,29 @@
-# Repchek Development Log
+# repchek development log
+
+The build log, from the first skeleton on screen to an open source app. Each
+section says what changed, why, and what was learned, in the order it
+happened. Early entries call the app by its working name, Morgan, and
+describe gym lifts that were later set aside to focus on home workouts and
+free weights. They are kept as written.
+
+For how the system works today, start with the [README](README.md) and
+[docs/00-architecture.md](docs/00-architecture.md).
+
+## Timeline
+
+- **September**: scaffold, camera and live skeleton; angle maths; the judge
+  and profiles; the rep counter with sets and rest; the readiness gate; a new
+  look and name; the rolling start; home workouts first.
+- **Early October**: front view push-ups and mountain climbers; recording sets;
+  the lifter lock.
+- **Early November**: sign in, the camera step, sessions saved to the account,
+  History, Profile and the four tabs; Premium with Polar payments and the
+  progress report; launch fixes from recorded sets and debug capture; Train
+  as home; the new workout screens; streaks with a weekly goal and a heatmap;
+  challenges and the Hall of Gains.
+- **Mid November**: session replay with the stats in the video; crunches,
+  plank, pull-ups, dumbbell rows, squats, glute bridges, wall sits and Mike
+  Tyson push-ups; the body lines switch; guided stretches; open source.
 
 ## Day 1 (2026-09-19): Scaffold, camera, and first skeleton
 
@@ -454,6 +479,26 @@ the offer sheet, the welcome screen, the testimonial card, the Polar
 checkout link and the code behind them. Nobody signed up. Premium replaces
 it later. The history above is kept as it was.
 
+## Sign in, the camera step and Premium payments (catch-up)
+
+These shipped in early November and were not logged at the time.
+
+- **Sign in** with Supabase: Google, or a 6 digit code sent by email (no
+  passwords). A new email gets an account on the first code, so sign in and
+  sign up are one step. All auth calls live in `src/auth.ts`, and only the
+  anon key is in the app.
+- **The camera step** right after signing in: an "Allow your camera" screen
+  that asks once, then How it works once.
+- **Premium with Polar** as the seller of record. The `billing` edge function
+  creates a checkout or opens the customer portal; the `polar-webhook` edge
+  function checks the signature and sets `plan`, `premium_until` and
+  `cancel_at_period_end` on the profile. The Polar keys are function secrets,
+  never in the app. Polar's customer session token is removed from the
+  address bar and from analytics when a customer comes back
+  (`src/privacy.ts`).
+- **Legal pages** (privacy and terms on repchek.fit) were updated for
+  payments, and later for challenges.
+
 ## Sessions saved to the account, and the Profile tab
 
 Every finished session with at least one rep is saved to Supabase, one row
@@ -825,3 +870,20 @@ One rule, only at the bottom: the elbows should bend as the chest dips. From
 one video, so provisional until recorded sets with `?debug=1` are in.
 Challenges can count it (migration `20261113120000_challenge_tyson_push_up.sql`,
 applied).
+
+## Open source
+
+repchek is now open source under the MIT license.
+
+- A new README: what the app does, screenshots (app screens with sample data
+  and two frames from real sets), how to use it, how the computer vision
+  pipeline works, how to run it and set up a backend, the project structure,
+  how to add an exercise, debug mode, privacy and limitations.
+- `CONTRIBUTING.md`, with how to report a miscount using `?debug=1`, and
+  `LICENSE`.
+- `docs/00-architecture.md` rewritten for the app as it is now. The other docs
+  were brought up to date (the working name, the setup screen, the recording
+  with the stats bar and the body lines switch).
+- Before publishing, the whole history was checked for keys and secrets: none
+  were ever committed. A real account id in a test was replaced with a made-up
+  one.

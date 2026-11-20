@@ -2,6 +2,12 @@
   "name": "repchek",
   "private": true,
   "version": "0.0.0",
+  "description": "Counts your reps, checks your form and shows your progress, from a phone camera in the browser.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/frankndungu/repchek.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,6 +1,6 @@
 # Camera and getUserMedia
 
-How Morgan gets video from the phone, and the rules browsers enforce around
+How repchek gets video from the phone, and the rules browsers enforce around
 camera access.
 
 ## getUserMedia
@@ -26,7 +26,7 @@ Browsers only expose the camera in a secure context: HTTPS or localhost. The
 reason is that on plain HTTP a network attacker can inject scripts into the
 page, and an injected script with camera access could silently record you.
 
-Practical consequences for Morgan:
+Practical consequences for repchek:
 
 - `npm run dev` on the laptop works, because localhost counts as secure
 - The Vercel URL works on the phone, because Vercel serves HTTPS
@@ -39,7 +39,7 @@ getUserMedia takes constraints, which are preferences rather than commands.
 `{ ideal: value }` means "give me the closest thing the hardware supports".
 
 - `facingMode: "environment"` requests the rear camera ("user" is the selfie
-  camera). Morgan wants rear, since the phone is propped up facing the lifter.
+  camera). repchek wants rear, since the phone is propped up facing the lifter.
 - `width` / `height` ideals request a resolution; the browser picks the
   nearest supported mode.
 
@@ -51,7 +51,7 @@ it is the classic "camera app broken on iPhone" bug.
 
 ## Why a start button
 
-Morgan starts the camera from a tap rather than on page load. Mobile browsers
+repchek starts the camera from a tap rather than on page load. Mobile browsers
 are more permissive about camera and audio when triggered by a user gesture,
 the permission prompt has an obvious cause the user just tapped, and the
 form-break beep we add later requires a gesture to unlock audio anyway. One

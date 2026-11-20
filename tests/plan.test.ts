@@ -92,7 +92,7 @@ describe("shouldApply", () => {
 
 describe("isUuid", () => {
   it("accepts a user id and rejects anything else", () => {
-    expect(isUuid("672d085e-a568-4d93-bccc-ce26d451b036")).toBe(true);
+    expect(isUuid("3f9a6c2e-8b1d-4e57-9a2c-6d0e4b7f1a35")).toBe(true);
     expect(isUuid("not-an-id")).toBe(false);
     expect(isUuid(null)).toBe(false);
   });
